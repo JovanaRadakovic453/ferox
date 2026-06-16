@@ -1,0 +1,99 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,600&family=Outfit:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+:root {
+  --bg: #EAD9C8;
+  --surface: #FDF8F3;
+  --surface2: #F5EDE3;
+  --gold: #D4742A;
+  --gold-light: #E8924A;
+  --text: #1A1714;
+  --text-muted: #6B5F54;
+  --border: #D9C9B8;
+  --sh1: 0 2px 12px rgba(26, 23, 20, 0.08);
+  --sh2: 0 4px 24px rgba(26, 23, 20, 0.12);
+  --radius: 14px;
+  --radius-lg: 20px;
+}
+
+.dark {
+  --bg: #2a2620;
+  --surface: #332e27;
+  --surface2: #3d3830;
+  --gold: #c9a96e;
+  --gold-light: #d4b87a;
+  --text: #f5f2ec;
+  --text-muted: #a89880;
+  --border: #4a4238;
+  --sh1: 0 2px 12px rgba(0, 0, 0, 0.25);
+  --sh2: 0 4px 24px rgba(0, 0, 0, 0.35);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface2: var(--surface2);
+  --color-gold: var(--gold);
+  --color-gold-light: var(--gold-light);
+  --color-ferox-text: var(--text);
+  --color-muted: var(--text-muted);
+  --color-border: var(--border);
+  --font-serif: 'Cormorant Garamond', Georgia, serif;
+  --font-sans: 'Outfit', system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Outfit', system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}
+
+/* Animations */
+@keyframes fadeSlide {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.05); }
+}
+
+.animate-fade-slide {
+  animation: fadeSlide 0.3s ease forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.4s ease forwards;
+}
