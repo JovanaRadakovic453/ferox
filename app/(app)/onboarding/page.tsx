@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import LogoutButton from '@/components/LogoutButton'
+import OnboardingFlow from '@/components/onboarding/OnboardingFlow'
 
 export default async function OnboardingPage() {
   const supabase = await createClient()
@@ -18,26 +18,5 @@ export default async function OnboardingPage() {
     redirect('/')
   }
 
-  return (
-    <main
-      className="min-h-dvh flex flex-col items-center justify-center p-5 text-center"
-      style={{ color: 'var(--text)' }}
-    >
-      <h1
-        className="text-5xl font-light mb-3"
-        style={{ fontFamily: 'var(--font-serif)', color: 'var(--gold)' }}
-      >
-        Dobrodošla, {profile?.name || 'tu'}!
-      </h1>
-      <p className="text-base mb-8 max-w-[300px]" style={{ color: 'var(--text-muted)' }}>
-        Hajde da podesimo Ferox prema tvojim navikama
-      </p>
-      <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-        5-koračni onboarding — Faza 3 (coming soon)
-      </p>
-      <div className="mt-8">
-        <LogoutButton />
-      </div>
-    </main>
-  )
+  return <OnboardingFlow initialName={profile?.name ?? ''} />
 }
