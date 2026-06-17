@@ -1,0 +1,269 @@
+'use client'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+import { calcBlocks } from '@/lib/energy'
+import { TASK_TYPE_LABELS } from '@/types/ferox'
+import type { Task, DayEntry, UserProfile, PlanBlock } from '@/types/ferox'
+import Button from '@/components/ui/Button'
+import LogoutButton from '@/components/LogoutButton'
+
+function assignTasksToBlocks(tasks: Task[], blocks: ReturnType<typeof calcBlocks>): PlanBlock[] {
+  const high   = tasks.filter(t => t.priority === 'high')
+  const medium = tasks.filter(t => t.priority === 'medium')
+  const low    = tasks.filter(t => t.priority === 'low')
+
+  const distributed: Task[][] = [[], [], [], []]
+  ;[...high, ...medium, ...low].forEach((t, i) => {
+    distributed[i % 4].push(t)
+  })
+
+  return blocks.map((b, i) => ({
+    label: b.label,
+    badge: b.color,
+    badgeText: b.emoji,
+    timeRange: b.timeRange,
+    tasks: distributed[i],
+  }))
+}
+
+function TaskItem({
+  task, onToggle,
+}: { task: Task; onToggle: () => void }) {
+  return (
+    <button
+      onClick={onToggle}
+      className="flex items-start gap-3 w-full text-left py-2 group"
+    >
+      <div
+        className="mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all duration-200"
+        style={{
+          borderColor: task.done ? 'var(--gold)' : 'var(--border)',
+          background: task.done ? 'var(--gold)' : 'transparent',
+        }}
+      >
+        {task.done && <span className="text-white text-xs">✓</span>}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p
+          className="text-sm font-medium transition-all duration-200"
+          style={{
+            color: task.done ? 'var(--text-muted)' : 'var(--text)',
+            textDecoration: task.done ? 'line-through' : 'none',
+            opacity: task.done ? 0.6 : 1,
+          }}
+        >
+          {task.name}
+        </p>
+        {task.note && (
+          <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{task.note}</p>
+        )}
+        <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+          {TASK_TYPE_LABELS[task.type]}
+        </p>
+      </div>
+      <span
+        className="text-xs px-1.5 py-0.5 rounded shrink-0"
+        style={{
+          background: task.priority === 'high' ? '#ef444420' : task.priority === 'medium' ? '#f59e0b20' : '#22c55e20',
+          color: task.priority === 'high' ? '#ef4444' : task.priority === 'medium' ? '#f59e0b' : '#22c55e',
+        }}
+      >
+        {task.priority === 'high' ? 'V' : task.priority === 'medium' ? 'S' : 'N'}
+      </span>
+    </button>
+  )
+}
+
+function BlockCard({ block, onToggle }: { block: PlanBlock; onToggle: (taskName: string) => void }) {
+  const done = block.tasks.filter(t => t.done).length
+  const total = block.tasks.length
+
+  if (total === 0) return null
+
+  return (
+    <div
+      className="rounded-[16px] overflow-hidden"
+      style={{ background: 'var(--surface)', boxShadow: 'var(--sh1)' }}
+    >
+      <div
+        className="flex items-center justify-between px-4 py-3"
+        style={{ background: block.badge }}
+      >
+        <div className="flex items-center gap-2">
+          <span>{block.badgeText}</span>
+          <span className="font-medium text-sm" style={{ color: 'var(--text)' }}>{block.label}</span>
+        </div>
+        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{block.timeRange}</span>
+      </div>
+
+      {/* Progress bar */}
+      {total > 0 && (
+        <div className="h-1 w-full" style={{ background: 'var(--border)' }}>
+          <div
+            className="h-full transition-all duration-500"
+            style={{ width: `${(done / total) * 100}%`, background: 'var(--gold)' }}
+          />
+        </div>
+      )}
+
+      <div className="px-4 divide-y" style={{ borderColor: 'var(--border)' }}>
+        {block.tasks.map(task => (
+          <TaskItem key={task.name} task={task} onToggle={() => onToggle(task.name)} />
+        ))}
+      </div>
+
+      {total > 0 && (
+        <div className="px-4 py-2">
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{done}/{total} završeno</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default function PlanScreen({
+  entry, tasks: initialTasks, profile,
+}: {
+  entry: DayEntry
+  tasks: Task[]
+  profile: UserProfile
+}) {
+  const router = useRouter()
+  const [tasks, setTasks] = useState<Task[]>(initialTasks)
+  const [savingEod, setSavingEod] = useState(false)
+  const [showEod, setShowEod] = useState(false)
+
+  const blocks = calcBlocks(profile.start_time ?? '08:00', profile.sleep_time ?? '23:00', profile.rhythm)
+  const planBlocks = assignTasksToBlocks(tasks, blocks)
+
+  const done = tasks.filter(t => t.done).length
+  const total = tasks.length
+  const allDone = done === total && total > 0
+
+  async function toggleTask(taskName: string) {
+    const supabase = createClient()
+    const task = tasks.find(t => t.name === taskName)
+    if (!task) return
+
+    const newDone = !task.done
+    setTasks(prev => prev.map(t => t.name === taskName ? { ...t, done: newDone } : t))
+
+    await supabase
+      .from('tasks')
+      .update({ done: newDone })
+      .eq('entry_id', entry.id!)
+      .eq('name', taskName)
+  }
+
+  async function finishDay() {
+    setSavingEod(true)
+    const supabase = createClient()
+    await supabase
+      .from('day_entries')
+      .update({ updated_at: new Date().toISOString() })
+      .eq('id', entry.id!)
+    setShowEod(true)
+    setSavingEod(false)
+  }
+
+  async function startNewDay() {
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    // Transfer uncompleted tasks to tomorrow
+    const unfinished = tasks.filter(t => !t.done).map(t => ({
+      name: t.name, priority: t.priority, type: t.type, note: t.note, done: false,
+    }))
+
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    const tomorrowKey = tomorrow.toISOString().split('T')[0]
+
+    if (unfinished.length > 0) {
+      await supabase.from('transferred_tasks').upsert({
+        user_id: user.id,
+        tasks: unfinished,
+        for_date: tomorrowKey,
+      }, { onConflict: 'user_id,for_date' })
+    }
+
+    router.push('/')
+    router.refresh()
+  }
+
+  if (showEod) {
+    return (
+      <main className="min-h-dvh flex flex-col items-center justify-center p-5 text-center gap-6" style={{ background: 'var(--bg)' }}>
+        <div className="text-6xl">{allDone ? '🎉' : '✅'}</div>
+        <div>
+          <h2 className="text-2xl font-light mb-2" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text)' }}>
+            {allDone ? 'Fenomenalno!' : 'Dan završen!'}
+          </h2>
+          <p style={{ color: 'var(--text-muted)' }}>
+            Završio/la si {done} od {total} zadataka danas.
+          </p>
+          {tasks.filter(t => !t.done).length > 0 && (
+            <p className="text-sm mt-2" style={{ color: 'var(--text-muted)' }}>
+              {tasks.filter(t => !t.done).length} nezavršenih zadataka biće preneto sutra.
+            </p>
+          )}
+        </div>
+        <Button size="lg" onClick={startNewDay}>
+          Planiraj sutra →
+        </Button>
+      </main>
+    )
+  }
+
+  return (
+    <main className="min-h-dvh flex flex-col p-5 gap-5" style={{ background: 'var(--bg)', color: 'var(--text)' }}>
+      {/* Header */}
+      <div className="flex items-center justify-between pt-2">
+        <div>
+          <h1 className="text-2xl font-light" style={{ fontFamily: 'var(--font-serif)', color: 'var(--gold)' }}>
+            Moj plan
+          </h1>
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+            {entry.energy} · {entry.sleep_hours}h sna
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-lg font-medium" style={{ color: 'var(--text)' }}>{done}/{total}</p>
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>završeno</p>
+        </div>
+      </div>
+
+      {/* Ukupni progress */}
+      <div className="rounded-full overflow-hidden h-2" style={{ background: 'var(--border)' }}>
+        <div
+          className="h-full transition-all duration-700 rounded-full"
+          style={{ width: `${total > 0 ? (done / total) * 100 : 0}%`, background: 'var(--gold)' }}
+        />
+      </div>
+
+      {/* Blokovi */}
+      <div className="flex flex-col gap-4">
+        {planBlocks.map(block => (
+          <BlockCard key={block.label} block={block} onToggle={toggleTask} />
+        ))}
+      </div>
+
+      {/* Footer dugmad */}
+      <div className="flex flex-col gap-2 pt-2">
+        <Button size="lg" className="w-full" onClick={finishDay} loading={savingEod}>
+          {allDone ? '🎉 Završi dan' : '✅ Završi dan'}
+        </Button>
+        <Button size="sm" variant="ghost" className="w-full" onClick={() => router.push('/')}>
+          ✏️ Uredi plan
+        </Button>
+      </div>
+
+      <div className="flex justify-center pb-4">
+        <LogoutButton />
+      </div>
+    </main>
+  )
+}
