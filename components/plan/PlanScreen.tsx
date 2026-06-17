@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { calcBlocks } from '@/lib/energy'
 import { TASK_TYPE_LABELS } from '@/types/ferox'
-import type { Task, DayEntry, UserProfile, PlanBlock } from '@/types/ferox'
+import type { Task, Appointment, DayEntry, UserProfile, PlanBlock } from '@/types/ferox'
 import Button from '@/components/ui/Button'
 import LogoutButton from '@/components/LogoutButton'
 
@@ -76,11 +76,23 @@ function TaskItem({
   )
 }
 
-function BlockCard({ block, onToggle }: { block: PlanBlock; onToggle: (taskName: string) => void }) {
+function AppointmentItem({ appt }: { appt: Appointment }) {
+  return (
+    <div className="flex items-center gap-2 py-2 border-b" style={{ borderColor: 'var(--border)' }}>
+      <span className="text-sm font-medium shrink-0" style={{ color: 'var(--gold)' }}>{appt.time}</span>
+      <p className="text-sm flex-1 truncate">{appt.name}</p>
+      <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'rgba(212,116,42,0.12)', color: 'var(--gold)' }}>termin</span>
+    </div>
+  )
+}
+
+function BlockCard({
+  block, appointments, onToggle,
+}: { block: PlanBlock; appointments: Appointment[]; onToggle: (taskName: string) => void }) {
   const done = block.tasks.filter(t => t.done).length
   const total = block.tasks.length
 
-  if (total === 0) return null
+  if (total === 0 && appointments.length === 0) return null
 
   return (
     <div
@@ -108,10 +120,13 @@ function BlockCard({ block, onToggle }: { block: PlanBlock; onToggle: (taskName:
         </div>
       )}
 
-      <div className="px-4 divide-y" style={{ borderColor: 'var(--border)' }}>
-        {block.tasks.map(task => (
-          <TaskItem key={task.name} task={task} onToggle={() => onToggle(task.name)} />
-        ))}
+      <div className="px-4">
+        {appointments.map(a => <AppointmentItem key={a.name + a.time} appt={a} />)}
+        <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
+          {block.tasks.map(task => (
+            <TaskItem key={task.name} task={task} onToggle={() => onToggle(task.name)} />
+          ))}
+        </div>
       </div>
 
       {total > 0 && (
@@ -124,10 +139,11 @@ function BlockCard({ block, onToggle }: { block: PlanBlock; onToggle: (taskName:
 }
 
 export default function PlanScreen({
-  entry, tasks: initialTasks, profile,
+  entry, tasks: initialTasks, appointments, profile,
 }: {
   entry: DayEntry
   tasks: Task[]
+  appointments: Appointment[]
   profile: UserProfile
 }) {
   const router = useRouter()
@@ -137,6 +153,14 @@ export default function PlanScreen({
 
   const blocks = calcBlocks(profile.start_time ?? '08:00', profile.sleep_time ?? '23:00', profile.rhythm)
   const planBlocks = assignTasksToBlocks(tasks, blocks)
+
+  function getAppointmentsForBlock(blockIndex: number): Appointment[] {
+    const b = blocks[blockIndex]
+    return appointments.filter(a => {
+      const [h] = a.time.split(':').map(Number)
+      return h >= b.start && h < b.end
+    })
+  }
 
   const done = tasks.filter(t => t.done).length
   const total = tasks.length
@@ -246,8 +270,8 @@ export default function PlanScreen({
 
       {/* Blokovi */}
       <div className="flex flex-col gap-4">
-        {planBlocks.map(block => (
-          <BlockCard key={block.label} block={block} onToggle={toggleTask} />
+        {planBlocks.map((block, i) => (
+          <BlockCard key={block.label} block={block} appointments={getAppointmentsForBlock(i)} onToggle={toggleTask} />
         ))}
       </div>
 
