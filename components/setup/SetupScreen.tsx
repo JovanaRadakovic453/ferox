@@ -37,7 +37,10 @@ async function fetchBrainDump(text: string): Promise<Task[]> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text }),
   })
-  if (!res.ok) return []
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.error ?? `Greška ${res.status}`)
+  }
   const { tasks } = await res.json()
   return (tasks ?? []).map((t: Partial<Task>) => ({ ...t, done: false }))
 }
@@ -57,17 +60,24 @@ export default function SetupScreen({ profile }: { profile: UserProfile }) {
   const [brainDumpText, setBrainDumpText] = useState('')
   const [showBrainDump, setShowBrainDump] = useState(false)
   const [brainDumpLoading, setBrainDumpLoading] = useState(false)
+  const [brainDumpError, setBrainDumpError] = useState<string | null>(null)
 
   const sleepHours = calcSleepHours(sleepTime, wakeTime)
 
   async function handleBrainDump() {
     if (!brainDumpText.trim()) return
     setBrainDumpLoading(true)
-    const extracted = await fetchBrainDump(brainDumpText)
-    setTasks(prev => [...prev, ...extracted])
-    setBrainDumpText('')
-    setShowBrainDump(false)
-    setBrainDumpLoading(false)
+    setBrainDumpError(null)
+    try {
+      const extracted = await fetchBrainDump(brainDumpText)
+      setTasks(prev => [...prev, ...extracted])
+      setBrainDumpText('')
+      setShowBrainDump(false)
+    } catch (err) {
+      setBrainDumpError(err instanceof Error ? err.message : 'Nepoznata greška')
+    } finally {
+      setBrainDumpLoading(false)
+    }
   }
 
   function addTask() {
@@ -271,12 +281,15 @@ export default function SetupScreen({ profile }: { profile: UserProfile }) {
                 color: 'var(--text)',
               }}
             />
+            {brainDumpError && (
+              <p className="text-xs px-1" style={{ color: '#c0392b' }}>Greška: {brainDumpError}</p>
+            )}
             <div className="flex gap-2">
               <Button size="sm" onClick={handleBrainDump} loading={brainDumpLoading}
                 disabled={!brainDumpText.trim()} className="flex-1">
                 {brainDumpLoading ? 'Analiziram...' : '✨ Izvuci zadatke'}
               </Button>
-              <Button size="sm" variant="ghost" onClick={() => { setShowBrainDump(false); setBrainDumpText('') }}>
+              <Button size="sm" variant="ghost" onClick={() => { setShowBrainDump(false); setBrainDumpText(''); setBrainDumpError(null) }}>
                 Otkaži
               </Button>
             </div>
