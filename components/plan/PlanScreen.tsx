@@ -150,6 +150,10 @@ export default function PlanScreen({
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
   const [savingEod, setSavingEod] = useState(false)
   const [showEod, setShowEod] = useState(false)
+  const [showReplan, setShowReplan] = useState(false)
+  const [replanText, setReplanText] = useState('')
+  const [replanLoading, setReplanLoading] = useState(false)
+  const [replanResult, setReplanResult] = useState<{ poruka: string; danas: string[]; sutra: string[]; obrisi: string[] } | null>(null)
 
   const blocks = calcBlocks(profile.start_time ?? '08:00', profile.sleep_time ?? '23:00', profile.rhythm)
   const planBlocks = assignTasksToBlocks(tasks, blocks)
@@ -179,6 +183,45 @@ export default function PlanScreen({
       .update({ done: newDone })
       .eq('entry_id', entry.id!)
       .eq('name', taskName)
+  }
+
+  async function handleReplan() {
+    if (!replanText.trim()) return
+    setReplanLoading(true)
+    const unfinished = tasks.filter(t => !t.done)
+    const res = await fetch('/api/ai/replan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        situation: replanText,
+        remainingTasks: unfinished.map(t => t.name),
+        energy: entry.energy,
+      }),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      setReplanResult(data)
+    }
+    setReplanLoading(false)
+  }
+
+  async function applyReplan() {
+    if (!replanResult) return
+    const supabase = createClient()
+    // Mark "obrisi" tasks as done, keep "danas" tasks, move "sutra" to tomorrow
+    const updatedTasks = tasks.map(t => ({
+      ...t,
+      done: t.done || replanResult.obrisi.includes(t.name),
+    }))
+    setTasks(updatedTasks)
+    // Sync to DB
+    for (const t of updatedTasks) {
+      await supabase.from('tasks').update({ done: t.done })
+        .eq('entry_id', entry.id!).eq('name', t.name)
+    }
+    setShowReplan(false)
+    setReplanResult(null)
+    setReplanText('')
   }
 
   async function finishDay() {
@@ -280,6 +323,9 @@ export default function PlanScreen({
         <Button size="lg" className="w-full" onClick={finishDay} loading={savingEod}>
           {allDone ? '🎉 Završi dan' : '✅ Završi dan'}
         </Button>
+        <Button size="sm" variant="ghost" className="w-full" onClick={() => setShowReplan(true)}>
+          🔥 Dan se raspao
+        </Button>
         <Button size="sm" variant="ghost" className="w-full" onClick={() => router.push('/')}>
           ✏️ Uredi plan
         </Button>
@@ -288,6 +334,71 @@ export default function PlanScreen({
       <div className="flex justify-center pb-4">
         <LogoutButton />
       </div>
+
+      {/* Replan modal */}
+      {showReplan && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.5)' }}
+          onClick={e => { if (e.target === e.currentTarget) { setShowReplan(false); setReplanResult(null); setReplanText('') } }}>
+          <div className="w-full max-w-[520px] rounded-t-[20px] p-5 flex flex-col gap-4"
+            style={{ background: 'var(--surface)' }}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-medium" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text)' }}>
+                🔥 Dan se raspao
+              </h3>
+              <button onClick={() => { setShowReplan(false); setReplanResult(null); setReplanText('') }}
+                style={{ color: 'var(--text-muted)' }}>✕</button>
+            </div>
+
+            {!replanResult ? (
+              <>
+                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                  Šta se desilo? AI će replanirati tvoj dan.
+                </p>
+                <textarea
+                  value={replanText}
+                  onChange={e => setReplanText(e.target.value)}
+                  placeholder="Npr: Hitna stvar na poslu, morao/la sam da ostavim sve i rešim problem..."
+                  rows={3}
+                  className="w-full p-3 rounded-[12px] border text-sm resize-none outline-none"
+                  style={{ background: 'var(--surface2)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                />
+                <Button size="md" className="w-full" onClick={handleReplan}
+                  loading={replanLoading} disabled={!replanText.trim()}>
+                  {replanLoading ? 'Replaniram...' : 'Replanira mi dan →'}
+                </Button>
+              </>
+            ) : (
+              <>
+                <div className="p-3 rounded-[12px]" style={{ background: 'rgba(212,116,42,0.08)' }}>
+                  <p className="text-sm italic" style={{ color: 'var(--gold)' }}>"{replanResult.poruka}"</p>
+                </div>
+                {replanResult.danas.length > 0 && (
+                  <div>
+                    <p className="text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>✅ Danas završi:</p>
+                    {replanResult.danas.map(t => <p key={t} className="text-sm py-0.5">• {t}</p>)}
+                  </div>
+                )}
+                {replanResult.sutra.length > 0 && (
+                  <div>
+                    <p className="text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>📅 Sutra:</p>
+                    {replanResult.sutra.map(t => <p key={t} className="text-sm py-0.5 opacity-60">• {t}</p>)}
+                  </div>
+                )}
+                {replanResult.obrisi.length > 0 && (
+                  <div>
+                    <p className="text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>🗑️ Otpiši:</p>
+                    {replanResult.obrisi.map(t => <p key={t} className="text-sm py-0.5 line-through opacity-40">• {t}</p>)}
+                  </div>
+                )}
+                <Button size="md" className="w-full" onClick={applyReplan}>
+                  Primeni plan ✓
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </main>
   )
 }

@@ -31,6 +31,17 @@ const TYPE_OPTIONS = Object.entries(TASK_TYPE_LABELS).map(([value, label]) => ({
 const EMPTY_TASK = { name: '', note: '', priority: 'medium' as Priority, type: 'light' as TaskType }
 const EMPTY_APPT = { name: '', time: '09:00', reminder: 15 }
 
+async function fetchBrainDump(text: string): Promise<Task[]> {
+  const res = await fetch('/api/ai/brain-dump', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text }),
+  })
+  if (!res.ok) return []
+  const { tasks } = await res.json()
+  return (tasks ?? []).map((t: Partial<Task>) => ({ ...t, done: false }))
+}
+
 export default function SetupScreen({ profile }: { profile: UserProfile }) {
   const router = useRouter()
   const [energy, setEnergy] = useState<number | null>(null)
@@ -43,8 +54,21 @@ export default function SetupScreen({ profile }: { profile: UserProfile }) {
   const [showTaskForm, setShowTaskForm] = useState(false)
   const [showApptForm, setShowApptForm] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [brainDumpText, setBrainDumpText] = useState('')
+  const [showBrainDump, setShowBrainDump] = useState(false)
+  const [brainDumpLoading, setBrainDumpLoading] = useState(false)
 
   const sleepHours = calcSleepHours(sleepTime, wakeTime)
+
+  async function handleBrainDump() {
+    if (!brainDumpText.trim()) return
+    setBrainDumpLoading(true)
+    const extracted = await fetchBrainDump(brainDumpText)
+    setTasks(prev => [...prev, ...extracted])
+    setBrainDumpText('')
+    setShowBrainDump(false)
+    setBrainDumpLoading(false)
+  }
 
   function addTask() {
     if (!taskForm.name.trim()) return
@@ -219,6 +243,49 @@ export default function SetupScreen({ profile }: { profile: UserProfile }) {
             className="flex items-center gap-2 p-3 rounded-[12px] border-2 border-dashed text-sm w-full"
             style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
             <span className="text-lg">+</span> Dodaj termin
+          </button>
+        )}
+      </section>
+
+      {/* Brain Dump */}
+      <section className="rounded-[16px] p-4 flex flex-col gap-3" style={{ background: 'var(--surface)', boxShadow: 'var(--sh1)' }}>
+        <div className="flex items-center justify-between">
+          <h2 className="font-medium text-sm" style={{ color: 'var(--text-muted)' }}>✨ BRAIN DUMP</h2>
+          <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(212,116,42,0.12)', color: 'var(--gold)' }}>AI</span>
+        </div>
+        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+          Napiši sve što ti je na umu — AI će izvući zadatke automatski
+        </p>
+        {showBrainDump ? (
+          <div className="flex flex-col gap-3">
+            <textarea
+              value={brainDumpText}
+              onChange={e => setBrainDumpText(e.target.value)}
+              placeholder="Npr: Danas moram da završim prezentaciju za klijenta, zakažem zubarku, odgovorim na mejlove i kupim namirnice..."
+              rows={4}
+              autoFocus
+              className="w-full p-3 rounded-[12px] border text-sm resize-none outline-none transition-all"
+              style={{
+                background: 'var(--surface2)',
+                borderColor: 'var(--border)',
+                color: 'var(--text)',
+              }}
+            />
+            <div className="flex gap-2">
+              <Button size="sm" onClick={handleBrainDump} loading={brainDumpLoading}
+                disabled={!brainDumpText.trim()} className="flex-1">
+                {brainDumpLoading ? 'Analiziram...' : '✨ Izvuci zadatke'}
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => { setShowBrainDump(false); setBrainDumpText('') }}>
+                Otkaži
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <button onClick={() => setShowBrainDump(true)}
+            className="flex items-center gap-2 p-3 rounded-[12px] border-2 border-dashed text-sm w-full"
+            style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
+            <span>✨</span> Piši slobodno, AI izvlači zadatke
           </button>
         )}
       </section>
