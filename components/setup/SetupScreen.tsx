@@ -70,10 +70,12 @@ export default function SetupScreen({ profile }: { profile: UserProfile }) {
     setBrainDumpError(null)
     try {
       const extracted = await fetchBrainDump(brainDumpText)
+      console.log('[brain-dump] extracted tasks:', extracted)
       setTasks(prev => [...prev, ...extracted])
       setBrainDumpText('')
       setShowBrainDump(false)
     } catch (err) {
+      console.error('[brain-dump] client error:', err)
       setBrainDumpError(err instanceof Error ? err.message : 'Nepoznata greška')
     } finally {
       setBrainDumpLoading(false)
