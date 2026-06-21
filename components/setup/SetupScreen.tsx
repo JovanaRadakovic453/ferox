@@ -30,6 +30,7 @@ const TYPE_OPTIONS = Object.entries(TASK_TYPE_LABELS).map(([value, label]) => ({
 
 const EMPTY_TASK = { name: '', note: '', priority: 'medium' as Priority, type: 'light' as TaskType }
 const EMPTY_APPT = { name: '', time: '09:00', reminder: 15 }
+const EMPTY_APPT_REMINDER = { value: 15, unit: 'min' as 'min' | 'sat' }
 
 async function fetchBrainDump(text: string): Promise<Task[]> {
   const res = await fetch('/api/ai/brain-dump', {
@@ -54,6 +55,7 @@ export default function SetupScreen({ profile }: { profile: UserProfile }) {
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [taskForm, setTaskForm] = useState(EMPTY_TASK)
   const [apptForm, setApptForm] = useState(EMPTY_APPT)
+  const [reminderInput, setReminderInput] = useState(EMPTY_APPT_REMINDER)
   const [showTaskForm, setShowTaskForm] = useState(false)
   const [showApptForm, setShowApptForm] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -89,8 +91,12 @@ export default function SetupScreen({ profile }: { profile: UserProfile }) {
 
   function addAppointment() {
     if (!apptForm.name.trim()) return
-    setAppointments(prev => [...prev, { ...apptForm, done: false }])
+    const reminderMinutes = reminderInput.unit === 'sat'
+      ? (reminderInput.value || 0) * 60
+      : (reminderInput.value || 0)
+    setAppointments(prev => [...prev, { ...apptForm, reminder: reminderMinutes, done: false }])
     setApptForm(EMPTY_APPT)
+    setReminderInput(EMPTY_APPT_REMINDER)
     setShowApptForm(false)
   }
 
@@ -230,22 +236,32 @@ export default function SetupScreen({ profile }: { profile: UserProfile }) {
               <Input id="appt-time" label="Vreme" type="time" value={apptForm.time}
                 onChange={e => setApptForm(f => ({ ...f, time: e.target.value }))} />
               <div>
-                <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Podsetnik</label>
-                <select value={apptForm.reminder}
-                  onChange={e => setApptForm(f => ({ ...f, reminder: Number(e.target.value) }))}
-                  className="w-full h-11 px-2 rounded-[12px] text-sm border"
-                  style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text)' }}>
-                  <option value={0}>Bez podsetnika</option>
-                  <option value={5}>5 min pre</option>
-                  <option value={10}>10 min pre</option>
-                  <option value={15}>15 min pre</option>
-                  <option value={30}>30 min pre</option>
-                </select>
+                <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Podsetnik pre</label>
+                <div className="flex gap-1">
+                  <input
+                    type="number"
+                    min={0}
+                    max={999}
+                    value={reminderInput.value}
+                    onChange={e => setReminderInput(r => ({ ...r, value: Math.max(0, Number(e.target.value)) }))}
+                    className="w-full h-11 px-2 rounded-[12px] text-sm border text-center"
+                    style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                  />
+                  <select
+                    value={reminderInput.unit}
+                    onChange={e => setReminderInput(r => ({ ...r, unit: e.target.value as 'min' | 'sat' }))}
+                    className="h-11 px-2 rounded-[12px] text-sm border shrink-0"
+                    style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                  >
+                    <option value="min">min</option>
+                    <option value="sat">sat</option>
+                  </select>
+                </div>
               </div>
             </div>
             <div className="flex gap-2">
               <Button size="sm" onClick={addAppointment} disabled={!apptForm.name.trim()} className="flex-1">Dodaj</Button>
-              <Button size="sm" variant="ghost" onClick={() => { setShowApptForm(false); setApptForm(EMPTY_APPT) }}>Otkaži</Button>
+              <Button size="sm" variant="ghost" onClick={() => { setShowApptForm(false); setApptForm(EMPTY_APPT); setReminderInput(EMPTY_APPT_REMINDER) }}>Otkaži</Button>
             </div>
           </div>
         ) : (
