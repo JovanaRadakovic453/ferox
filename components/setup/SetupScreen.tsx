@@ -46,7 +46,7 @@ async function fetchBrainDump(text: string): Promise<Task[]> {
   return (tasks ?? []).map((t: Partial<Task>) => ({ ...t, done: false }))
 }
 
-export default function SetupScreen({ profile }: { profile: UserProfile }) {
+export default function SetupScreen({ profile, targetDate }: { profile: UserProfile; targetDate?: string }) {
   const router = useRouter()
   const [energy, setEnergy] = useState<number | null>(null)
   const [wakeTime, setWakeTime] = useState(profile.start_time ?? '08:00')
@@ -108,7 +108,7 @@ export default function SetupScreen({ profile }: { profile: UserProfile }) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    const dateKey = todayKey()
+    const dateKey = targetDate ?? todayKey()
 
     const { data: entry, error: entryError } = await supabase
       .from('day_entries')
@@ -171,7 +171,11 @@ export default function SetupScreen({ profile }: { profile: UserProfile }) {
     <main className="min-h-dvh flex flex-col p-5 gap-6" style={{ background: 'var(--bg)', color: 'var(--text)' }}>
       <div className="pt-2">
         <h1 className="text-3xl font-light" style={{ fontFamily: 'var(--font-serif)', color: 'var(--gold)' }}>Ferox</h1>
-        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Kako počinjemo danas, {profile.name}?</p>
+        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+          {targetDate && targetDate !== todayKey()
+            ? `Planiramo sutra, ${profile.name} 🌙`
+            : `Kako počinjemo danas, ${profile.name}?`}
+        </p>
       </div>
 
       {/* Spavanje */}

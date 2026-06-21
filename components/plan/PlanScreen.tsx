@@ -168,7 +168,6 @@ export default function PlanScreen({
   const [appts, setAppts] = useState<Appointment[]>(appointments)
   const [savingEod, setSavingEod] = useState(false)
   const [showEod, setShowEod] = useState(false)
-  const [showFinal, setShowFinal] = useState(false)
   const [showReplan, setShowReplan] = useState(false)
   const [replanText, setReplanText] = useState('')
   const [replanLoading, setReplanLoading] = useState(false)
@@ -287,26 +286,7 @@ export default function PlanScreen({
   }
 
   function startNewDay() {
-    setShowFinal(true)
-  }
-
-  if (showFinal) {
-    return (
-      <main className="min-h-dvh flex flex-col items-center justify-center p-5 text-center gap-6" style={{ background: 'var(--bg)' }}>
-        <div className="text-6xl">👋</div>
-        <div>
-          <h2 className="text-2xl font-light mb-2" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text)' }}>
-            Vidimo se sutra!
-          </h2>
-          <p style={{ color: 'var(--text-muted)' }}>
-            {tasks.filter(t => !t.done).length > 0
-              ? `${tasks.filter(t => !t.done).length} nezavršenih zadataka čeka te sutra.`
-              : 'Sjajan dan — sve si završio/la!'}
-          </p>
-        </div>
-        <LogoutButton />
-      </main>
-    )
+    router.push('/?sutra=1')
   }
 
   if (showEod) {
