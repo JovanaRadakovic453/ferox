@@ -69,6 +69,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
   const [showBrainDump, setShowBrainDump] = useState(false)
   const [brainDumpLoading, setBrainDumpLoading] = useState(false)
   const [brainDumpError, setBrainDumpError] = useState<string | null>(null)
+  const [brainDumpSuccess, setBrainDumpSuccess] = useState<number | null>(null)
 
   const sleepHours = calcSleepHours(sleepTime, wakeTime)
 
@@ -78,9 +79,15 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
     setBrainDumpError(null)
     try {
       const extracted = await fetchBrainDump(brainDumpText)
+      if (extracted.length === 0) {
+        setBrainDumpError('AI nije pronašao zadatke. Pokušaj opisati konkretnije, npr: "Moram da kupim mleko, nazovem Marka, završim izveštaj"')
+        return
+      }
       setTasks(prev => [...prev, ...extracted])
       setBrainDumpText('')
       setShowBrainDump(false)
+      setBrainDumpSuccess(extracted.length)
+      setTimeout(() => setBrainDumpSuccess(null), 3000)
     } catch (err) {
       setBrainDumpError(err instanceof Error ? err.message : 'Nepoznata greška')
     } finally {
@@ -163,6 +170,12 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
         }))
       )
     }
+
+    // Obrisi prenete zadatke posto su sada sacuvani u planu
+    await supabase.from('transferred_tasks')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('for_date', dateKey)
 
     await supabase.from('profiles').update({
       last_sleep_time: sleepTime,
@@ -299,6 +312,11 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
           <h2 className="font-medium text-sm" style={{ color: 'var(--text-muted)' }}>✨ BRAIN DUMP</h2>
           <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(212,116,42,0.12)', color: 'var(--gold)' }}>AI</span>
         </div>
+        {brainDumpSuccess !== null && (
+          <div className="rounded-[10px] px-3 py-2 text-sm" style={{ background: 'rgba(34,197,94,0.12)', color: '#16a34a' }}>
+            ✓ {brainDumpSuccess} {brainDumpSuccess === 1 ? 'zadatak dodat' : 'zadataka dodato'} u listu ispod
+          </div>
+        )}
         <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
           Napiši sve što ti je na umu — AI će izvući zadatke automatski
         </p>
@@ -367,7 +385,9 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
         {showTaskForm ? (
           <div className="flex flex-col gap-3 p-3 rounded-[12px] border" style={{ borderColor: 'var(--border)', background: 'var(--surface2)' }}>
             <Input id="task-name" placeholder="Naziv zadatka" value={taskForm.name}
-              onChange={e => setTaskForm(f => ({ ...f, name: e.target.value }))} autoFocus />
+              onChange={e => setTaskForm(f => ({ ...f, name: e.target.value }))}
+              onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter' && taskForm.name.trim()) addTask() }}
+              autoFocus />
             <Input id="task-note" placeholder="Napomena (opciono)" value={taskForm.note}
               onChange={e => setTaskForm(f => ({ ...f, note: e.target.value }))} />
             <div className="grid grid-cols-2 gap-2">
@@ -405,7 +425,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
       </section>
 
       <Button size="lg" className="w-full" disabled={!canSubmit} loading={loading} onClick={handleSubmit}>
-        Napravi moj plan →
+        {tasks.length > 0 ? `Napravi plan sa ${tasks.length} ${tasks.length === 1 ? 'zadatkom' : 'zadataka'} →` : 'Napravi moj plan →'}
       </Button>
 
       {!canSubmit && (
