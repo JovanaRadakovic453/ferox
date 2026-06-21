@@ -65,6 +65,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
   const [showTaskForm, setShowTaskForm] = useState(false)
   const [showApptForm, setShowApptForm] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [resetting, setResetting] = useState(false)
   const [brainDumpText, setBrainDumpText] = useState('')
   const [showBrainDump, setShowBrainDump] = useState(false)
   const [brainDumpLoading, setBrainDumpLoading] = useState(false)
@@ -113,6 +114,24 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
     setShowApptForm(false)
   }
 
+  async function resetDay() {
+    if (!window.confirm('Obrisati sve podatke za danas i početi ispočetka?')) return
+    setResetting(true)
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { setResetting(false); return }
+    const dateKey = targetDate ?? todayKey()
+    // Obrisi entry za danas (cascade brise i tasks)
+    await supabase.from('day_entries').delete().eq('user_id', user.id).eq('date_key', dateKey)
+    // Obrisi termine i prenete zadatke
+    await supabase.from('appointments').delete().eq('user_id', user.id).eq('date_key', dateKey)
+    await supabase.from('transferred_tasks').delete().eq('user_id', user.id).eq('for_date', dateKey)
+    // Obrisi cookie
+    document.cookie = 'ferox_day_finished=; max-age=0; path=/'
+    setResetting(false)
+    window.location.reload()
+  }
+
   async function handleSubmit() {
     if (!energy || tasks.length === 0) return
     setLoading(true)
@@ -159,8 +178,13 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
         entryId = newEntry.id
       }
 
-      // Obrisi stare zadatke i ubaci nove
-      await supabase.from('tasks').delete().eq('entry_id', entryId)
+      // Obrisi SVE stare zadatke za ovaj entry (eksplicitno oba filtera da RLS ne blokira)
+      await supabase
+        .from('tasks')
+        .delete()
+        .eq('entry_id', entryId)
+        .eq('user_id', user.id)
+
       const { error: insertError } = await supabase.from('tasks').insert(
         tasks.map((t, i) => ({
           entry_id: entryId,
@@ -457,6 +481,16 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
           {!energy ? 'Izaberi nivo energije' : 'Dodaj bar jedan zadatak'}
         </p>
       )}
+
+      <button
+        onClick={resetDay}
+        disabled={resetting}
+        className="w-full text-xs text-center py-1 opacity-40 hover:opacity-70 transition-opacity"
+        style={{ color: 'var(--text-muted)' }}
+      >
+        {resetting ? 'Brišem...' : '🗑️ Obriši sve za danas i počni iznova'}
+      </button>
+
       <div className="h-4" />
     </main>
   )
