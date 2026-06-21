@@ -139,10 +139,10 @@ export default function SetupScreen({ profile }: { profile: UserProfile }) {
       }))
     )
 
-    // Save appointments
+    // Uvek obrisi stare termine za taj dan pa sačuvaj nove
+    await supabase.from('appointments').delete()
+      .eq('user_id', user.id).eq('date_key', dateKey)
     if (appointments.length > 0) {
-      await supabase.from('appointments').delete()
-        .eq('user_id', user.id).eq('date_key', dateKey)
       await supabase.from('appointments').insert(
         appointments.map(a => ({
           user_id: user.id,

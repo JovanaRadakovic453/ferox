@@ -259,37 +259,34 @@ export default function PlanScreen({
   async function finishDay() {
     setSavingEod(true)
     const supabase = createClient()
-    await supabase
-      .from('day_entries')
-      .update({ updated_at: new Date().toISOString() })
-      .eq('id', entry.id!)
+    const { data: { user } } = await supabase.auth.getUser()
+
+    await supabase.from('day_entries').update({ updated_at: new Date().toISOString() }).eq('id', entry.id!)
+
+    // Prenesi nezavršene zadatke na sutra
+    if (user) {
+      const unfinished = tasks.filter(t => !t.done).map(t => ({
+        name: t.name, priority: t.priority, type: t.type, note: t.note, done: false,
+      }))
+      if (unfinished.length > 0) {
+        const tomorrow = new Date()
+        tomorrow.setDate(tomorrow.getDate() + 1)
+        const tomorrowKey = tomorrow.toISOString().split('T')[0]
+        await supabase.from('transferred_tasks').upsert({
+          user_id: user.id,
+          tasks: unfinished,
+          for_date: tomorrowKey,
+        }, { onConflict: 'user_id,for_date' })
+      }
+    }
+
     const today = new Date().toISOString().split('T')[0]
     document.cookie = `ferox_day_finished=${today}; max-age=86400; path=/`
     setShowEod(true)
     setSavingEod(false)
   }
 
-  async function startNewDay() {
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-
-    const unfinished = tasks.filter(t => !t.done).map(t => ({
-      name: t.name, priority: t.priority, type: t.type, note: t.note, done: false,
-    }))
-
-    const tomorrow = new Date()
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    const tomorrowKey = tomorrow.toISOString().split('T')[0]
-
-    if (unfinished.length > 0) {
-      await supabase.from('transferred_tasks').upsert({
-        user_id: user.id,
-        tasks: unfinished,
-        for_date: tomorrowKey,
-      }, { onConflict: 'user_id,for_date' })
-    }
-
+  function startNewDay() {
     setShowFinal(true)
   }
 
