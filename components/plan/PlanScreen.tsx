@@ -348,7 +348,7 @@ export default function PlanScreen({
             Moj plan
           </h1>
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-            {entry.energy} · {entry.sleep_hours}h sna
+            {entry.energy} · {entry.sleep_hours}h sna · {initialTasks.length} zadataka za {entry.date_key}
           </p>
         </div>
         <div className="text-right">
