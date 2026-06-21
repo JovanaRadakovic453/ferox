@@ -262,6 +262,8 @@ export default function PlanScreen({
       .from('day_entries')
       .update({ updated_at: new Date().toISOString() })
       .eq('id', entry.id!)
+    const today = new Date().toISOString().split('T')[0]
+    document.cookie = `ferox_day_finished=${today}; max-age=86400; path=/`
     setShowEod(true)
     setSavingEod(false)
   }
