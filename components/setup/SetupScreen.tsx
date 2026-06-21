@@ -46,12 +46,12 @@ async function fetchBrainDump(text: string): Promise<Task[]> {
   return (tasks ?? []).map((t: Partial<Task>) => ({ ...t, done: false }))
 }
 
-export default function SetupScreen({ profile, targetDate }: { profile: UserProfile; targetDate?: string }) {
+export default function SetupScreen({ profile, targetDate, transferredTasks = [] }: { profile: UserProfile; targetDate?: string; transferredTasks?: Task[] }) {
   const router = useRouter()
   const [energy, setEnergy] = useState<number | null>(null)
   const [wakeTime, setWakeTime] = useState(profile.start_time ?? '08:00')
   const [sleepTime, setSleepTime] = useState(profile.last_sleep_time ?? profile.sleep_time ?? '23:00')
-  const [tasks, setTasks] = useState<Task[]>([])
+  const [tasks, setTasks] = useState<Task[]>(transferredTasks)
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [taskForm, setTaskForm] = useState(EMPTY_TASK)
   const [apptForm, setApptForm] = useState(EMPTY_APPT)
@@ -177,6 +177,13 @@ export default function SetupScreen({ profile, targetDate }: { profile: UserProf
             : `Kako počinjemo danas, ${profile.name}?`}
         </p>
       </div>
+
+      {/* Baner za prenete zadatke */}
+      {transferredTasks.length > 0 && (
+        <div className="rounded-[12px] px-4 py-3 text-sm" style={{ background: 'rgba(212,116,42,0.10)', color: 'var(--gold)' }}>
+          📋 {transferredTasks.length} {transferredTasks.length === 1 ? 'zadatak preneto' : 'zadataka preneto'} iz prethodnog dana
+        </div>
+      )}
 
       {/* Spavanje */}
       <section className="rounded-[16px] p-4 flex flex-col gap-3" style={{ background: 'var(--surface)', boxShadow: 'var(--sh1)' }}>

@@ -172,6 +172,9 @@ export default function PlanScreen({
   const [replanText, setReplanText] = useState('')
   const [replanLoading, setReplanLoading] = useState(false)
   const [replanResult, setReplanResult] = useState<{ poruka: string; danas: string[]; sutra: string[]; obrisi: string[] } | null>(null)
+  const [showAddTask, setShowAddTask] = useState(false)
+  const [newTaskName, setNewTaskName] = useState('')
+  const [addingTask, setAddingTask] = useState(false)
 
   const blocks = calcBlocks(profile.start_time ?? '08:00', profile.sleep_time ?? '23:00', profile.rhythm)
   const planBlocks = assignTasksToBlocks(tasks, blocks)
@@ -285,6 +288,29 @@ export default function PlanScreen({
     setSavingEod(false)
   }
 
+  async function addTask() {
+    if (!newTaskName.trim()) return
+    setAddingTask(true)
+    const supabase = createClient()
+    const newTask: Task = { name: newTaskName.trim(), priority: 'medium', type: 'light', note: '', done: false }
+    const { error } = await supabase.from('tasks').insert({
+      entry_id: entry.id,
+      user_id: entry.user_id,
+      name: newTask.name,
+      done: false,
+      priority: newTask.priority,
+      type: newTask.type,
+      note: '',
+      position: tasks.length,
+    })
+    if (!error) {
+      setTasks(prev => [...prev, newTask])
+      setNewTaskName('')
+      setShowAddTask(false)
+    }
+    setAddingTask(false)
+  }
+
   function startNewDay() {
     router.push('/?sutra=1')
   }
@@ -351,6 +377,9 @@ export default function PlanScreen({
         <Button size="lg" className="w-full" onClick={finishDay} loading={savingEod}>
           {allDone ? '🎉 Završi dan' : '✅ Završi dan'}
         </Button>
+        <Button size="sm" variant="ghost" className="w-full" onClick={() => setShowAddTask(true)}>
+          ➕ Dodaj zadatak
+        </Button>
         <Button size="sm" variant="ghost" className="w-full" onClick={() => setShowReplan(true)}>
           🔥 Dan se raspao
         </Button>
@@ -362,6 +391,32 @@ export default function PlanScreen({
       <div className="flex justify-center pb-4">
         <LogoutButton />
       </div>
+
+      {/* Dodaj zadatak modal */}
+      {showAddTask && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.5)' }}
+          onClick={e => { if (e.target === e.currentTarget) { setShowAddTask(false); setNewTaskName('') } }}>
+          <div className="w-full max-w-[520px] rounded-t-[20px] p-5 flex flex-col gap-4" style={{ background: 'var(--surface)' }}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-medium" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text)' }}>Novi zadatak</h3>
+              <button onClick={() => { setShowAddTask(false); setNewTaskName('') }} style={{ color: 'var(--text-muted)' }}>✕</button>
+            </div>
+            <input
+              autoFocus
+              value={newTaskName}
+              onChange={e => setNewTaskName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && addTask()}
+              placeholder="Naziv zadatka..."
+              className="w-full h-11 px-3 rounded-[12px] border text-sm outline-none"
+              style={{ background: 'var(--surface2)', borderColor: 'var(--border)', color: 'var(--text)' }}
+            />
+            <Button size="md" className="w-full" onClick={addTask} loading={addingTask} disabled={!newTaskName.trim()}>
+              Dodaj
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Replan modal */}
       {showReplan && (

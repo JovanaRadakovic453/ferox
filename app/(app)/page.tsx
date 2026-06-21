@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import SetupScreen from '@/components/setup/SetupScreen'
-import type { UserProfile } from '@/types/ferox'
+import type { UserProfile, Task } from '@/types/ferox'
 
 export default async function SetupPage({
   searchParams,
@@ -44,5 +44,14 @@ export default async function SetupPage({
     if (entry && dayFinished !== today) redirect('/plan')
   }
 
-  return <SetupScreen profile={profile as UserProfile} targetDate={targetDate} />
+  const { data: transferred } = await supabase
+    .from('transferred_tasks')
+    .select('tasks')
+    .eq('user_id', user.id)
+    .eq('for_date', targetDate)
+    .single()
+
+  const transferredTasks = (transferred?.tasks ?? []) as Task[]
+
+  return <SetupScreen profile={profile as UserProfile} targetDate={targetDate} transferredTasks={transferredTasks} />
 }
