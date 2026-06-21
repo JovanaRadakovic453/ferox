@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { calcBlocks } from '@/lib/energy'
 import { TASK_TYPE_LABELS } from '@/types/ferox'
-import type { Task, Appointment, DayEntry, UserProfile, PlanBlock } from '@/types/ferox'
+import type { Task, Appointment, DayEntry, UserProfile, PlanBlock, TaskType, Priority } from '@/types/ferox'
 import Button from '@/components/ui/Button'
 import LogoutButton from '@/components/LogoutButton'
 
@@ -174,6 +174,10 @@ export default function PlanScreen({
   const [replanResult, setReplanResult] = useState<{ poruka: string; danas: string[]; sutra: string[]; obrisi: string[] } | null>(null)
   const [showAddTask, setShowAddTask] = useState(false)
   const [newTaskName, setNewTaskName] = useState('')
+  const [newTaskType, setNewTaskType] = useState<TaskType>('light')
+  const [newTaskPriority, setNewTaskPriority] = useState<Priority>('medium')
+  const [newTaskIsAppt, setNewTaskIsAppt] = useState(false)
+  const [newTaskTime, setNewTaskTime] = useState('09:00')
   const [addingTask, setAddingTask] = useState(false)
 
   const blocks = calcBlocks(profile.start_time ?? '08:00', profile.sleep_time ?? '23:00', profile.rhythm)
@@ -288,25 +292,50 @@ export default function PlanScreen({
     setSavingEod(false)
   }
 
+  function closeAddTask() {
+    setShowAddTask(false)
+    setNewTaskName('')
+    setNewTaskType('light')
+    setNewTaskPriority('medium')
+    setNewTaskIsAppt(false)
+    setNewTaskTime('09:00')
+  }
+
   async function addTask() {
     if (!newTaskName.trim()) return
     setAddingTask(true)
     const supabase = createClient()
-    const newTask: Task = { name: newTaskName.trim(), priority: 'medium', type: 'light', note: '', done: false }
-    const { error } = await supabase.from('tasks').insert({
-      entry_id: entry.id,
-      user_id: entry.user_id,
-      name: newTask.name,
-      done: false,
-      priority: newTask.priority,
-      type: newTask.type,
-      note: '',
-      position: tasks.length,
-    })
-    if (!error) {
-      setTasks(prev => [...prev, newTask])
-      setNewTaskName('')
-      setShowAddTask(false)
+
+    if (newTaskIsAppt) {
+      const { data, error } = await supabase.from('appointments').insert({
+        user_id: entry.user_id,
+        date_key: entry.date_key,
+        name: newTaskName.trim(),
+        time: newTaskTime,
+        reminder: 15,
+        done: false,
+      }).select('id').single()
+
+      if (!error) {
+        setAppts(prev => [...prev, { id: data?.id, name: newTaskName.trim(), time: newTaskTime, reminder: 15, done: false }])
+        closeAddTask()
+      }
+    } else {
+      const newTask: Task = { name: newTaskName.trim(), priority: newTaskPriority, type: newTaskType, note: '', done: false }
+      const { error } = await supabase.from('tasks').insert({
+        entry_id: entry.id,
+        user_id: entry.user_id,
+        name: newTask.name,
+        done: false,
+        priority: newTask.priority,
+        type: newTask.type,
+        note: '',
+        position: tasks.length,
+      })
+      if (!error) {
+        setTasks(prev => [...prev, newTask])
+        closeAddTask()
+      }
     }
     setAddingTask(false)
   }
@@ -396,23 +425,88 @@ export default function PlanScreen({
       {showAddTask && (
         <div className="fixed inset-0 z-50 flex items-end justify-center p-4"
           style={{ background: 'rgba(0,0,0,0.5)' }}
-          onClick={e => { if (e.target === e.currentTarget) { setShowAddTask(false); setNewTaskName('') } }}>
+          onClick={e => { if (e.target === e.currentTarget) closeAddTask() }}>
           <div className="w-full max-w-[520px] rounded-t-[20px] p-5 flex flex-col gap-4" style={{ background: 'var(--surface)' }}>
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text)' }}>Novi zadatak</h3>
-              <button onClick={() => { setShowAddTask(false); setNewTaskName('') }} style={{ color: 'var(--text-muted)' }}>✕</button>
+              <h3 className="text-lg font-medium" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text)' }}>
+                {newTaskIsAppt ? 'Novi termin' : 'Novi zadatak'}
+              </h3>
+              <button onClick={closeAddTask} style={{ color: 'var(--text-muted)' }}>✕</button>
             </div>
+
+            {/* Naziv */}
             <input
               autoFocus
               value={newTaskName}
               onChange={e => setNewTaskName(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && addTask()}
-              placeholder="Naziv zadatka..."
+              onKeyDown={e => e.key === 'Enter' && !newTaskIsAppt && addTask()}
+              placeholder={newTaskIsAppt ? 'Naziv termina...' : 'Naziv zadatka...'}
               className="w-full h-11 px-3 rounded-[12px] border text-sm outline-none"
               style={{ background: 'var(--surface2)', borderColor: 'var(--border)', color: 'var(--text)' }}
             />
+
+            {/* Termin toggle */}
+            <button
+              onClick={() => setNewTaskIsAppt(p => !p)}
+              className="flex items-center justify-between w-full px-3 py-2.5 rounded-[12px] border text-sm"
+              style={{
+                background: newTaskIsAppt ? 'rgba(212,116,42,0.10)' : 'var(--surface2)',
+                borderColor: newTaskIsAppt ? 'var(--gold)' : 'var(--border)',
+              }}
+            >
+              <span style={{ color: 'var(--text)' }}>🗓️ Zakazan termin</span>
+              <div className="w-10 h-5 rounded-full flex items-center px-0.5 transition-all"
+                style={{ background: newTaskIsAppt ? 'var(--gold)' : 'var(--border)', justifyContent: newTaskIsAppt ? 'flex-end' : 'flex-start' }}>
+                <div className="w-4 h-4 rounded-full bg-white" />
+              </div>
+            </button>
+
+            {newTaskIsAppt ? (
+              /* Vreme termina */
+              <div>
+                <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Vreme termina</label>
+                <input
+                  type="time"
+                  value={newTaskTime}
+                  onChange={e => setNewTaskTime(e.target.value)}
+                  className="w-full h-11 px-3 rounded-[12px] border text-sm outline-none"
+                  style={{ background: 'var(--surface2)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                />
+              </div>
+            ) : (
+              /* Tip i prioritet zadatka */
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Tip</label>
+                  <select
+                    value={newTaskType}
+                    onChange={e => setNewTaskType(e.target.value as TaskType)}
+                    className="w-full h-10 px-2 rounded-[12px] border text-sm"
+                    style={{ background: 'var(--surface2)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                  >
+                    {Object.entries(TASK_TYPE_LABELS).map(([v, l]) => (
+                      <option key={v} value={v}>{l}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Prioritet</label>
+                  <select
+                    value={newTaskPriority}
+                    onChange={e => setNewTaskPriority(e.target.value as Priority)}
+                    className="w-full h-10 px-2 rounded-[12px] border text-sm"
+                    style={{ background: 'var(--surface2)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                  >
+                    <option value="high">🔴 Visok</option>
+                    <option value="medium">🟡 Srednji</option>
+                    <option value="low">🟢 Nizak</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
             <Button size="md" className="w-full" onClick={addTask} loading={addingTask} disabled={!newTaskName.trim()}>
-              Dodaj
+              {newTaskIsAppt ? 'Dodaj termin' : 'Dodaj zadatak'}
             </Button>
           </div>
         </div>
