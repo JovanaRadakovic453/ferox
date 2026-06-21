@@ -43,7 +43,13 @@ async function fetchBrainDump(text: string): Promise<Task[]> {
     throw new Error(body.error ?? `Greška ${res.status}`)
   }
   const { tasks } = await res.json()
-  return (tasks ?? []).map((t: Partial<Task>) => ({ ...t, done: false }))
+  return (tasks ?? []).map((t: Partial<Task>) => ({
+    ...t,
+    done: false,
+    note: t.note ?? '',
+    priority: t.priority ?? 'medium',
+    type: t.type ?? 'light',
+  }))
 }
 
 export default function SetupScreen({ profile, targetDate, transferredTasks = [] }: { profile: UserProfile; targetDate?: string; transferredTasks?: Task[] }) {
@@ -106,7 +112,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
 
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    if (!user) { setLoading(false); return }
 
     const dateKey = targetDate ?? todayKey()
 
@@ -125,8 +131,10 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
 
     if (entryError || !entry) { setLoading(false); return }
 
-    await supabase.from('tasks').delete().eq('entry_id', entry.id)
-    await supabase.from('tasks').insert(
+    const { error: deleteError } = await supabase.from('tasks').delete().eq('entry_id', entry.id)
+    if (deleteError) { setLoading(false); return }
+
+    const { error: insertError } = await supabase.from('tasks').insert(
       tasks.map((t, i) => ({
         entry_id: entry.id,
         user_id: user.id,
@@ -134,10 +142,11 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
         done: false,
         priority: t.priority,
         type: t.type,
-        note: t.note,
+        note: t.note ?? '',
         position: i,
       }))
     )
+    if (insertError) { setLoading(false); return }
 
     // Uvek obrisi stare termine za taj dan pa sačuvaj nove
     await supabase.from('appointments').delete()
@@ -161,11 +170,11 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
       start_time: wakeTime,
     }).eq('id', user.id)
 
-    router.push('/plan')
-    router.refresh()
+    // Hard navigation da se zaobiđe Next.js Router Cache
+    window.location.href = '/plan'
   }
 
-  const canSubmit = energy !== null && tasks.length > 0
+  const canSubmit = energy !== null && tasks.length > 0 && !brainDumpLoading
 
   return (
     <main className="min-h-dvh flex flex-col p-5 gap-6" style={{ background: 'var(--bg)', color: 'var(--text)' }}>
