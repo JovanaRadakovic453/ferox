@@ -65,6 +65,7 @@ export default function SetupScreen({ profile }: { profile: UserProfile }) {
   const sleepHours = calcSleepHours(sleepTime, wakeTime)
 
   async function handleBrainDump() {
+    alert('Klik! Tekst: "' + brainDumpText + '"')
     if (!brainDumpText.trim()) return
     setBrainDumpLoading(true)
     setBrainDumpError(null)
