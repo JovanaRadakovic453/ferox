@@ -24,7 +24,25 @@ export async function POST(request: NextRequest) {
       messages: [
         {
           role: 'user',
-          content: `Izvuci zadatke iz sledećeg teksta i vrati ih kao JSON niz. Svaki zadatak treba da ima: name (string), priority (high/medium/low), type (creative/analytical/meetings/communication/admin/light/rest/learning/exercise/planning/reading/meditation), note (string, može biti prazan).
+          content: `Izvuci zadatke iz sledećeg teksta i vrati ih kao JSON niz.
+
+Svaki zadatak ima:
+- name (string): kratko ime zadatka na srpskom
+- priority (high/medium/low): koliko je hitno
+- type: izaberi JEDAN od sledećih tipova prema opisu:
+  * creative — pisanje, dizajn, kreativni rad
+  * analytical — analiza, istraživanje, kompleksno razmišljanje
+  * meetings — sastanci, pozivi, video konferencije
+  * communication — mejlovi, poruke, odgovori
+  * admin — papirologija, birokratija, poslovni dokumenti
+  * light — lagani zadaci, nabavka, kupovina, sitne obaveze u kući
+  * rest — pauza, odmor, opuštanje
+  * learning — učenje, kursevi, čitanje stručne literature
+  * exercise — sport, šetnja, fizička aktivnost
+  * planning — planiranje, organizacija, pravljenje liste
+  * reading — čitanje knjiga, članaka
+  * meditation — meditacija, disanje, mindfulness
+- note (string): kratka napomena, može biti prazna
 
 Maksimalno 8 zadataka. Vrati SAMO JSON niz, bez ikakvog drugog teksta.
 
@@ -43,15 +61,11 @@ Tekst: "${text}"`,
     return NextResponse.json({ error: 'AI greška' }, { status: 500 })
   }
 
-  console.log('[brain-dump] raw response:', content.text)
-
   try {
     const cleaned = content.text.replace(/```json\n?|\n?```/g, '').trim()
     const tasks = JSON.parse(cleaned)
-    console.log('[brain-dump] parsed tasks:', tasks)
     return NextResponse.json({ tasks })
   } catch {
-    console.error('[brain-dump] parse failed, raw:', content.text)
     return NextResponse.json({ error: 'Nisam mogao da parsovam zadatke' }, { status: 500 })
   }
 }
