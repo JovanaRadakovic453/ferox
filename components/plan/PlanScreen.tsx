@@ -76,33 +76,53 @@ function TaskItem({
   )
 }
 
-function AppointmentItem({ appt }: { appt: Appointment }) {
+function AppointmentItem({ appt, onToggle }: { appt: Appointment; onToggle: () => void }) {
   return (
-    <div className="flex items-center gap-2 py-2 border-b" style={{ borderColor: 'var(--border)' }}>
-      <span className="text-sm font-medium shrink-0" style={{ color: 'var(--gold)' }}>{appt.time}</span>
-      <p className="text-sm flex-1 truncate">{appt.name}</p>
-      <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'rgba(212,116,42,0.12)', color: 'var(--gold)' }}>termin</span>
-    </div>
+    <button onClick={onToggle} className="flex items-center gap-3 w-full text-left py-2 border-b" style={{ borderColor: 'var(--border)' }}>
+      <div
+        className="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all duration-200"
+        style={{
+          borderColor: appt.done ? 'var(--gold)' : 'var(--border)',
+          background: appt.done ? 'var(--gold)' : 'transparent',
+        }}
+      >
+        {appt.done && <span className="text-white text-xs">✓</span>}
+      </div>
+      <span
+        className="text-sm font-medium shrink-0 transition-all duration-200"
+        style={{ color: appt.done ? 'var(--text-muted)' : 'var(--gold)', opacity: appt.done ? 0.6 : 1 }}
+      >
+        {appt.time}
+      </span>
+      <p
+        className="text-sm flex-1 truncate transition-all duration-200"
+        style={{ color: appt.done ? 'var(--text-muted)' : 'var(--text)', textDecoration: appt.done ? 'line-through' : 'none', opacity: appt.done ? 0.6 : 1 }}
+      >
+        {appt.name}
+      </p>
+      <span className="text-xs px-1.5 py-0.5 rounded shrink-0" style={{ background: 'rgba(212,116,42,0.12)', color: 'var(--gold)' }}>termin</span>
+    </button>
   )
 }
 
 function BlockCard({
-  block, appointments, onToggle,
-}: { block: PlanBlock; appointments: Appointment[]; onToggle: (taskName: string) => void }) {
-  const done = block.tasks.filter(t => t.done).length
-  const total = block.tasks.length
+  block, appointments, onToggle, onToggleAppt,
+}: {
+  block: PlanBlock
+  appointments: Appointment[]
+  onToggle: (taskName: string) => void
+  onToggleAppt: (apptName: string, apptTime: string) => void
+}) {
+  const doneTasks = block.tasks.filter(t => t.done).length
+  const doneAppts = appointments.filter(a => a.done).length
+  const done = doneTasks + doneAppts
+  const total = block.tasks.length + appointments.length
 
-  if (total === 0 && appointments.length === 0) return null
+  if (total === 0) return null
 
   return (
-    <div
-      className="rounded-[16px] overflow-hidden"
-      style={{ background: 'var(--surface)', boxShadow: 'var(--sh1)' }}
-    >
-      <div
-        className="flex items-center justify-between px-4 py-3"
-        style={{ background: block.badge }}
-      >
+    <div className="rounded-[16px] overflow-hidden" style={{ background: 'var(--surface)', boxShadow: 'var(--sh1)' }}>
+      <div className="flex items-center justify-between px-4 py-3" style={{ background: block.badge }}>
         <div className="flex items-center gap-2">
           <span>{block.badgeText}</span>
           <span className="font-medium text-sm" style={{ color: 'var(--text)' }}>{block.label}</span>
@@ -110,18 +130,17 @@ function BlockCard({
         <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{block.timeRange}</span>
       </div>
 
-      {/* Progress bar */}
-      {total > 0 && (
-        <div className="h-1 w-full" style={{ background: 'var(--border)' }}>
-          <div
-            className="h-full transition-all duration-500"
-            style={{ width: `${(done / total) * 100}%`, background: 'var(--gold)' }}
-          />
-        </div>
-      )}
+      <div className="h-1 w-full" style={{ background: 'var(--border)' }}>
+        <div
+          className="h-full transition-all duration-500"
+          style={{ width: `${total > 0 ? (done / total) * 100 : 0}%`, background: 'var(--gold)' }}
+        />
+      </div>
 
       <div className="px-4">
-        {appointments.map(a => <AppointmentItem key={a.name + a.time} appt={a} />)}
+        {appointments.map(a => (
+          <AppointmentItem key={a.name + a.time} appt={a} onToggle={() => onToggleAppt(a.name, a.time)} />
+        ))}
         <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
           {block.tasks.map(task => (
             <TaskItem key={task.name} task={task} onToggle={() => onToggle(task.name)} />
@@ -129,11 +148,9 @@ function BlockCard({
         </div>
       </div>
 
-      {total > 0 && (
-        <div className="px-4 py-2">
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{done}/{total} završeno</p>
-        </div>
-      )}
+      <div className="px-4 py-2">
+        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{done}/{total} završeno</p>
+      </div>
     </div>
   )
 }
@@ -148,6 +165,7 @@ export default function PlanScreen({
 }) {
   const router = useRouter()
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
+  const [appts, setAppts] = useState<Appointment[]>(appointments)
   const [savingEod, setSavingEod] = useState(false)
   const [showEod, setShowEod] = useState(false)
   const [showReplan, setShowReplan] = useState(false)
@@ -160,14 +178,16 @@ export default function PlanScreen({
 
   function getAppointmentsForBlock(blockIndex: number): Appointment[] {
     const b = blocks[blockIndex]
-    return appointments.filter(a => {
+    return appts.filter(a => {
       const [h] = a.time.split(':').map(Number)
       return h >= b.start && h < b.end
     })
   }
 
-  const done = tasks.filter(t => t.done).length
-  const total = tasks.length
+  const doneTasks = tasks.filter(t => t.done).length
+  const doneAppts = appts.filter(a => a.done).length
+  const done = doneTasks + doneAppts
+  const total = tasks.length + appts.length
   const allDone = done === total && total > 0
 
   async function toggleTask(taskName: string) {
@@ -183,6 +203,17 @@ export default function PlanScreen({
       .update({ done: newDone })
       .eq('entry_id', entry.id!)
       .eq('name', taskName)
+  }
+
+  async function toggleAppointment(name: string, time: string) {
+    const appt = appts.find(a => a.name === name && a.time === time)
+    if (!appt) return
+    const newDone = !appt.done
+    setAppts(prev => prev.map(a => a.name === name && a.time === time ? { ...a, done: newDone } : a))
+    if (appt.id) {
+      const supabase = createClient()
+      await supabase.from('appointments').update({ done: newDone }).eq('id', appt.id)
+    }
   }
 
   async function handleReplan() {
@@ -270,7 +301,7 @@ export default function PlanScreen({
             {allDone ? 'Fenomenalno!' : 'Dan završen!'}
           </h2>
           <p style={{ color: 'var(--text-muted)' }}>
-            Završio/la si {done} od {total} zadataka danas.
+            Završio/la si {done} od {total} stavki danas.
           </p>
           {tasks.filter(t => !t.done).length > 0 && (
             <p className="text-sm mt-2" style={{ color: 'var(--text-muted)' }}>
@@ -314,7 +345,7 @@ export default function PlanScreen({
       {/* Blokovi */}
       <div className="flex flex-col gap-4">
         {planBlocks.map((block, i) => (
-          <BlockCard key={block.label} block={block} appointments={getAppointmentsForBlock(i)} onToggle={toggleTask} />
+          <BlockCard key={block.label} block={block} appointments={getAppointmentsForBlock(i)} onToggle={toggleTask} onToggleAppt={toggleAppointment} />
         ))}
       </div>
 
