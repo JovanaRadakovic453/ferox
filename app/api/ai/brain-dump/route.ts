@@ -29,18 +29,18 @@ export async function POST(request: NextRequest) {
 Svaki zadatak ima:
 - name (string): kratko ime zadatka na srpskom
 - priority (high/medium/low): koliko je hitno
-- type: izaberi JEDAN od sledećih tipova prema opisu:
-  * creative — pisanje, dizajn, kreativni rad
-  * analytical — analiza, istraživanje, kompleksno razmišljanje
+- type: izaberi JEDAN od sledećih tipova. Pazi na primere:
+  * creative — pisanje, dizajn, kreativni projekti
+  * analytical — analiza podataka, istraživanje, rešavanje problema
   * meetings — sastanci, pozivi, video konferencije
-  * communication — mejlovi, poruke, odgovori
-  * admin — papirologija, birokratija, poslovni dokumenti
-  * light — lagani zadaci, nabavka, kupovina, sitne obaveze u kući
-  * rest — pauza, odmor, opuštanje
-  * learning — učenje, kursevi, čitanje stručne literature
-  * exercise — sport, šetnja, fizička aktivnost
-  * planning — planiranje, organizacija, pravljenje liste
-  * reading — čitanje knjiga, članaka
+  * communication — mejlovi, poruke, odgovori na upite
+  * admin — SAMO kancelarijska birokratija: fakture, ugovori, poslovni dokumenti, prijave
+  * light — SVE lične obaveze i erandi: kupovina namirnica, odlazak u prodavnicu, sitni kućni poslovi, zakazivanje pregleda, plaćanje računa, odlazak na poštu
+  * rest — pauza, odmor, spavanje, opuštanje
+  * learning — učenje, online kursevi, stručna literatura
+  * exercise — trčanje, teretana, sport, šetnja, fizička aktivnost
+  * planning — planiranje projekta, pravljenje liste, organizacija
+  * reading — čitanje knjiga ili članaka za razonodu
   * meditation — meditacija, disanje, mindfulness
 - note (string): kratka napomena, može biti prazna
 
