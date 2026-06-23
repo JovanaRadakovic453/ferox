@@ -500,7 +500,7 @@ export default function PlanScreen({
         <Button size="sm" variant="ghost" className="w-full" onClick={() => setShowReplan(true)}>
           🔥 Dan se raspao
         </Button>
-        <Button size="sm" variant="ghost" className="w-full" onClick={() => router.push('/')}>
+        <Button size="sm" variant="ghost" className="w-full" onClick={() => { window.location.href = '/?edit=1' }}>
           ✏️ Uredi plan
         </Button>
       </div>

@@ -7,7 +7,7 @@ import type { UserProfile, Task } from '@/types/ferox'
 export default async function SetupPage({
   searchParams,
 }: {
-  searchParams: Promise<{ sutra?: string }>
+  searchParams: Promise<{ sutra?: string; edit?: string }>
 }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -24,6 +24,7 @@ export default async function SetupPage({
 
   const params = await searchParams
   const isSutra = params.sutra === '1'
+  const isEdit = params.edit === '1'
 
   const today = new Date().toISOString().split('T')[0]
   const tomorrow = new Date()
@@ -38,7 +39,7 @@ export default async function SetupPage({
     .eq('date_key', targetDate)
     .single()
 
-  if (!isSutra) {
+  if (!isSutra && !isEdit) {
     const cookieStore = await cookies()
     const dayFinished = cookieStore.get('ferox_day_finished')?.value
     if (entry && dayFinished !== today) redirect('/plan')
