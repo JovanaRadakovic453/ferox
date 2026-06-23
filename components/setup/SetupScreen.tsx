@@ -52,7 +52,7 @@ async function fetchBrainDump(text: string): Promise<Task[]> {
   }))
 }
 
-export default function SetupScreen({ profile, targetDate, transferredTasks = [] }: { profile: UserProfile; targetDate?: string; transferredTasks?: Task[] }) {
+export default function SetupScreen({ profile, targetDate, transferredTasks = [], showTransferBanner = false }: { profile: UserProfile; targetDate?: string; transferredTasks?: Task[]; showTransferBanner?: boolean }) {
   const router = useRouter()
   const [energy, setEnergy] = useState<number | null>(null)
   const [wakeTime, setWakeTime] = useState(profile.start_time ?? '08:00')
@@ -164,7 +164,8 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
         return
       }
 
-      window.location.href = '/plan'
+      const isTomorrow = (targetDate ?? todayKey()) !== todayKey()
+      window.location.href = isTomorrow ? '/?sutra=1' : '/plan'
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Greška mreže')
       setLoading(false)
@@ -185,7 +186,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
       </div>
 
       {/* Baner za prenete zadatke */}
-      {transferredTasks.length > 0 && (
+      {showTransferBanner && transferredTasks.length > 0 && (
         <div className="rounded-[12px] px-4 py-3 text-sm" style={{ background: 'rgba(212,116,42,0.10)', color: 'var(--gold)' }}>
           📋 {transferredTasks.length} {transferredTasks.length === 1 ? 'zadatak preneto' : 'zadataka preneto'} iz prethodnog dana
         </div>

@@ -37,7 +37,7 @@ export default async function SetupPage({
     .select('id')
     .eq('user_id', user.id)
     .eq('date_key', targetDate)
-    .single()
+    .maybeSingle()
 
   if (!isSutra && !isEdit) {
     const cookieStore = await cookies()
@@ -45,14 +45,37 @@ export default async function SetupPage({
     if (entry && dayFinished !== today) redirect('/plan')
   }
 
-  const { data: transferred } = await supabase
-    .from('transferred_tasks')
-    .select('tasks')
-    .eq('user_id', user.id)
-    .eq('for_date', targetDate)
-    .single()
+  // Ako vec postoji plan za targetDate, ucitaj te zadatke
+  // Inace ucitaj prenesene zadatke iz prethodnog dana
+  let initialTasks: Task[] = []
+  let showTransferBanner = false
 
-  const transferredTasks = ((transferred?.tasks ?? []) as Task[]).filter((t: Task) => !t.done)
+  if (entry) {
+    const { data: existingTasks } = await supabase
+      .from('tasks')
+      .select('name, note, priority, type, done, position')
+      .eq('entry_id', entry.id)
+      .eq('user_id', user.id)
+      .order('position')
+    initialTasks = (existingTasks ?? []) as Task[]
+  } else {
+    const { data: transferred } = await supabase
+      .from('transferred_tasks')
+      .select('tasks')
+      .eq('user_id', user.id)
+      .eq('for_date', targetDate)
+      .maybeSingle()
+    const filtered = ((transferred?.tasks ?? []) as Task[]).filter((t: Task) => !t.done)
+    initialTasks = filtered
+    showTransferBanner = filtered.length > 0
+  }
 
-  return <SetupScreen profile={profile as UserProfile} targetDate={targetDate} transferredTasks={transferredTasks} />
+  return (
+    <SetupScreen
+      profile={profile as UserProfile}
+      targetDate={targetDate}
+      transferredTasks={initialTasks}
+      showTransferBanner={showTransferBanner}
+    />
+  )
 }
