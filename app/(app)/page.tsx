@@ -51,7 +51,7 @@ export default async function SetupPage({
     .eq('for_date', targetDate)
     .single()
 
-  const transferredTasks = (transferred?.tasks ?? []) as Task[]
+  const transferredTasks = ((transferred?.tasks ?? []) as Task[]).filter((t: Task) => !t.done)
 
   return <SetupScreen profile={profile as UserProfile} targetDate={targetDate} transferredTasks={transferredTasks} />
 }

@@ -168,8 +168,6 @@ export default function PlanScreen({
   const [appts, setAppts] = useState<Appointment[]>(appointments)
   const [savingEod, setSavingEod] = useState(false)
   const [showEod, setShowEod] = useState(false)
-  const [showTransferPicker, setShowTransferPicker] = useState(false)
-  const [selectedForTransfer, setSelectedForTransfer] = useState<Set<string>>(new Set())
   const [showReplan, setShowReplan] = useState(false)
   const [replanText, setReplanText] = useState('')
   const [replanLoading, setReplanLoading] = useState(false)
@@ -265,26 +263,11 @@ export default function PlanScreen({
   }
 
   function startFinishDay() {
-    const unfinished = tasks.filter(t => !t.done)
-    if (unfinished.length === 0) {
-      finishDay([])
-    } else {
-      setSelectedForTransfer(new Set(unfinished.map(t => t.name)))
-      setShowTransferPicker(true)
-    }
-  }
-
-  function toggleTransfer(name: string) {
-    setSelectedForTransfer(prev => {
-      const next = new Set(prev)
-      next.has(name) ? next.delete(name) : next.add(name)
-      return next
-    })
+    finishDay(tasks.filter(t => !t.done))
   }
 
   async function finishDay(tasksToTransfer: Task[]) {
     setSavingEod(true)
-    setShowTransferPicker(false)
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -359,77 +342,6 @@ export default function PlanScreen({
 
   function startNewDay() {
     router.push('/?sutra=1')
-  }
-
-  if (showTransferPicker) {
-    const unfinished = tasks.filter(t => !t.done)
-    const toTransfer = unfinished.filter(t => selectedForTransfer.has(t.name))
-    return (
-      <main className="min-h-dvh flex flex-col p-5 gap-5" style={{ background: 'var(--bg)', color: 'var(--text)' }}>
-        <div className="pt-2">
-          <h2 className="text-2xl font-light" style={{ fontFamily: 'var(--font-serif)', color: 'var(--gold)' }}>
-            Nedovršeni zadaci
-          </h2>
-          <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
-            Izaberi šta da prenesemo za sutra:
-          </p>
-        </div>
-
-        <div className="flex flex-col gap-2">
-          {unfinished.map(task => {
-            const checked = selectedForTransfer.has(task.name)
-            return (
-              <button
-                key={task.name}
-                onClick={() => toggleTransfer(task.name)}
-                className="flex items-center gap-3 p-4 rounded-[14px] text-left transition-all"
-                style={{
-                  background: checked ? 'rgba(212,116,42,0.10)' : 'var(--surface)',
-                  border: `1.5px solid ${checked ? 'var(--gold)' : 'var(--border)'}`,
-                  boxShadow: 'var(--sh1)',
-                }}
-              >
-                <div
-                  className="w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-all"
-                  style={{
-                    borderColor: checked ? 'var(--gold)' : 'var(--border)',
-                    background: checked ? 'var(--gold)' : 'transparent',
-                  }}
-                >
-                  {checked && <span className="text-white text-xs">✓</span>}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">{task.name}</p>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                    {TASK_TYPE_LABELS[task.type]}
-                  </p>
-                </div>
-              </button>
-            )
-          })}
-        </div>
-
-        <div className="flex flex-col gap-3 pt-2">
-          <Button
-            size="lg"
-            className="w-full"
-            onClick={() => finishDay(toTransfer)}
-            loading={savingEod}
-          >
-            {toTransfer.length > 0
-              ? `Prenesi ${toTransfer.length} ${toTransfer.length === 1 ? 'zadatak' : 'zadataka'} i završi dan`
-              : 'Završi dan bez prenošenja'}
-          </Button>
-          <button
-            onClick={() => setShowTransferPicker(false)}
-            className="text-sm text-center py-2"
-            style={{ color: 'var(--text-muted)' }}
-          >
-            ← Nazad na plan
-          </button>
-        </div>
-      </main>
-    )
   }
 
   if (showEod) {
