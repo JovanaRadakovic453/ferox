@@ -143,63 +143,46 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
 
       const dateKey = targetDate ?? todayKey()
 
-      // Izbegavamo upsert+select jer Supabase ne vraca podatke pri UPDATE konfliktu
-      // Umesto toga: prvo SELECT, pa INSERT ili UPDATE
-      let entryId: string
-
-      const { data: existingEntry } = await supabase
-        .from('day_entries')
-        .select('id')
+      // Korak 1: Obrisi stari entry za danas — cascade automatski brise SVE tasks
+      await supabase.from('day_entries')
+        .delete()
         .eq('user_id', user.id)
         .eq('date_key', dateKey)
-        .maybeSingle()
 
-      if (existingEntry?.id) {
-        entryId = existingEntry.id
-        await supabase.from('day_entries').update({
+      // Korak 2: Kreiraj svezi entry
+      const { data: newEntry, error: createErr } = await supabase
+        .from('day_entries')
+        .insert({
+          user_id: user.id,
+          date_key: dateKey,
           energy: energyLabel(energy),
           sleep_hours: sleepHours,
-        }).eq('id', entryId)
-      } else {
-        const { data: newEntry, error: createErr } = await supabase
-          .from('day_entries')
-          .insert({
-            user_id: user.id,
-            date_key: dateKey,
-            energy: energyLabel(energy),
-            sleep_hours: sleepHours,
-            water_intake: 0,
-            water_goal: 2000,
-          })
-          .select('id')
-          .single()
+          water_intake: 0,
+          water_goal: 2000,
+        })
+        .select('id')
+        .single()
 
-        if (createErr || !newEntry) { setLoading(false); return }
-        entryId = newEntry.id
+      if (createErr || !newEntry) { setLoading(false); return }
+
+      // Korak 3: Ubaci nove zadatke
+      if (tasks.length > 0) {
+        const { error: insertError } = await supabase.from('tasks').insert(
+          tasks.map((t, i) => ({
+            entry_id: newEntry.id,
+            user_id: user.id,
+            name: t.name,
+            done: false,
+            priority: t.priority,
+            type: t.type,
+            note: t.note ?? '',
+            position: i,
+          }))
+        )
+        if (insertError) { setLoading(false); return }
       }
 
-      // Obrisi SVE stare zadatke za ovaj entry (eksplicitno oba filtera da RLS ne blokira)
-      await supabase
-        .from('tasks')
-        .delete()
-        .eq('entry_id', entryId)
-        .eq('user_id', user.id)
-
-      const { error: insertError } = await supabase.from('tasks').insert(
-        tasks.map((t, i) => ({
-          entry_id: entryId,
-          user_id: user.id,
-          name: t.name,
-          done: false,
-          priority: t.priority,
-          type: t.type,
-          note: t.note ?? '',
-          position: i,
-        }))
-      )
-      if (insertError) { setLoading(false); return }
-
-      // Obrisi stare termine i ubaci nove
+      // Korak 4: Obrisi stare termine i ubaci nove
       await supabase.from('appointments').delete()
         .eq('user_id', user.id).eq('date_key', dateKey)
       if (appointments.length > 0) {
@@ -215,7 +198,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
         )
       }
 
-      // Obrisi prenete zadatke posto su sada sacuvani u planu
+      // Korak 5: Obrisi prenete zadatke
       await supabase.from('transferred_tasks')
         .delete()
         .eq('user_id', user.id)
@@ -227,7 +210,6 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
         start_time: wakeTime,
       }).eq('id', user.id)
 
-      // Hard navigation da se zaobiđe Next.js Router Cache
       window.location.href = '/plan'
     } catch (err) {
       console.error('[handleSubmit]', err)
