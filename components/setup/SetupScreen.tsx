@@ -72,8 +72,6 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
   const [brainDumpLoading, setBrainDumpLoading] = useState(false)
   const [brainDumpError, setBrainDumpError] = useState<string | null>(null)
   const [brainDumpSuccess, setBrainDumpSuccess] = useState<number | null>(null)
-  const [tomorrowSaved, setTomorrowSaved] = useState(false)
-
   const sleepHours = calcSleepHours(sleepTime, wakeTime)
 
   async function handleBrainDump() {
@@ -166,12 +164,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
         return
       }
 
-      const isTomorrow = (targetDate ?? todayKey()) !== todayKey()
-      if (isTomorrow) {
-        setTomorrowSaved(true)
-      } else {
-        window.location.href = '/plan'
-      }
+      window.location.href = '/plan'
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Greška mreže')
       setLoading(false)
@@ -179,22 +172,6 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
   }
 
   const canSubmit = energy !== null && tasks.length > 0 && !brainDumpLoading
-
-  if (tomorrowSaved) {
-    return (
-      <main className="min-h-dvh flex flex-col items-center justify-center p-5 text-center gap-6" style={{ background: 'var(--bg)' }}>
-        <div className="text-6xl">🌙</div>
-        <div>
-          <h2 className="text-2xl font-light mb-2" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text)' }}>
-            Plan za sutra je spreman!
-          </h2>
-          <p style={{ color: 'var(--text-muted)' }}>
-            Odmori se. Ferox pamti sve.
-          </p>
-        </div>
-      </main>
-    )
-  }
 
   return (
     <main className="min-h-dvh flex flex-col p-5 gap-6" style={{ background: 'var(--bg)', color: 'var(--text)' }}>
