@@ -121,12 +121,14 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setResetting(false); return }
     const dateKey = targetDate ?? todayKey()
-    // Obrisi entry za danas (cascade brise i tasks)
-    await supabase.from('day_entries').delete().eq('user_id', user.id).eq('date_key', dateKey)
-    // Obrisi termine i prenete zadatke
+    const { data: existing } = await supabase
+      .from('day_entries').select('id').eq('user_id', user.id).eq('date_key', dateKey).maybeSingle()
+    if (existing) {
+      await supabase.from('tasks').delete().eq('user_id', user.id).eq('entry_id', existing.id)
+      await supabase.from('day_entries').delete().eq('user_id', user.id).eq('id', existing.id)
+    }
     await supabase.from('appointments').delete().eq('user_id', user.id).eq('date_key', dateKey)
     await supabase.from('transferred_tasks').delete().eq('user_id', user.id).eq('for_date', dateKey)
-    // Obrisi cookie
     document.cookie = 'ferox_day_finished=; max-age=0; path=/'
     setResetting(false)
     window.location.reload()
@@ -143,13 +145,41 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
 
       const dateKey = targetDate ?? todayKey()
 
-      // Korak 1: Obrisi stari entry za danas — cascade automatski brise SVE tasks
-      await supabase.from('day_entries')
-        .delete()
+      // Korak 1: Nadji postojeci entry za danas (ako postoji)
+      const { data: existing } = await supabase
+        .from('day_entries')
+        .select('id')
         .eq('user_id', user.id)
         .eq('date_key', dateKey)
+        .maybeSingle()
 
-      // Korak 2: Kreiraj svezi entry
+      if (existing) {
+        // Korak 2a: Eksplicitno obrisi zadatke (ne oslanjamo se na cascade)
+        const { error: delTasksErr } = await supabase
+          .from('tasks')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('entry_id', existing.id)
+        if (delTasksErr) {
+          console.error('[handleSubmit] delete tasks:', delTasksErr)
+          setLoading(false)
+          return
+        }
+
+        // Korak 2b: Obrisi stari entry
+        const { error: delEntryErr } = await supabase
+          .from('day_entries')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('id', existing.id)
+        if (delEntryErr) {
+          console.error('[handleSubmit] delete entry:', delEntryErr)
+          setLoading(false)
+          return
+        }
+      }
+
+      // Korak 3: Kreiraj svezi entry
       const { data: newEntry, error: createErr } = await supabase
         .from('day_entries')
         .insert({
@@ -163,26 +193,32 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
         .select('id')
         .single()
 
-      if (createErr || !newEntry) { setLoading(false); return }
-
-      // Korak 3: Ubaci nove zadatke
-      if (tasks.length > 0) {
-        const { error: insertError } = await supabase.from('tasks').insert(
-          tasks.map((t, i) => ({
-            entry_id: newEntry.id,
-            user_id: user.id,
-            name: t.name,
-            done: false,
-            priority: t.priority,
-            type: t.type,
-            note: t.note ?? '',
-            position: i,
-          }))
-        )
-        if (insertError) { setLoading(false); return }
+      if (createErr || !newEntry) {
+        console.error('[handleSubmit] create entry:', createErr)
+        setLoading(false)
+        return
       }
 
-      // Korak 4: Obrisi stare termine i ubaci nove
+      // Korak 4: Ubaci nove zadatke
+      const { error: insertError } = await supabase.from('tasks').insert(
+        tasks.map((t, i) => ({
+          entry_id: newEntry.id,
+          user_id: user.id,
+          name: t.name,
+          done: false,
+          priority: t.priority,
+          type: t.type,
+          note: t.note ?? '',
+          position: i,
+        }))
+      )
+      if (insertError) {
+        console.error('[handleSubmit] insert tasks:', insertError)
+        setLoading(false)
+        return
+      }
+
+      // Korak 5: Obrisi stare termine i ubaci nove
       await supabase.from('appointments').delete()
         .eq('user_id', user.id).eq('date_key', dateKey)
       if (appointments.length > 0) {
@@ -198,7 +234,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
         )
       }
 
-      // Korak 5: Obrisi prenete zadatke
+      // Korak 6: Obrisi prenete zadatke
       await supabase.from('transferred_tasks')
         .delete()
         .eq('user_id', user.id)
