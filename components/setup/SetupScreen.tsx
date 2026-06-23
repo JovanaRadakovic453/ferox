@@ -192,13 +192,6 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
             Odmori se. Ferox pamti sve.
           </p>
         </div>
-        <button
-          onClick={() => { window.location.href = '/plan' }}
-          className="text-sm px-4 py-2 rounded-[12px]"
-          style={{ background: 'var(--surface)', color: 'var(--text-muted)', boxShadow: 'var(--sh1)' }}
-        >
-          Nazad na današnji plan
-        </button>
       </main>
     )
   }

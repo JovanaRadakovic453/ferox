@@ -167,7 +167,6 @@ export default function PlanScreen({
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
   const [appts, setAppts] = useState<Appointment[]>(appointments)
   const [savingEod, setSavingEod] = useState(false)
-  const [showEod, setShowEod] = useState(false)
   const [showTransferPicker, setShowTransferPicker] = useState(false)
   const [selectedForTransfer, setSelectedForTransfer] = useState<Set<string>>(new Set())
   const [showReplan, setShowReplan] = useState(false)
@@ -305,8 +304,7 @@ export default function PlanScreen({
 
     const today = new Date().toISOString().split('T')[0]
     document.cookie = `ferox_day_finished=${today}; max-age=86400; path=/`
-    setShowEod(true)
-    setSavingEod(false)
+    window.location.href = '/?sutra=1'
   }
 
   function closeAddTask() {
@@ -355,10 +353,6 @@ export default function PlanScreen({
       }
     }
     setAddingTask(false)
-  }
-
-  function startNewDay() {
-    router.push('/?sutra=1')
   }
 
   if (showTransferPicker) {
@@ -428,30 +422,6 @@ export default function PlanScreen({
             ← Nazad na plan
           </button>
         </div>
-      </main>
-    )
-  }
-
-  if (showEod) {
-    return (
-      <main className="min-h-dvh flex flex-col items-center justify-center p-5 text-center gap-6" style={{ background: 'var(--bg)' }}>
-        <div className="text-6xl">{allDone ? '🎉' : '✅'}</div>
-        <div>
-          <h2 className="text-2xl font-light mb-2" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text)' }}>
-            {allDone ? 'Fenomenalno!' : 'Dan završen!'}
-          </h2>
-          <p style={{ color: 'var(--text-muted)' }}>
-            Završio/la si {done} od {total} stavki danas.
-          </p>
-          {tasks.filter(t => !t.done).length > 0 && (
-            <p className="text-sm mt-2" style={{ color: 'var(--text-muted)' }}>
-              {tasks.filter(t => !t.done).length} nezavršenih zadataka biće preneto sutra.
-            </p>
-          )}
-        </div>
-        <Button size="lg" onClick={startNewDay}>
-          Planiraj sutra →
-        </Button>
       </main>
     )
   }
