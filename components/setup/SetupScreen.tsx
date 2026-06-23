@@ -65,6 +65,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
   const [showTaskForm, setShowTaskForm] = useState(false)
   const [showApptForm, setShowApptForm] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
   const [resetting, setResetting] = useState(false)
   const [brainDumpText, setBrainDumpText] = useState('')
   const [showBrainDump, setShowBrainDump] = useState(false)
@@ -137,118 +138,36 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
   async function handleSubmit() {
     if (!energy || tasks.length === 0) return
     setLoading(true)
+    setSubmitError(null)
 
     try {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { setLoading(false); return }
-
       const dateKey = targetDate ?? todayKey()
 
-      // Korak 1: Nadji postojeci entry za danas (ako postoji)
-      const { data: existing } = await supabase
-        .from('day_entries')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('date_key', dateKey)
-        .maybeSingle()
-
-      if (existing) {
-        // Korak 2a: Eksplicitno obrisi zadatke (ne oslanjamo se na cascade)
-        const { error: delTasksErr } = await supabase
-          .from('tasks')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('entry_id', existing.id)
-        if (delTasksErr) {
-          console.error('[handleSubmit] delete tasks:', delTasksErr)
-          setLoading(false)
-          return
-        }
-
-        // Korak 2b: Obrisi stari entry
-        const { error: delEntryErr } = await supabase
-          .from('day_entries')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('id', existing.id)
-        if (delEntryErr) {
-          console.error('[handleSubmit] delete entry:', delEntryErr)
-          setLoading(false)
-          return
-        }
-      }
-
-      // Korak 3: Kreiraj svezi entry
-      const { data: newEntry, error: createErr } = await supabase
-        .from('day_entries')
-        .insert({
-          user_id: user.id,
-          date_key: dateKey,
+      const res = await fetch('/api/day/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dateKey,
           energy: energyLabel(energy),
-          sleep_hours: sleepHours,
-          water_intake: 0,
-          water_goal: 2000,
-        })
-        .select('id')
-        .single()
+          sleepHours,
+          sleepTime,
+          wakeTime,
+          tasks,
+          appointments,
+        }),
+      })
 
-      if (createErr || !newEntry) {
-        console.error('[handleSubmit] create entry:', createErr)
+      const data = await res.json()
+
+      if (!res.ok) {
+        setSubmitError(data.error ?? 'Nepoznata greška')
         setLoading(false)
         return
       }
-
-      // Korak 4: Ubaci nove zadatke
-      const { error: insertError } = await supabase.from('tasks').insert(
-        tasks.map((t, i) => ({
-          entry_id: newEntry.id,
-          user_id: user.id,
-          name: t.name,
-          done: false,
-          priority: t.priority,
-          type: t.type,
-          note: t.note ?? '',
-          position: i,
-        }))
-      )
-      if (insertError) {
-        console.error('[handleSubmit] insert tasks:', insertError)
-        setLoading(false)
-        return
-      }
-
-      // Korak 5: Obrisi stare termine i ubaci nove
-      await supabase.from('appointments').delete()
-        .eq('user_id', user.id).eq('date_key', dateKey)
-      if (appointments.length > 0) {
-        await supabase.from('appointments').insert(
-          appointments.map(a => ({
-            user_id: user.id,
-            date_key: dateKey,
-            name: a.name,
-            time: a.time,
-            reminder: a.reminder,
-            done: false,
-          }))
-        )
-      }
-
-      // Korak 6: Obrisi prenete zadatke
-      await supabase.from('transferred_tasks')
-        .delete()
-        .eq('user_id', user.id)
-        .eq('for_date', dateKey)
-
-      await supabase.from('profiles').update({
-        last_sleep_time: sleepTime,
-        last_sleep_hours: sleepHours,
-        start_time: wakeTime,
-      }).eq('id', user.id)
 
       window.location.href = '/plan'
     } catch (err) {
-      console.error('[handleSubmit]', err)
+      setSubmitError(err instanceof Error ? err.message : 'Greška mreže')
       setLoading(false)
     }
   }
@@ -498,6 +417,12 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
         <p className="text-center text-xs -mt-3" style={{ color: 'var(--text-muted)' }}>
           {!energy ? 'Izaberi nivo energije' : 'Dodaj bar jedan zadatak'}
         </p>
+      )}
+
+      {submitError && (
+        <div className="rounded-[12px] px-4 py-3 text-sm" style={{ background: 'rgba(192,57,43,0.10)', color: '#c0392b' }}>
+          Greška: {submitError}
+        </div>
       )}
 
       <button
