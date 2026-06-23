@@ -86,23 +86,44 @@ export async function POST(request: NextRequest) {
   }
 
   // Korak 3: Ubaci nove zadatke
-  const { error: insertTasksErr } = await supabase
+  const taskRows = tasks.map((t: Task, i: number) => ({
+    entry_id: entryId,
+    user_id: user.id,
+    name: t.name,
+    done: false,
+    priority: t.priority,
+    type: t.type,
+    note: t.note ?? '',
+    position: i,
+  }))
+
+  const { data: insertedTasks, error: insertTasksErr } = await supabase
     .from('tasks')
-    .insert(
-      tasks.map((t: Task, i: number) => ({
-        entry_id: entryId,
-        user_id: user.id,
-        name: t.name,
-        done: false,
-        priority: t.priority,
-        type: t.type,
-        note: t.note ?? '',
-        position: i,
-      }))
-    )
+    .insert(taskRows)
+    .select('id, name')
 
   if (insertTasksErr) {
     return NextResponse.json({ error: 'Greška pri ubacivanju zadataka', detail: insertTasksErr.message }, { status: 500 })
+  }
+
+  // Verifikacija: proveri koliko je zadataka stvarno u bazi
+  const { data: dbTasks } = await supabase
+    .from('tasks')
+    .select('id, name')
+    .eq('entry_id', entryId)
+    .eq('user_id', user.id)
+
+  const sentCount = tasks.length
+  const dbCount = dbTasks?.length ?? 0
+
+  if (dbCount !== sentCount) {
+    return NextResponse.json({
+      error: `Baza ima ${dbCount} zadataka, ali poslato ${sentCount}. Kontaktiraj podršku.`,
+      detail: 'count_mismatch',
+      sentCount,
+      dbCount,
+      dbTaskNames: dbTasks?.map(t => t.name),
+    }, { status: 500 })
   }
 
   // Korak 4: Termini
@@ -133,5 +154,11 @@ export async function POST(request: NextRequest) {
     .update({ last_sleep_time: sleepTime, last_sleep_hours: sleepHours, start_time: wakeTime })
     .eq('id', user.id)
 
-  return NextResponse.json({ ok: true, entryId })
+  return NextResponse.json({
+    ok: true,
+    entryId,
+    tasksSent: sentCount,
+    tasksSaved: dbCount,
+    taskNames: dbTasks?.map(t => t.name),
+  })
 }

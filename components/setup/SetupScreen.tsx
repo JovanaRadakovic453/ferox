@@ -160,12 +160,14 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
       const data = await res.json()
 
       if (!res.ok) {
-        setSubmitError(data.error ?? 'Nepoznata greška')
+        setSubmitError(`${data.error ?? 'Nepoznata greška'} | Detalji: ${JSON.stringify(data)}`)
         setLoading(false)
         return
       }
 
-      window.location.href = '/plan'
+      // Privremena dijagnoza — ukloniti posle
+      setSubmitError(`✅ API OK: poslato ${data.tasksSent} zadataka, sačuvano ${data.tasksSaved}. Nazivi: ${data.taskNames?.join(', ')}. Navigiram za 3s...`)
+      setTimeout(() => { window.location.href = '/plan' }, 3000)
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Greška mreže')
       setLoading(false)
@@ -420,8 +422,11 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
       )}
 
       {submitError && (
-        <div className="rounded-[12px] px-4 py-3 text-sm" style={{ background: 'rgba(192,57,43,0.10)', color: '#c0392b' }}>
-          Greška: {submitError}
+        <div className="rounded-[12px] px-4 py-3 text-sm" style={{
+          background: submitError.startsWith('✅') ? 'rgba(34,197,94,0.12)' : 'rgba(192,57,43,0.10)',
+          color: submitError.startsWith('✅') ? '#16a34a' : '#c0392b',
+        }}>
+          {submitError}
         </div>
       )}
 
