@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { calcBlocks } from '@/lib/energy'
 import { addDays, tomorrowKey } from '@/lib/date'
 import { formatDate } from '@/lib/utils'
-import { TASK_TYPE_LABELS } from '@/types/ferox'
+import { TASK_TYPE_LABELS, PRIORITY_LABELS } from '@/types/ferox'
 import type { Task, Appointment, DayEntry, UserProfile, PlanBlock, TaskType, Priority } from '@/types/ferox'
 import Button from '@/components/ui/Button'
 import Checkbox from '@/components/ui/Checkbox'
@@ -18,8 +18,14 @@ import { assignTasksToBlocks } from '@/lib/plan'
 
 function TaskItem({ task, onToggle }: { task: Task; onToggle: () => void }) {
   return (
-    <button onClick={onToggle} className="flex items-start gap-3 w-full text-left py-2.5 transition-transform active:scale-[0.995]">
-      <span className="mt-0.5"><Checkbox checked={task.done} /></span>
+    <button
+      onClick={onToggle}
+      role="checkbox"
+      aria-checked={task.done}
+      aria-label={`${task.name} — ${PRIORITY_LABELS[task.priority]}${task.done ? ', završeno' : ''}`}
+      className="flex items-start gap-3 w-full text-left py-2.5 transition-transform active:scale-[0.995]"
+    >
+      <span className="mt-0.5" aria-hidden><Checkbox checked={task.done} /></span>
       <div className="flex-1 min-w-0">
         <p
           className="text-sm font-medium transition-all duration-200"
@@ -40,12 +46,14 @@ function TaskItem({ task, onToggle }: { task: Task; onToggle: () => void }) {
       </div>
       <span
         className="text-[0.65rem] font-semibold px-2 py-0.5 rounded-full shrink-0 mt-0.5 tracking-wide"
+        title={PRIORITY_LABELS[task.priority]}
         style={{
           background: task.priority === 'high' ? '#ef444418' : task.priority === 'medium' ? '#f59e0b18' : '#22c55e18',
           color: task.priority === 'high' ? '#ef4444' : task.priority === 'medium' ? '#d97706' : '#16a34a',
         }}
       >
-        {task.priority === 'high' ? 'V' : task.priority === 'medium' ? 'S' : 'N'}
+        <span aria-hidden>{task.priority === 'high' ? 'V' : task.priority === 'medium' ? 'S' : 'N'}</span>
+        <span className="sr-only">{PRIORITY_LABELS[task.priority]}</span>
       </span>
     </button>
   )
@@ -53,8 +61,15 @@ function TaskItem({ task, onToggle }: { task: Task; onToggle: () => void }) {
 
 function AppointmentItem({ appt, onToggle }: { appt: Appointment; onToggle: () => void }) {
   return (
-    <button onClick={onToggle} className="flex items-center gap-3 w-full text-left py-2.5 border-b transition-transform active:scale-[0.995]" style={{ borderColor: 'var(--hairline)' }}>
-      <Checkbox checked={appt.done} />
+    <button
+      onClick={onToggle}
+      role="checkbox"
+      aria-checked={appt.done}
+      aria-label={`${appt.time} ${appt.name} (termin)${appt.done ? ', završeno' : ''}`}
+      className="flex items-center gap-3 w-full text-left py-2.5 border-b transition-transform active:scale-[0.995]"
+      style={{ borderColor: 'var(--hairline)' }}
+    >
+      <span aria-hidden><Checkbox checked={appt.done} /></span>
       <span
         className="text-sm font-medium shrink-0 transition-all duration-200"
         style={{ color: appt.done ? 'var(--text-muted)' : 'var(--gold)', opacity: appt.done ? 0.6 : 1 }}
@@ -168,6 +183,16 @@ export default function PlanScreen({
   const [newTaskIsAppt, setNewTaskIsAppt] = useState(false)
   const [newTaskTime, setNewTaskTime] = useState('09:00')
   const [addingTask, setAddingTask] = useState(false)
+  const [water, setWater] = useState(entry.water_intake ?? 0)
+  const waterGoal = entry.water_goal ?? 2000
+
+  async function addWater(ml: number) {
+    const next = Math.max(0, water + ml)
+    setWater(next)
+    const supabase = createClient()
+    const { error } = await supabase.from('day_entries').update({ water_intake: next }).eq('id', entry.id!)
+    if (error) { setWater(water); toast({ message: 'Nije sačuvano', variant: 'error' }) }
+  }
 
   const blocks = calcBlocks(profile.start_time ?? '08:00', profile.sleep_time ?? '23:00', profile.rhythm)
   const planBlocks = assignTasksToBlocks(tasks, blocks, entry.energy_level, profile.rhythm)
@@ -486,12 +511,38 @@ export default function PlanScreen({
         </span>
       </div>
 
+      {/* Voda (samo danas) */}
+      {isToday && (
+        <div className="card p-4 flex items-center gap-3">
+          <span className="text-xl" aria-hidden>💧</span>
+          <div className="flex-1 min-w-0">
+            <div className="flex justify-between text-xs mb-1" style={{ color: 'var(--text-muted)' }}>
+              <span>Voda</span><span className="tabular-nums">{water}/{waterGoal} ml</span>
+            </div>
+            <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--surface2)' }}>
+              <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(100, (water / waterGoal) * 100)}%`, backgroundImage: 'linear-gradient(90deg, #7cc6e8, #3b9fd4)' }} />
+            </div>
+          </div>
+          <button onClick={() => addWater(250)} className="text-xs font-semibold px-3 py-2 rounded-[var(--r-md)] shrink-0" style={{ background: 'var(--surface2)', color: 'var(--text)' }}>+250</button>
+        </div>
+      )}
+
       {/* Blokovi */}
-      <div className="flex flex-col gap-4">
-        {planBlocks.map((block, i) => (
-          <BlockCard key={block.label} block={block} appointments={getAppointmentsForBlock(i)} onToggle={toggleTask} onToggleAppt={toggleAppointment} />
-        ))}
-      </div>
+      {total === 0 ? (
+        <div className="card p-8 text-center flex flex-col items-center gap-3">
+          <span className="text-4xl">🗒️</span>
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+            Plan je prazan. Dodaj prvi zadatak da krenemo.
+          </p>
+          <Button size="sm" onClick={() => setShowAddTask(true)}>➕ Dodaj zadatak</Button>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-4">
+          {planBlocks.map((block, i) => (
+            <BlockCard key={block.label} block={block} appointments={getAppointmentsForBlock(i)} onToggle={toggleTask} onToggleAppt={toggleAppointment} />
+          ))}
+        </div>
+      )}
 
       {/* Footer dugmad */}
       <div className="flex flex-col gap-3 pt-2">
