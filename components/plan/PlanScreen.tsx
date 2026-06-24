@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { calcBlocks } from '@/lib/energy'
@@ -11,30 +11,9 @@ import type { Task, Appointment, DayEntry, UserProfile, PlanBlock, TaskType, Pri
 import Button from '@/components/ui/Button'
 import Checkbox from '@/components/ui/Checkbox'
 import LogoutButton from '@/components/LogoutButton'
-
-/** Smoothly animates an integer toward `value` (eased), for the done counter. */
-function useCountUp(value: number, duration = 550) {
-  const [display, setDisplay] = useState(value)
-  const prev = useRef(value)
-  useEffect(() => {
-    const from = prev.current
-    const to = value
-    if (from === to) return
-    let raf = 0
-    let start = 0
-    const stepFn = (now: number) => {
-      if (!start) start = now
-      const t = Math.min(1, (now - start) / duration)
-      const eased = 1 - Math.pow(1 - t, 3)
-      setDisplay(Math.round(from + (to - from) * eased))
-      if (t < 1) raf = requestAnimationFrame(stepFn)
-      else prev.current = to
-    }
-    raf = requestAnimationFrame(stepFn)
-    return () => cancelAnimationFrame(raf)
-  }, [value, duration])
-  return display
-}
+import { useCountUp } from '@/lib/useCountUp'
+import DayProgress from '@/components/plan/DayProgress'
+import { useToast } from '@/components/ui/Toast'
 
 function assignTasksToBlocks(tasks: Task[], blocks: ReturnType<typeof calcBlocks>): PlanBlock[] {
   const high   = tasks.filter(t => t.priority === 'high')
@@ -111,38 +90,13 @@ function AppointmentItem({ appt, onToggle }: { appt: Appointment; onToggle: () =
   )
 }
 
-/** Segmented day progress — one segment per active time-block, so the bar
- *  reads as the shape of the whole day rather than a single anonymous fill. */
-function DayProgress({ blocks }: { blocks: PlanBlock[] }) {
-  const active = blocks.filter(b => b.tasks.length > 0)
-  if (active.length === 0) {
-    return <div className="h-2.5 rounded-full" style={{ background: 'var(--surface2)' }} />
-  }
-  return (
-    <div className="flex items-center gap-1.5" aria-hidden>
-      {active.map(b => {
-        const done = b.tasks.filter(t => t.done).length
-        const pct = b.tasks.length ? (done / b.tasks.length) * 100 : 0
-        return (
-          <div key={b.label} className="flex-1 h-2.5 rounded-full overflow-hidden" style={{ background: 'var(--surface2)', boxShadow: 'inset 0 1px 2px rgba(26,23,20,0.07)' }}>
-            <div
-              className="h-full rounded-full transition-all duration-700"
-              style={{ width: `${pct}%`, backgroundImage: 'linear-gradient(90deg, var(--gold-light), var(--gold))' }}
-            />
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
 function BlockCard({
   block, appointments, onToggle, onToggleAppt,
 }: {
   block: PlanBlock
   appointments: Appointment[]
-  onToggle: (taskName: string) => void
-  onToggleAppt: (apptName: string, apptTime: string) => void
+  onToggle: (taskId: string) => void
+  onToggleAppt: (apptId: string) => void
 }) {
   const doneTasks = block.tasks.filter(t => t.done).length
   const doneAppts = appointments.filter(a => a.done).length
@@ -180,11 +134,11 @@ function BlockCard({
 
       <div className="pl-5 pr-4">
         {appointments.map(a => (
-          <AppointmentItem key={a.name + a.time} appt={a} onToggle={() => onToggleAppt(a.name, a.time)} />
+          <AppointmentItem key={a.id ?? a.name + a.time} appt={a} onToggle={() => a.id && onToggleAppt(a.id)} />
         ))}
         <div className="divide-y" style={{ borderColor: 'var(--hairline)' }}>
           {block.tasks.map(task => (
-            <TaskItem key={task.name} task={task} onToggle={() => onToggle(task.name)} />
+            <TaskItem key={task.id ?? task.name} task={task} onToggle={() => task.id && onToggle(task.id)} />
           ))}
         </div>
       </div>
@@ -204,6 +158,7 @@ export default function PlanScreen({
   isToday?: boolean
 }) {
   const router = useRouter()
+  const toast = useToast()
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
   const [appts, setAppts] = useState<Appointment[]>(appointments)
   const [savingEod, setSavingEod] = useState(false)
@@ -239,29 +194,31 @@ export default function PlanScreen({
   const allDone = done === total && total > 0
   const doneDisplay = useCountUp(done)
 
-  async function toggleTask(taskName: string) {
-    const supabase = createClient()
-    const task = tasks.find(t => t.name === taskName)
+  // Optimistički toggle PO ID-u (ne po imenu — dva ista naziva se više ne sudaraju).
+  // Na grešku vraćamo stanje i nudimo retry preko toasta.
+  async function toggleTask(taskId: string) {
+    const task = tasks.find(t => t.id === taskId)
     if (!task) return
-
     const newDone = !task.done
-    setTasks(prev => prev.map(t => t.name === taskName ? { ...t, done: newDone } : t))
-
-    await supabase
-      .from('tasks')
-      .update({ done: newDone })
-      .eq('entry_id', entry.id!)
-      .eq('name', taskName)
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, done: newDone } : t))
+    const supabase = createClient()
+    const { error } = await supabase.from('tasks').update({ done: newDone }).eq('id', taskId)
+    if (error) {
+      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, done: !newDone } : t))
+      toast({ message: 'Nije sačuvano — proveri internet', variant: 'error', action: { label: 'Pokušaj', onClick: () => toggleTask(taskId) } })
+    }
   }
 
-  async function toggleAppointment(name: string, time: string) {
-    const appt = appts.find(a => a.name === name && a.time === time)
+  async function toggleAppointment(apptId: string) {
+    const appt = appts.find(a => a.id === apptId)
     if (!appt) return
     const newDone = !appt.done
-    setAppts(prev => prev.map(a => a.name === name && a.time === time ? { ...a, done: newDone } : a))
-    if (appt.id) {
-      const supabase = createClient()
-      await supabase.from('appointments').update({ done: newDone }).eq('id', appt.id)
+    setAppts(prev => prev.map(a => a.id === apptId ? { ...a, done: newDone } : a))
+    const supabase = createClient()
+    const { error } = await supabase.from('appointments').update({ done: newDone }).eq('id', apptId)
+    if (error) {
+      setAppts(prev => prev.map(a => a.id === apptId ? { ...a, done: !newDone } : a))
+      toast({ message: 'Nije sačuvano — proveri internet', variant: 'error', action: { label: 'Pokušaj', onClick: () => toggleAppointment(apptId) } })
     }
   }
 
@@ -287,21 +244,22 @@ export default function PlanScreen({
 
   async function applyReplan() {
     if (!replanResult) return
-    const supabase = createClient()
-    // Mark "obrisi" tasks as done, keep "danas" tasks, move "sutra" to tomorrow
-    const updatedTasks = tasks.map(t => ({
-      ...t,
-      done: t.done || replanResult.obrisi.includes(t.name),
-    }))
-    setTasks(updatedTasks)
-    // Sync to DB
-    for (const t of updatedTasks) {
-      await supabase.from('tasks').update({ done: t.done })
-        .eq('entry_id', entry.id!).eq('name', t.name)
-    }
+    const obrisi = new Set(replanResult.obrisi)
+    // "Otpiši" zadatke označavamo kao gotove. Jedan batch update po ID-u.
+    const idsToComplete = tasks.filter(t => !t.done && obrisi.has(t.name) && t.id).map(t => t.id!)
+    const prevTasks = tasks
+    setTasks(prev => prev.map(t => idsToComplete.includes(t.id!) ? { ...t, done: true } : t))
     setShowReplan(false)
     setReplanResult(null)
     setReplanText('')
+    if (idsToComplete.length > 0) {
+      const supabase = createClient()
+      const { error } = await supabase.from('tasks').update({ done: true }).in('id', idsToComplete)
+      if (error) {
+        setTasks(prevTasks)
+        toast({ message: 'Replan nije sačuvan — pokušaj ponovo', variant: 'error' })
+      }
+    }
   }
 
   function startFinishDay() {
@@ -383,22 +341,27 @@ export default function PlanScreen({
       if (!error) {
         setAppts(prev => [...prev, { id: data?.id, name: newTaskName.trim(), time: newTaskTime, reminder: 15, done: false }])
         closeAddTask()
+      } else {
+        toast({ message: 'Termin nije dodat — pokušaj ponovo', variant: 'error' })
       }
     } else {
-      const newTask: Task = { name: newTaskName.trim(), priority: newTaskPriority, type: newTaskType, note: '', done: false }
-      const { error } = await supabase.from('tasks').insert({
+      // .select('id') da novi zadatak odmah nosi id (za pouzdan toggle po ID-u).
+      const { data, error } = await supabase.from('tasks').insert({
         entry_id: entry.id,
         user_id: entry.user_id,
-        name: newTask.name,
+        name: newTaskName.trim(),
         done: false,
-        priority: newTask.priority,
-        type: newTask.type,
+        priority: newTaskPriority,
+        type: newTaskType,
         note: '',
         position: tasks.length,
-      })
+      }).select('id').single()
       if (!error) {
+        const newTask: Task = { id: data?.id, name: newTaskName.trim(), priority: newTaskPriority, type: newTaskType, note: '', done: false }
         setTasks(prev => [...prev, newTask])
         closeAddTask()
+      } else {
+        toast({ message: 'Zadatak nije dodat — pokušaj ponovo', variant: 'error' })
       }
     }
     setAddingTask(false)

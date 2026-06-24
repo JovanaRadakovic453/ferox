@@ -40,7 +40,7 @@ async function fetchBrainDump(text: string): Promise<Task[]> {
   })
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
-    throw new Error(body.error ?? `Greška ${res.status}`)
+    throw new Error(body.error?.message ?? body.error ?? `Greška ${res.status}`)
   }
   const { tasks } = await res.json()
   return (tasks ?? []).map((t: Partial<Task>) => ({
@@ -180,7 +180,6 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
     }
     await supabase.from('appointments').delete().eq('user_id', user.id).eq('date_key', dateKey)
     await supabase.from('transferred_tasks').delete().eq('user_id', user.id).eq('for_date', dateKey)
-    document.cookie = 'ferox_day_finished=; max-age=0; path=/'
     setResetting(false)
     window.location.reload()
   }
@@ -199,6 +198,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
         body: JSON.stringify({
           dateKey,
           energy: energyLabel(energy),
+          energyLevel: energy, // canonical 1=best (picker level sent directly)
           sleepHours,
           sleepTime,
           wakeTime,
@@ -210,7 +210,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
       const data = await res.json()
 
       if (!res.ok) {
-        setSubmitError(data.error ?? 'Greška pri čuvanju plana')
+        setSubmitError(data.error?.message ?? 'Greška pri čuvanju plana')
         setLoading(false)
         return
       }

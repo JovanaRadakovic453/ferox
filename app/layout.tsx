@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Cormorant_Garamond, Outfit } from 'next/font/google'
 import './globals.css'
+import Providers from './providers'
 
 const cormorant = Cormorant_Garamond({
   subsets: ['latin', 'latin-ext'],
@@ -45,7 +46,7 @@ export default function RootLayout({
   return (
     <html lang="sr" suppressHydrationWarning className={`${cormorant.variable} ${outfit.variable}`}>
       <body className="min-h-dvh antialiased">
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   )

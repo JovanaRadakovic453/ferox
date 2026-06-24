@@ -36,7 +36,11 @@ export function tomorrowKey(): string {
   return addDays(todayKey(), 1)
 }
 
-// Validacija da je string oblika YYYY-MM-DD (za ?date= parametar).
+// Validacija da je string ISPRAVAN kalendarski datum oblika YYYY-MM-DD.
+// Ne samo regex (koji bi propustio 2024-13-45) nego i round-trip provera:
+// napravimo Date u podne UTC i proverimo da dayKey vrati isti ključ.
 export function isValidDayKey(key: string | undefined | null): key is string {
-  return typeof key === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(key)
+  if (typeof key !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(key)) return false
+  const d = new Date(`${key}T12:00:00Z`)
+  return !isNaN(d.getTime()) && dayKey(d) === key
 }
