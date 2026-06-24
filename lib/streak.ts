@@ -1,4 +1,5 @@
 import { addDays } from '@/lib/date'
+import { DEFAULTS } from '@/lib/config'
 
 /**
  * Shame-free momentum: consecutive finished days counting back from today,
@@ -7,7 +8,7 @@ import { addDays } from '@/lib/date'
  */
 export function computeStreak(finished: ReadonlySet<string>, restDays: number[], today: string): number {
   let streak = 0
-  for (let i = 0; i < 400; i++) {
+  for (let i = 0; i < DEFAULTS.streakLookbackDays; i++) {
     const d = addDays(today, -i)
     const wd = new Date(`${d}T12:00:00Z`).getUTCDay()
     if (restDays.includes(wd)) continue // day off — skip, don't count, don't break

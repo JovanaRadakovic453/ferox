@@ -1,4 +1,5 @@
-import type { Rhythm } from '@/types/ferox'
+import type { Rhythm, EnergyLevel } from '@/types/ferox'
+import { ENERGY_LABELS } from '@/types/ferox'
 
 export interface TimeBlock {
   label: string
@@ -54,14 +55,7 @@ export function calcBlocks(wakeTime: string, sleepTime: string, rhythm: Rhythm):
 }
 
 export function energyLabel(level: number): string {
-  const map: Record<number, string> = {
-    1: '🔥 Pun gas',
-    2: '😊 Dobro',
-    3: '😐 Prosečno',
-    4: '🥱 Umorno',
-    5: '🪫 Preživljavam',
-  }
-  return map[level] ?? ''
+  return ENERGY_LABELS[level as EnergyLevel] ?? ''
 }
 
 // Obrnuto od energyLabel: iz sačuvanog labela (npr. '🔥 Pun gas') vrati nivo 1–5.

@@ -4,6 +4,7 @@ import type { NextRequest } from 'next/server'
 import { apiOk, ERR } from '@/lib/api'
 import { brainDumpSchema, aiBrainDumpResult, TASK_TYPES, PRIORITIES } from '@/lib/validation'
 import { TASK_TYPE_GUIDE } from '@/lib/ai/prompts'
+import { AI } from '@/lib/config'
 
 // Forced tool-use: the SDK guarantees valid JSON and enums can't be wrong.
 // Concrete times become appointments; everything else is a task.
@@ -56,15 +57,15 @@ export async function POST(request: NextRequest) {
   let message
   try {
     message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 1024,
+      model: AI.model,
+      max_tokens: AI.maxTokens.brainDump,
       tools: [extractTool],
       tool_choice: { type: 'tool', name: 'extract_plan' },
       system: [{ type: 'text', text: TASK_TYPE_GUIDE, cache_control: { type: 'ephemeral' } }],
       messages: [{
         role: 'user',
         content:
-          `Izdvoji najviše 8 zadataka i sve zakazane termine iz teksta. ` +
+          `Izdvoji najviše ${AI.brainDumpMaxTasks} zadataka i sve zakazane termine iz teksta. ` +
           `Ako tekst pominje konkretno vreme (npr. "u 14h", "sastanak u 9", "zubar u 11:30"), to je TERMIN sa time u HH:MM; inače je zadatak. ` +
           `Tekst: "${text}"`,
       }],
@@ -80,7 +81,7 @@ export async function POST(request: NextRequest) {
   if (!result.success) return ERR.aiUnavailable('Neispravna struktura odgovora')
 
   return apiOk({
-    tasks: result.data.tasks.slice(0, 8),
-    appointments: result.data.appointments.slice(0, 8),
+    tasks: result.data.tasks.slice(0, AI.brainDumpMaxTasks),
+    appointments: result.data.appointments.slice(0, AI.brainDumpMaxTasks),
   })
 }

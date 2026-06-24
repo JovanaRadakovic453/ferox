@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import type { NextRequest } from 'next/server'
 import { apiOk, ERR } from '@/lib/api'
 import { FEROX_PERSONA } from '@/lib/ai/prompts'
+import { AI } from '@/lib/config'
 
 // Tool-use over PRE-AGGREGATED stats only (cheap + private — no raw task text leaves).
 const insightsTool = {
@@ -39,8 +40,8 @@ export async function POST(request: NextRequest) {
 
   try {
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 600,
+      model: AI.model,
+      max_tokens: AI.maxTokens.insights,
       tools: [insightsTool],
       tool_choice: { type: 'tool', name: 'report_insights' },
       system: [{ type: 'text', text: FEROX_PERSONA, cache_control: { type: 'ephemeral' } }],
@@ -55,7 +56,7 @@ export async function POST(request: NextRequest) {
     const block = message.content.find(c => c.type === 'tool_use')
     if (!block || block.type !== 'tool_use') return apiOk({ insights: [] })
     const input = block.input as { insights?: unknown }
-    const insights = Array.isArray(input.insights) ? input.insights.slice(0, 3) : []
+    const insights = Array.isArray(input.insights) ? input.insights.slice(0, AI.insightsMax) : []
     return apiOk({ insights })
   } catch {
     // Soft-fail: the deterministic charts still render without AI.

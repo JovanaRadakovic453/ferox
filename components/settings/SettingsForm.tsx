@@ -10,6 +10,7 @@ import Modal from '@/components/ui/Modal'
 import ThemeToggle from '@/components/ui/ThemeToggle'
 import LogoutButton from '@/components/LogoutButton'
 import type { UserProfile, Reason, Rhythm } from '@/types/ferox'
+import { DEFAULTS } from '@/lib/config'
 
 const REASONS: { value: Reason; label: string }[] = [
   { value: 'work', label: '💼 Posao' },
@@ -57,7 +58,7 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
   const [evening, setEvening] = useState<string[]>(profile.evening_tasks ?? [])
   const [microFeedback, setMicroFeedback] = useState(profile.micro_feedback ?? true)
   const [soundEnabled, setSoundEnabled] = useState(profile.sound_enabled ?? false)
-  const [pomodoro, setPomodoro] = useState(profile.pomodoro_minutes ?? 25)
+  const [pomodoro, setPomodoro] = useState(profile.pomodoro_minutes ?? DEFAULTS.pomodoroMinutes)
   const [saving, setSaving] = useState(false)
 
   const [newPassword, setNewPassword] = useState('')
@@ -83,7 +84,7 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
       evening_tasks: evening,
       micro_feedback: microFeedback,
       sound_enabled: soundEnabled,
-      pomodoro_minutes: Math.min(90, Math.max(5, pomodoro)),
+      pomodoro_minutes: Math.min(DEFAULTS.pomodoroMax, Math.max(DEFAULTS.pomodoroMin, pomodoro)),
       updated_at: new Date().toISOString(),
     }).eq('id', profile.id)
     setSaving(false)
@@ -192,7 +193,7 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
           <input type="checkbox" checked={soundEnabled} onChange={e => setSoundEnabled(e.target.checked)} className="w-5 h-5 accent-[var(--gold)]" />
         </label>
         <div className="grid grid-cols-[1fr_auto] items-end gap-3">
-          <Input id="pomo" label="Pomodoro (min)" type="number" value={String(pomodoro)} onChange={e => setPomodoro(Number(e.target.value) || 25)} />
+          <Input id="pomo" label="Pomodoro (min)" type="number" value={String(pomodoro)} onChange={e => setPomodoro(Number(e.target.value) || DEFAULTS.pomodoroMinutes)} />
         </div>
         <div className="rounded-[var(--r-md)] px-3.5 py-3 text-xs" style={{ background: 'var(--surface2)', color: 'var(--text-muted)' }}>
           🔔 Podsetnici (push notifikacije) — uskoro

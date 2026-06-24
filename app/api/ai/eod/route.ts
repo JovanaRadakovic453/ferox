@@ -9,6 +9,7 @@ import { FEROX_PERSONA } from '@/lib/ai/prompts'
 import { energyLabel } from '@/lib/energy'
 import { TASK_TYPE_LABELS } from '@/types/ferox'
 import type { TaskType } from '@/types/ferox'
+import { AI } from '@/lib/config'
 
 const bodySchema = z.object({ dateKey: zStrictDate })
 
@@ -40,8 +41,8 @@ export async function POST(request: NextRequest) {
   let recap = ''
   try {
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 200,
+      model: AI.model,
+      max_tokens: AI.maxTokens.eod,
       system: [{ type: 'text', text: FEROX_PERSONA, cache_control: { type: 'ephemeral' } }],
       messages: [{
         role: 'user',

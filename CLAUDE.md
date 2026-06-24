@@ -96,12 +96,13 @@ components/
 lib/
   supabase/client.ts | server.ts (async!) | admin.ts (service role)
   anthropic.ts         — Anthropic klijent (SAMO server-side)
+  config.ts            — centralni TUNABLES: AI (model/max_tokens/capovi), DEFAULTS (voda/pomodoro/podsetnik/streak), APP (meta/url)
   ai/prompts.ts        — FEROX_PERSONA + TASK_TYPE_GUIDE (jedan izvor istine, keširano)
   ai/parse.ts          — extractText() (sigurno čitanje AI text bloka)
   api.ts               — apiOk / apiError / ERR (standardni { error:{code,message} })
   validation.ts        — zod sheme (sve rute) + enum-i + zStrictDate/zTime
   date.ts              — dayKey/todayKey/tomorrowKey/addDays/isValidDayKey (Europe/Belgrade!)
-  energy.ts            — calcBlocks() (hronotip-težinski), energyLabel(), sleepQuality()
+  energy.ts            — calcBlocks() (hronotip-težinski), energyLabel() (čita ENERGY_LABELS — jedan izvor), sleepQuality()
   plan.ts              — ENERGETSKI MOTOR (vidi dole) — čiste, testirane funkcije
   streak.ts            — computeStreak() (rest-day-aware)
   insights.ts          — computeAggregates() + forecastTomorrow() (čisto)
@@ -157,6 +158,8 @@ Ranije je raspored bio round-robin (energija nije ništa radila). Sad:
      (brain-dump, insights, eod). Slobodan tekst (chat) → stream.
    - Persona/taksonomija iz `lib/ai/prompts.ts` ide kao **keširan** system blok
      (`cache_control: { type: 'ephemeral' }`). Uvek imaj **deterministički fallback**.
+   - Model i parametri (`max_tokens`, capovi) iz `lib/config.ts` (`AI`) — bump
+     modela se radi na JEDNOM mestu, ne u 5 ruta.
 2. **Energija je `1 = best`** (🔥 Pun gas = 1 … 🪫 = 5). `energy_level` se čuva
    tačno kao nivo iz pickera. Motor interno koristi `6 - level`, ali kolona/analitika
    su uvek 1=best. NE invertuj.
@@ -174,7 +177,8 @@ Ranije je raspored bio round-robin (energija nije ništa radila). Sad:
 7. **Optimistički UI + rollback.** Promeni stanje odmah; na DB grešku vrati staro
    stanje i prikaži `useToast()` poruku (vidi `ui/Toast.tsx`).
 8. **Deljeni primitivi se prave JEDNOM** i koriste svuda: `ui/Toast`, `ui/Modal`,
-   `app/providers.tsx`, `plan/DayProgress`, `lib/useCountUp`, `lib/day/createDay`.
+   `app/providers.tsx`, `plan/DayProgress`, `lib/useCountUp`, `lib/day/createDay`,
+   `lib/config`.
 9. **`proxy.ts`** (ne `middleware.ts`) je Next 16 konvencija za auth redirect;
    dodatni guard je u `app/(app)/layout.tsx`.
 10. **Server komponente za fetching**, klijent za interakciju. `lib/supabase/server.ts`
@@ -183,6 +187,10 @@ Ranije je raspored bio round-robin (energija nije ništa radila). Sad:
     briše stare `tasks`, ubacuje nove, i `finished_at = null` (svako snimanje **reotvara**
     dan — undo slučajnog "Završi dan"). Piše i `energy` i `energy_level`. Count-mismatch
     je sad prava 409 greška.
+12. **Tunables → `lib/config.ts`.** NE hardkoduj broj/string koji bi se menjao
+    (model, `max_tokens`, capovi, voda/pomodoro/podsetnik/streak, app meta). `AI`/`APP`
+    su `as const` (literal tipovi); `DEFAULTS` namerno NIJE (numeričke vrednosti ostaju
+    `number`). Tajne (ključevi, service-role) OSTAJU u `process.env`, ne u configu.
 
 ## Navigacija
 `app/(app)/layout.tsx` umotava sadržaj u `AppChrome`: fiksni donji **TabBar**

@@ -4,6 +4,7 @@ import type { NextRequest } from 'next/server'
 import { ERR } from '@/lib/api'
 import { chatSchema } from '@/lib/validation'
 import { FEROX_PERSONA } from '@/lib/ai/prompts'
+import { AI } from '@/lib/config'
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
@@ -16,11 +17,11 @@ export async function POST(request: NextRequest) {
   const { message, context } = parsed.data
 
   // Bound the context so a huge day can't blow up the prompt.
-  const ctxStr = JSON.stringify(context ?? {}).slice(0, 4000)
+  const ctxStr = JSON.stringify(context ?? {}).slice(0, AI.chatContextChars)
 
   const stream = await anthropic.messages.stream({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 1024,
+    model: AI.model,
+    max_tokens: AI.maxTokens.chat,
     // Fixed persona is prompt-cached; only the per-day context varies.
     system: [
       { type: 'text', text: FEROX_PERSONA, cache_control: { type: 'ephemeral' } },

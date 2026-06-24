@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { isValidDayKey } from '@/lib/date'
+import { DEFAULTS } from '@/lib/config'
 
 // Jedinstveni izvor enum-a (mora se poklapati sa types/ferox.ts i schema.sql CHECK).
 export const TASK_TYPES = [
@@ -28,7 +29,7 @@ export const zTaskInput = z.object({
 export const zAppointmentInput = z.object({
   name: z.string().trim().min(1).max(120),
   time: zTime,
-  reminder: z.number().int().min(0).max(1440).optional().default(15),
+  reminder: z.number().int().min(0).max(1440).optional().default(DEFAULTS.reminderMinutes),
   done: z.boolean().optional().default(false),
 })
 

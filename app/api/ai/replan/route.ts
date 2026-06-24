@@ -4,6 +4,7 @@ import type { NextRequest } from 'next/server'
 import { apiOk, ERR } from '@/lib/api'
 import { replanSchema, replanResultSchema } from '@/lib/validation'
 import { extractText } from '@/lib/ai/parse'
+import { AI } from '@/lib/config'
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
@@ -18,8 +19,8 @@ export async function POST(request: NextRequest) {
   let message
   try {
     message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 1024,
+      model: AI.model,
+      max_tokens: AI.maxTokens.replan,
       messages: [{
         role: 'user',
         content: `Korisnik ima energiju: ${energy}. Dan se raspao. Situacija: "${situation}".
