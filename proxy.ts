@@ -25,10 +25,19 @@ export async function proxy(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  const isAuthPage = request.nextUrl.pathname.startsWith('/login') ||
-    request.nextUrl.pathname.startsWith('/register')
+  const { pathname } = request.nextUrl
 
-  if (!user && !isAuthPage) {
+  // /auth/* je callback koji razmenjuje `code` iz mejla za sesiju (email
+  // potvrda + reset lozinke). Tu korisnik JOŠ nema sesiju — ako ga guard
+  // ovde redirektuje na /login, exchangeCodeForSession se nikad ne izvrši i
+  // reset link "vraća na login". Mora ostati javan.
+  const isCallback = pathname.startsWith('/auth')
+  const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register')
+  // /reset-password se otvara sa recovery sesijom; ne smemo ga gurati na login
+  // (nema sesije pre callbacka) ni na / (ima je posle) — tretiramo ga kao javan.
+  const isPublic = isAuthPage || isCallback || pathname.startsWith('/reset-password')
+
+  if (!user && !isPublic) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
