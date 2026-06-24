@@ -164,8 +164,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
         return
       }
 
-      const isTomorrow = (targetDate ?? todayKey()) !== todayKey()
-      window.location.href = isTomorrow ? '/?sutra=1' : '/plan'
+      window.location.href = '/plan'
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Greška mreže')
       setLoading(false)

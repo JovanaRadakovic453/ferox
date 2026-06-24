@@ -156,12 +156,14 @@ function BlockCard({
 }
 
 export default function PlanScreen({
-  entry, tasks: initialTasks, appointments, profile,
+  entry, tasks: initialTasks, appointments, profile, dayFinished = false, tomorrowPlanned = false,
 }: {
   entry: DayEntry
   tasks: Task[]
   appointments: Appointment[]
   profile: UserProfile
+  dayFinished?: boolean
+  tomorrowPlanned?: boolean
 }) {
   const router = useRouter()
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
@@ -443,6 +445,17 @@ export default function PlanScreen({
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>završeno</p>
         </div>
       </div>
+
+      {/* Baner kad je dan završen */}
+      {dayFinished && (
+        <div className="rounded-[12px] px-4 py-3 flex items-center gap-3" style={{ background: 'rgba(212,116,42,0.10)', color: 'var(--gold)' }}>
+          <span className="text-xl">🌙</span>
+          <div className="text-sm">
+            <p className="font-medium">Danas je završen</p>
+            {tomorrowPlanned && <p className="opacity-70">Plan za sutra je spreman</p>}
+          </div>
+        </div>
+      )}
 
       {/* Ukupni progress */}
       <div className="rounded-full overflow-hidden h-2" style={{ background: 'var(--border)' }}>
