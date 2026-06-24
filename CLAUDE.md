@@ -7,16 +7,19 @@ profesionalci i freelanceri.
 
 **Tagline:** "Svi planeri pretpostavljaju da si svaki dan ista osoba. Nisi."
 
-Tok dana: korisnik uveče/ujutru uradi **Setup** (energija + san + zadaci) →
-`/api/day/create` snimi dan → **Plan** ekran rasporedi zadatke po blokovima dana →
-na kraju **EOD** (završi dan) prebaci nedovršene zadatke za sutra.
+Tok dana: korisnik uveče/ujutru uradi **Setup** (energija + san + zadaci, uz
+AI brain-dump) → `/api/day/create` snimi dan → **Plan** ekran rasporedi zadatke
+po blokovima dana **prema energiji i hronotipu** (energetski motor) → tokom dana
+checkuje zadatke / pita **Coach** → na kraju **EOD** (završi dan): AI recap,
+refleksija, streak, prenos nedovršenih zadataka i "posej za sutra".
 
 ## Tech stack
 - **Next.js 16.2** (App Router) + **React 19.2** + **TypeScript** + **Tailwind CSS v4**
 - **Supabase** (PostgreSQL + Auth + RLS) preko `@supabase/ssr`
-- **AI:** `@anthropic-ai/sdk`, model **`claude-sonnet-4-6`** (samo server-side)
+- **AI:** `@anthropic-ai/sdk`, model **`claude-sonnet-4-6`** (samo server-side; tool-use + prompt caching)
+- **Validacija:** `zod` (sve API rute) · **Testovi:** `vitest`
 - **Hosting:** Vercel
-- UI: `framer-motion` (animacije), `@dnd-kit/*` (drag&drop zadataka),
+- UI: `framer-motion` (animacije/Toast/Modal), `@dnd-kit/*` (drag&drop — instaliran),
   `next-themes` (dark mode), `clsx` + `tailwind-merge` (`cn()`)
 
 > ⚠️ **Ovo NIJE Next.js koji znaš** (vidi `AGENTS.md`). Next 16 ima breaking
@@ -26,17 +29,26 @@ na kraju **EOD** (završi dan) prebaci nedovršene zadatke za sutra.
 
 ## Pokretanje lokalno
 ```bash
-npm run dev        # http://localhost:3000
-./run.sh           # isto + auto-kreira .env.local skelet ako fali
-./run.sh build     # production build
+npm run dev            # http://localhost:3000
+npm test               # vitest (unit testovi za lib/)
+npx tsc --noEmit       # type-check (ne radi TLS → ne pada od cert buga)
 ```
 Node 20+.
+
+> ⚠️ **Windows cert bug (Node 22 na petar-ovoj mašini):** `npm install` i
+> `next build` padaju sa `X509_STORE_add_cert` assertion-om (TLS pri svakom
+> network pozivu). Workaround (bez slabljenja TLS-a):
+> 1. izvuci Node-ove root sertifikate u PEM:
+>    `node -e "const fs=require('fs'),os=require('os'),p=require('path');fs.writeFileSync(p.join(os.tmpdir(),'node-ca.pem'),require('tls').rootCertificates.join('\n'))"`
+> 2. instaliraj/builduj sa:
+>    `$env:NODE_OPTIONS='--use-openssl-ca'; $env:NODE_EXTRA_CA_CERTS=(Join-Path $env:TEMP 'node-ca.pem'); npm install`
+> Za HTTP pozive iz skripti koristi `curl` (ne Node `fetch`) da zaobiđeš bug.
 
 ## Env varijable (`.env.local`)
 ```
 NEXT_PUBLIC_SUPABASE_URL=https://scwsifonygvfxiixaiak.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_DLpcNCKEMKoUIHrL1pzDKA_ftfNdn9T
-SUPABASE_SERVICE_ROLE_KEY=          # server-only
+SUPABASE_SERVICE_ROLE_KEY=          # server-only (potrebno za brisanje naloga)
 ANTHROPIC_API_KEY=                  # server-only
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
@@ -44,84 +56,151 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 ## Struktura projekta
 ```
 app/
-  (auth)/login/                — Login
-  (auth)/register/             — Register
-  (auth)/reset-password/       — Reset lozinke
-  (app)/                       — Protected rute (auth guard u layout.tsx)
-    page.tsx                   — Setup / redirect na /plan / EOD landing (vidi "Routing")
-    plan/                      — Plan ekran sa blokovima
+  (auth)/login | register | reset-password   — Auth ekrani (AuthCard)
+  (app)/                       — Protected (auth guard u layout.tsx → AppChrome)
+    page.tsx                   — Setup / redirect na /plan / EodLanding (vidi "Routing")
+    plan/                      — Plan ekran + plan/loading.tsx (skeleton)
     onboarding/                — 5-koračni onboarding (novi korisnici)
-    history/                   — Istorija dana (Faza 6)
-    insights/                  — Pattern Coach + Energy Forecast (Faza 6)
-    settings/                  — Podešavanja + Lab (Faza 7)
+    history/                   — Istorija dana (kalendar strip + dan kartice)
+    insights/                  — Pattern Coach (AI) + Energy Forecast + grafici
+    settings/                  — Profil/prefs/tema + GDPR export/brisanje
+    loading.tsx / error.tsx    — skeleton + error boundary
+  providers.tsx                — ThemeProvider + ToastProvider + SwRegister (root)
   api/
-    ai/brain-dump/             — POST: slobodan tekst → Task[]
-    ai/replan/                 — POST: "dan se raspao" replanning
-    ai/chat/                   — POST: streaming chat asistent
-    day/create/                — POST: snimi/azuriraj dan + zadatke (glavni write path)
-    day/debug/                 — GET: debug stanja dana
+    ai/brain-dump/             — POST tool-use: tekst → { tasks[], appointments[] }
+    ai/replan/                 — POST: "dan se raspao" → { danas, sutra, obrisi, poruka }
+    ai/chat/                   — POST: streaming Coach (text/plain stream)
+    ai/eod/                    — POST: topli EOD recap (kešira u day_entries.eod_recap)
+    ai/insights/               — POST tool-use: agregati → { insights[] } (Pattern Coach)
+    day/create/                — POST: glavni write path (preko lib/day/createDay)
+    account/export | delete/   — GDPR export (JSON) / brisanje naloga (service role)
   auth/callback/               — Supabase email potvrda callback
 components/
-  ui/Button.tsx, Input.tsx, Checkbox.tsx   — base UI
-  auth/AuthCard.tsx                        — wrapper za auth ekrane
-  onboarding/OnboardingFlow.tsx            — 5-koračna forma (framer-motion)
-  setup/SetupScreen.tsx                    — dnevni setup (energija, san, zadaci)
-  plan/PlanScreen.tsx                      — plan sa blokovima, toggle, EOD
-  plan/EodLanding.tsx                      — "Dan završen" početna
+  ui/Button|Input|Checkbox     — base UI
+  ui/Toast.tsx                 — ToastProvider + useToast() (queue, framer-motion)
+  ui/Modal.tsx                 — pristupačan focus-trapped dialog/sheet (role=dialog, Esc)
+  ui/ThemeToggle.tsx           — light/dark/system (next-themes)
+  auth/AuthCard.tsx
+  nav/AppChrome.tsx            — bottom TabBar + ChromeContext(useChrome) + Coach FAB
+  nav/SwRegister.tsx           — registruje service worker (PWA)
+  nav/InstallBanner.tsx        — "Dodaj na početni ekran" (beforeinstallprompt)
+  chat/CoachSheet.tsx          — Coach chat UI (čita /api/ai/chat stream)
+  onboarding/OnboardingFlow.tsx
+  setup/SetupScreen.tsx        — setup (energija, san, brain-dump, overload guard)
+  plan/PlanScreen.tsx          — plan, blokovi, toggle PO ID-u, modali, EOD, voda
+  plan/DayProgress.tsx         — segmentirani progres (izdvojeno, reusable)
+  plan/EodLanding.tsx          — "Dan završen": recap + refleksija + streak + posej sutra
+  insights/InsightsView.tsx    — grafici + forecast + AI uvidi (client)
+  settings/SettingsForm.tsx    — sva podešavanja + nalog
   LogoutButton.tsx
 lib/
-  supabase/client.ts   — Browser klijent
-  supabase/server.ts   — Server klijent (cookies); `createClient()` je async → await
+  supabase/client.ts | server.ts (async!) | admin.ts (service role)
   anthropic.ts         — Anthropic klijent (SAMO server-side)
-  date.ts              — dayKey/todayKey/tomorrowKey/addDays (Europe/Belgrade TZ!)
-  energy.ts            — calcBlocks(), energyLabel(), energyLevelFromLabel(), sleepQuality()
+  ai/prompts.ts        — FEROX_PERSONA + TASK_TYPE_GUIDE (jedan izvor istine, keširano)
+  ai/parse.ts          — extractText() (sigurno čitanje AI text bloka)
+  api.ts               — apiOk / apiError / ERR (standardni { error:{code,message} })
+  validation.ts        — zod sheme (sve rute) + enum-i + zStrictDate/zTime
+  date.ts              — dayKey/todayKey/tomorrowKey/addDays/isValidDayKey (Europe/Belgrade!)
+  energy.ts            — calcBlocks() (hronotip-težinski), energyLabel(), sleepQuality()
+  plan.ts              — ENERGETSKI MOTOR (vidi dole) — čiste, testirane funkcije
+  streak.ts            — computeStreak() (rest-day-aware)
+  insights.ts          — computeAggregates() + forecastTomorrow() (čisto)
+  day/createDay.ts     — jedinstveni validirani insert dana (rute + quick-start dele ga)
+  useCountUp.ts        — animacija brojača
   utils.ts             — cn(), formatDate(), calcSleepHours()
 types/ferox.ts         — Svi tipovi + LABELS (Task, UserProfile, DayEntry, ENERGY_LABELS...)
 proxy.ts               — Auth middleware (Next 16 naziv za middleware)
-supabase/schema.sql    — SQL schema sa RLS politikama
+public/                — manifest.json, sw.js, icon.svg, icon-maskable.svg (PWA)
+supabase/schema.sql    — pun schema (sa RLS); migracije u supabase/migrations/
+tests/engine.test.ts   — vitest (calcBlocks, energy-fit, capacity, date, sleep)
 ```
 
 ## Supabase model (sve tabele imaju RLS — pristup samo `auth.uid()`)
-- `profiles` — korisnički profil; auto-kreiran triggerom `on_auth_user_created`.
-  Ključ: `completed_once` (da li je prošao onboarding).
-- `day_entries` — jedan red po (`user_id`, `date_key`). `finished_at`:
-  `NULL` = aktivan dan, `!= NULL` = završen (EOD).
-- `tasks` — vezani za `day_entries.id` preko `entry_id`. `position` čuva redosled.
-- `appointments` — termini po `date_key`.
+- `profiles` — profil; auto-kreiran triggerom `on_auth_user_created`.
+  - `completed_once` (onboarding), `rhythm` (hronotip), `rest_days` (slobodni dani),
+    `morning_tasks`/`evening_tasks` (navike), `last_sleep_time`/`start_time`.
+  - **Novo:** `best_streak`, `theme`, `micro_feedback`, `sound_enabled`, `pomodoro_minutes`.
+- `day_entries` — jedan red po (`user_id`, `date_key`). `finished_at`: `NULL` =
+  aktivan dan, `!= NULL` = završen (EOD).
+  - `energy` (emoji label, za prikaz) **+ `energy_level` (smallint 1–5, izvor istine)**.
+  - `water_intake`/`water_goal`, **`reflection`**, **`eod_recap`** (keš AI recapa).
+- `tasks` — vezani za `day_entries.id` (`entry_id`). `position` (redosled) **+
+  `block_index` (0–3 ručni override; `null` = motor sam raspoređuje)**.
+- `appointments` — termini po `date_key` (`time` HH:MM, `reminder` min).
 - `transferred_tasks` — `jsonb` zadaci preneseni za naredni dan (`for_date`).
+
+**Migracije:** `supabase/migrations/0002_complete.sql` (energy_level + backfill,
+block_index, reflection/eod_recap, profile prefs). Primeni preko Supabase SQL
+editora ili Management API-ja (`POST /v1/projects/{ref}/database/query`, Bearer PAT).
+Uvek dodaj iste kolone i u `supabase/schema.sql` (za svež DB).
+
+## Energetski motor (`lib/plan.ts`) — srž proizvoda
+Ranije je raspored bio round-robin (energija nije ništa radila). Sad:
+- `typeEnergyDemand` — koliko svaki od 12 tipova zadatka traži energije (0–1;
+  analytical/creative/learning visoko, light/admin/communication nisko, rest/meditation restorativno).
+- `blockEnergyCurve(rhythm)` — 4 vrednosti dostupne energije po bloku, po hronotipu
+  (morning rano visoko, evening kasno visoko, midday u sredini, mixed ravno).
+- `dailyFactor(level)` — skalira celu krivu prema dnevnoj energiji (level 1 = ×1.0, level 5 = ×0.2).
+- `assignTasksToBlocks(tasks, blocks, energy_level, rhythm)` — pohlepno: ručni
+  `block_index` prvo, pa najteži zadaci u blok gde im fit (demand ≈ dostupna energija)
+  najbolji; pri niskoj energiji se teški poslovi koncentrišu u **vrh dana**. Vraća
+  `PlanBlock[]` sa `peak` i `rationale` ("zašto baš ovde").
+- `capacity(level)` / `isHeavy(task)` → **overload guard** u Setupu (predloži prenos
+  teških zadataka za sutra kad ih je previše za izabranu energiju).
+- `calcBlocks()` u `lib/energy.ts` je sad **hronotip-težinski** i NE gubi sate
+  (stari `Math.floor` je odsecao ostatak).
 
 ## Ključne konvencije — UVEK POŠTUJ
 
-1. **AI ključ NIKAD na klijentu.** Svi Anthropic pozivi idu kroz `/api/ai/*`.
-   Pattern endpointa: auth check → `anthropic.messages.create({ model: 'claude-sonnet-4-6' })`
-   → skini ```` ```json ```` ograde → `JSON.parse`. Greške vraćaj kao srpski string.
-2. **Srpski jezik** — svi UI stringovi i AI promptovi na srpskom.
-3. **Datum dana ide kroz `lib/date.ts`** (`todayKey()`/`tomorrowKey()`), NIKAD
-   `new Date().toISOString().split('T')[0]`. Zona je fiksirana na `Europe/Belgrade`
-   jer server radi u UTC — inače se oko ponoći `date_key` razilazi i plan "nestane".
-4. **Optimistički UI** — odmah prikaži promenu, sync u pozadini.
-5. **`proxy.ts`** (ne `middleware.ts`) je Next 16 konvencija za auth redirect.
-   Dodatni guard je u `app/(app)/layout.tsx` (server-side `redirect('/login')`).
-6. **Server komponente za data fetching**, klijent komponente za interakciju.
-   `lib/supabase/server.ts` `createClient()` je **async** — mora `await`.
-7. **`/api/day/create` je idempotentan:** ako dan postoji, briše stare `tasks` i
-   ponovo ih ubacuje, i postavlja `finished_at = null` (svako snimanje preko dana
-   ga **reotvara** — služi i kao undo slučajnog "Završi dan").
-8. Referentni fajl za originalnu logiku: `ferox.html` (~4800 linija vanilla JS).
+1. **AI ključ NIKAD na klijentu.** Svi Anthropic pozivi kroz `/api/ai/*`.
+   - Strukturirani izlaz → **tool-use** (`tool_choice`), ne parsiranje teksta
+     (brain-dump, insights, eod). Slobodan tekst (chat) → stream.
+   - Persona/taksonomija iz `lib/ai/prompts.ts` ide kao **keširan** system blok
+     (`cache_control: { type: 'ephemeral' }`). Uvek imaj **deterministički fallback**.
+2. **Energija je `1 = best`** (🔥 Pun gas = 1 … 🪫 = 5). `energy_level` se čuva
+   tačno kao nivo iz pickera. Motor interno koristi `6 - level`, ali kolona/analitika
+   su uvek 1=best. NE invertuj.
+3. **Mutacije PO `id`-u, ne po imenu.** Toggle/update tasks/appointments preko
+   `.eq('id', ...)`; batch preko `.in('id', ids)`. (Duplo ime se više ne sudara.)
+   Novi redovi se ubacuju sa `.select('id')` da odmah nose id.
+4. **Sve API rute:** `zod` validacija ulaza (`lib/validation.ts`) → standardni
+   odgovor preko `lib/api.ts` (`apiOk` / `ERR.*`). Oblik greške:
+   `{ error: { code, message, detail? } }` (klijent čita `body.error.message`).
+5. **Srpski jezik** — svi UI stringovi i AI promptovi.
+6. **Datum dana ide kroz `lib/date.ts`** (`todayKey()`/`tomorrowKey()`), NIKAD
+   `new Date().toISOString()`. Zona je `Europe/Belgrade` (server je UTC — inače se
+   oko ponoći `date_key` razilazi i plan "nestane"). `isValidDayKey` radi round-trip
+   (odbija 2024-13-45).
+7. **Optimistički UI + rollback.** Promeni stanje odmah; na DB grešku vrati staro
+   stanje i prikaži `useToast()` poruku (vidi `ui/Toast.tsx`).
+8. **Deljeni primitivi se prave JEDNOM** i koriste svuda: `ui/Toast`, `ui/Modal`,
+   `app/providers.tsx`, `plan/DayProgress`, `lib/useCountUp`, `lib/day/createDay`.
+9. **`proxy.ts`** (ne `middleware.ts`) je Next 16 konvencija za auth redirect;
+   dodatni guard je u `app/(app)/layout.tsx`.
+10. **Server komponente za fetching**, klijent za interakciju. `lib/supabase/server.ts`
+    `createClient()` je **async** — mora `await`.
+11. **`/api/day/create` je idempotentan** (preko `lib/day/createDay`): ako dan postoji,
+    briše stare `tasks`, ubacuje nove, i `finished_at = null` (svako snimanje **reotvara**
+    dan — undo slučajnog "Završi dan"). Piše i `energy` i `energy_level`. Count-mismatch
+    je sad prava 409 greška.
+
+## Navigacija
+`app/(app)/layout.tsx` umotava sadržaj u `AppChrome`: fiksni donji **TabBar**
+(Danas / Istorija / Uvidi / Podešavanja, `aria-current`) + plivajući **Coach (💬)** +
+**InstallBanner**. Ekrani sa sopstvenim sticky CTA (npr. `SetupScreen`) sakriju
+TabBar preko `useChrome().setHidden(true)`. TabBar je skriven na `/onboarding`.
 
 ## Routing na `app/(app)/page.tsx`
-Početna nije fiksan ekran — bira prema stanju `day_entries` za ciljani datum:
 - nema profila / `!completed_once` → `/onboarding`
 - `?sutra=1` i plan za sutra postoji → redirect na `/plan?date=...`
 - aktivan današnji plan (`finished_at == null`) → redirect na `/plan`
-- završen dan (`finished_at != null`) → render `EodLanding`
+- završen dan (`finished_at != null`) → `EodLanding` (+ streak, recap, posej sutra)
 - inače → `SetupScreen` (sa prenesenim zadacima ako ih ima)
 
 ## Dizajn sistem (iz `app/globals.css`)
-CSS varijable na `:root`, dark mode preko klase `.dark` na `<html>`
-(`next-themes`). Tailwind v4 `@theme inline` mapira ih na utility klase
-(`bg-surface`, `bg-bg`, `text-ferox-text`, `text-muted`, `border-border`,
-`text-gold`, ...).
+CSS varijable na `:root`, dark mode preko klase `.dark` na `<html>` (`next-themes`,
+`attribute="class"`, `defaultTheme="system"`). Tailwind v4 `@theme inline` mapira
+varijable na utility klase (`bg-surface`, `text-gold`, `border-border`, ...).
 
 **Boje (light):**
 ```
@@ -129,23 +208,25 @@ CSS varijable na `:root`, dark mode preko klase `.dark` na `<html>`
 --gold #D4742A   --gold-light #E8924A   --gold-deep #B85C1E
 --text #1A1714   --text-muted #6B5F54   --border #D9C9B8
 ```
-**Radii:** `--r-sm 10px` `--r-md 14px` `--r-lg 18px` `--r-xl 24px` `--r-full 999px`
-**Senke:** `--sh-xs/sm/md/lg`, `--sh-gold` (sve tople).
-**Fontovi:** `--font-serif` (Cormorant Garamond → naslovi/logo),
-`--font-sans` (Outfit → ostalo).
+**Radii:** `--r-sm 10px` `--r-md 14px` `--r-lg 18px` `--r-xl 24px`
+**Senke:** `--sh-xs/sm/md/lg`, `--sh-gold`. **Fontovi:** `--font-serif`
+(Cormorant Garamond → naslovi/logo), `--font-sans` (Outfit → ostalo).
+**Utility:** `.card`, `.field`, `.foil`, `.glass`, `.section-label`, `.sr-only`, `.skeleton`.
 
 **Pravila:** mobile-first, max-width ~520px; nikad čista bela/crna — uvek topli
-tonovi; radius 14px kartice / 12px inputi / 10px mali elementi.
+tonovi; radius 14px kartice / 12px inputi / 10px mali elementi; `prefers-reduced-motion` ispoštovan.
 
-## Stanje projekta
-- ✅ Faza 0–1: Next 16 setup, Supabase, Vercel, Auth (login/register/callback/reset)
-- ✅ Faza 3: 5-koračni onboarding
-- ✅ Faza 4: Setup + Plan ekran + EOD flow (+ veliki UI refactor, design system)
-- 🔶 Faza 5: AI proxy — endpointi (`brain-dump`, `replan`, `chat`) postoje, UI delom
-- ⬜ Faza 6: History & Insights (Pattern Coach, Energy Forecast)
-- ⬜ Faza 7: Lab (Pomodoro, water tracker, kalendar)
-- ⬜ Faza 8: Polish (PWA, animacije, share card)
-- ⬜ Faza 9: Launch (custom domen, analytics, Sentry)
+## Stanje projekta (energy-adaptive overhaul — grana `feat/energy-adaptive-overhaul`)
+- ✅ Auth, onboarding, setup, plan, EOD (osnova)
+- ✅ **Energetski motor** — plan stvarno zavisi od energije + hronotipa; overload guard; vrh dana + "zašto baš ovde"
+- ✅ **Foundation/trust** — id-mutacije, optimistički rollback + Toast, zod validacija, standardne greške, energy_level
+- ✅ **Navigacija** — TabBar + chrome-hide + Coach FAB
+- ✅ **AI** — Coach chat UI, tool-use brain-dump (tasks+termini), EOD recap+refleksija, insights, prompt caching
+- ✅ **Ekrani** — History, Insights (Pattern Coach + Energy Forecast), Settings (+ GDPR export/delete)
+- ✅ **Retencija (bez push)** — PWA (manifest+SW+ikone+install), shame-free streak, mikro-feedback, "posej sutra"
+- ✅ **Polish** — a11y (ARIA/sr-only), skeleton/empty/error stanja, dark mode, water tracker, vitest
+- ⬜ **Odloženo:** push notifikacije (svesno), drag-reorder UI (`@dnd-kit`), Pomodoro,
+  share card, Sentry, pun "comeback" ekran posle više dana pauze
 
 ## Deploy
 Deploy ide preko **git push** — Vercel automatski builduje i deployuje na svaki
