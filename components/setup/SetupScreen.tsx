@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, type ReactNode } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { useChrome } from '@/components/nav/AppChrome'
 import { calcSleepHours, todayKey, formatDate } from '@/lib/utils'
 import { addDays } from '@/lib/date'
 import { energyLabel, sleepQuality } from '@/lib/energy'
@@ -127,6 +128,10 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
   const [brainDumpSuccess, setBrainDumpSuccess] = useState<number | null>(null)
   const isSutraMode = targetDate !== undefined && targetDate !== todayKey()
   const sleepHours = calcSleepHours(sleepTime, wakeTime)
+
+  // SetupScreen ima svoj sticky CTA na dnu — sakrij globalni TabBar dok je otvoren.
+  const { setHidden } = useChrome()
+  useEffect(() => { setHidden(true); return () => setHidden(false) }, [setHidden])
 
   async function handleBrainDump() {
     if (!brainDumpText.trim()) return
