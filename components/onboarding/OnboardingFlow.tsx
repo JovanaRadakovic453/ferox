@@ -48,11 +48,12 @@ function Chip({
       onClick={onClick}
       className="px-3.5 py-1.5 rounded-full text-sm font-medium transition-all duration-200 border active:scale-95"
       style={{
-        borderColor: selected ? 'var(--gold)' : 'var(--border)',
-        backgroundImage: selected ? 'linear-gradient(180deg, var(--gold-light), var(--gold))' : 'none',
-        background: selected ? undefined : 'var(--surface2)',
+        borderColor: selected ? 'transparent' : 'var(--border)',
+        backgroundColor: selected ? 'transparent' : 'var(--surface2)',
+        backgroundImage: selected ? 'linear-gradient(135deg, var(--gold), var(--gold-deep))' : 'none',
         color: selected ? '#fff' : 'var(--text)',
-        boxShadow: selected ? 'var(--sh-sm)' : 'none',
+        boxShadow: selected ? 'var(--sh-gold)' : 'none',
+        textShadow: selected ? '0 1px 2px rgba(70,30,2,0.45)' : undefined,
       }}
     >
       {label}
@@ -69,11 +70,12 @@ function OptionCard({
       onClick={onClick}
       className="w-full text-left p-4 rounded-[var(--r-md)] border transition-all duration-200 active:scale-[0.99]"
       style={{
-        borderColor: selected ? 'var(--gold)' : 'var(--border)',
-        backgroundImage: selected ? 'linear-gradient(180deg, var(--gold-light), var(--gold))' : 'none',
-        background: selected ? undefined : 'var(--surface)',
+        borderColor: selected ? 'transparent' : 'var(--border)',
+        backgroundColor: selected ? 'transparent' : 'var(--surface)',
+        backgroundImage: selected ? 'linear-gradient(135deg, var(--gold), var(--gold-deep))' : 'none',
         color: selected ? '#fff' : 'var(--text)',
         boxShadow: selected ? 'var(--sh-gold)' : 'var(--sh-xs)',
+        textShadow: selected ? '0 1px 2px rgba(70,30,2,0.45)' : undefined,
       }}
     >
       <div className="flex items-center gap-3">

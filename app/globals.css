@@ -26,11 +26,13 @@
   /* Shadows — warm, layered */
   --sh-xs: 0 1px 2px rgba(26, 23, 20, 0.05);
   --sh-sm: 0 2px 8px rgba(26, 23, 20, 0.06);
-  --sh-md: 0 1px 2px rgba(26, 23, 20, 0.04), 0 10px 28px -10px rgba(26, 23, 20, 0.16);
-  --sh-lg: 0 4px 12px rgba(26, 23, 20, 0.08), 0 24px 56px -16px rgba(26, 23, 20, 0.24);
+  --sh-md: 0 1px 2px rgba(26, 23, 20, 0.05), 0 16px 36px -14px rgba(26, 23, 20, 0.22);
+  --sh-lg: 0 4px 12px rgba(26, 23, 20, 0.08), 0 28px 60px -18px rgba(26, 23, 20, 0.26);
   --sh-gold: 0 6px 18px -4px rgba(212, 116, 42, 0.42), 0 2px 4px rgba(184, 92, 30, 0.24);
   --sh1: var(--sh-sm);  /* legacy alias */
   --sh2: var(--sh-md);  /* legacy alias */
+  --edge-light: rgba(255, 255, 255, 0.55);  /* lit top edge on cards */
+  --card-sheen: rgba(255, 255, 255, 0.42);  /* soft top-down sheen on cards */
 
   /* Motion */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
@@ -57,9 +59,11 @@
 
   --sh-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
   --sh-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
-  --sh-md: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 28px -10px rgba(0, 0, 0, 0.5);
-  --sh-lg: 0 4px 12px rgba(0, 0, 0, 0.4), 0 24px 56px -16px rgba(0, 0, 0, 0.6);
+  --sh-md: 0 1px 2px rgba(0, 0, 0, 0.3), 0 16px 36px -14px rgba(0, 0, 0, 0.55);
+  --sh-lg: 0 4px 12px rgba(0, 0, 0, 0.4), 0 28px 60px -18px rgba(0, 0, 0, 0.62);
   --sh-gold: 0 6px 18px -4px rgba(201, 169, 110, 0.3), 0 2px 4px rgba(0, 0, 0, 0.3);
+  --edge-light: rgba(255, 255, 255, 0.05);
+  --card-sheen: rgba(255, 255, 255, 0.03);
 
   --grain-opacity: 0.35;
 }
@@ -78,10 +82,15 @@
   --font-sans: var(--font-outfit), 'Outfit', system-ui, sans-serif;
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+/* Base reset MUST live in @layer base. If left unlayered it overrides every
+   Tailwind padding and margin utility (those live in @layer utilities, and
+   unlayered rules beat layered ones), silently zeroing spacing app-wide. */
+@layer base {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
 }
 
 html {
@@ -174,10 +183,11 @@ body > * {
    ───────────────────────────────────────────── */
 
 .card {
-  background: var(--surface);
+  background-color: var(--surface);
+  background-image: linear-gradient(180deg, var(--card-sheen), transparent 38%);
   border: 1px solid var(--hairline);
   border-radius: var(--r-lg);
-  box-shadow: var(--sh-md);
+  box-shadow: var(--sh-md), inset 0 1px 0 var(--edge-light);
 }
 
 .card-interactive {
@@ -253,6 +263,16 @@ body > * {
   color: transparent;
 }
 
+/* Frosted bottom action bar */
+.glass {
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
+  backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+}
+.pb-safe {
+  padding-bottom: max(0.9rem, env(safe-area-inset-bottom));
+}
+
 .title-serif {
   font-family: var(--font-serif);
   font-weight: 300;
@@ -272,11 +292,16 @@ body > * {
   justify-content: center;
   align-items: stretch;
   min-height: 100dvh;
-  padding: 1.5rem 1.25rem;
+  padding: 1.75rem 1.5rem;
 }
-@media (min-width: 640px) {
+@media (min-width: 400px) {
   .app-shell {
-    padding: 2.5rem 1.5rem;
+    padding: 2.25rem 1.75rem;
+  }
+}
+@media (min-width: 540px) {
+  .app-shell {
+    padding: 3rem 2rem;
   }
 }
 
@@ -286,13 +311,14 @@ body > * {
   display: flex;
   flex-direction: column;
 }
-@media (min-width: 768px) {
+/* Framed "sheet" appears early so cards never hug the window edge. */
+@media (min-width: 540px) {
   .app-column {
-    padding: 2rem 1.75rem 2.25rem;
+    padding: 2.5rem 2.25rem 2.75rem;
     border-radius: var(--r-xl);
-    background: color-mix(in srgb, var(--surface) 55%, transparent);
+    background: color-mix(in srgb, var(--surface) 60%, transparent);
     border: 1px solid var(--hairline);
-    box-shadow: var(--sh-md);
+    box-shadow: var(--sh-lg);
   }
 }
 
