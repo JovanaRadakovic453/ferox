@@ -22,6 +22,11 @@ create table if not exists public.profiles (
   completed_once boolean not null default false,
   last_sleep_time text,
   last_sleep_hours float,
+  best_streak int not null default 0,
+  theme text not null default 'system' check (theme in ('light', 'dark', 'system')),
+  micro_feedback boolean not null default true,
+  sound_enabled boolean not null default false,
+  pomodoro_minutes smallint not null default 25 check (pomodoro_minutes between 5 and 90),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -64,9 +69,12 @@ create table if not exists public.day_entries (
   user_id uuid references public.profiles on delete cascade not null,
   date_key date not null,
   energy text not null default '',
+  energy_level smallint check (energy_level is null or energy_level between 1 and 5), -- 1=Pun gas … 5=Preživljavam
   sleep_hours float,
   water_intake int not null default 0,
   water_goal int not null default 2000,
+  reflection text,
+  eod_recap text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   finished_at timestamptz,  -- NULL = aktivan dan; != NULL = dan je završen
@@ -96,6 +104,7 @@ create table if not exists public.tasks (
   )),
   note text not null default '',
   position int not null default 0,
+  block_index smallint check (block_index is null or block_index between 0 and 3), -- manual placement; null = auto
   created_at timestamptz not null default now()
 );
 

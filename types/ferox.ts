@@ -24,6 +24,8 @@ export interface Task {
   type: TaskType
   note: string
   position?: number
+  /** Manual block placement (0..3) set via drag-reorder; null/undefined = engine auto-places. */
+  block_index?: number | null
 }
 
 export interface Appointment {
@@ -43,6 +45,8 @@ export interface PlanBlock {
   tasks: Task[]
 }
 
+export type Theme = 'light' | 'dark' | 'system'
+
 export interface UserProfile {
   id?: string
   name: string
@@ -56,16 +60,26 @@ export interface UserProfile {
   completed_once: boolean
   last_sleep_time?: string
   last_sleep_hours?: number
+  best_streak?: number
+  theme?: Theme
+  micro_feedback?: boolean
+  sound_enabled?: boolean
+  pomodoro_minutes?: number
 }
 
 export interface DayEntry {
   id?: string
   user_id?: string
   date_key: string
+  /** Emoji label for display, e.g. "🔥 Pun gas". Mirrors energy_level. */
   energy: string
+  /** Numeric energy, canonical 1=best … 5=survival. Source of truth for the engine & analytics. */
+  energy_level?: number | null
   sleep_hours: number | null
   water_intake: number
   water_goal: number
+  reflection?: string | null
+  eod_recap?: string | null
   finished_at?: string | null
   tasks?: Task[]
   appointments?: Appointment[]
