@@ -14,25 +14,7 @@ import LogoutButton from '@/components/LogoutButton'
 import { useCountUp } from '@/lib/useCountUp'
 import DayProgress from '@/components/plan/DayProgress'
 import { useToast } from '@/components/ui/Toast'
-
-function assignTasksToBlocks(tasks: Task[], blocks: ReturnType<typeof calcBlocks>): PlanBlock[] {
-  const high   = tasks.filter(t => t.priority === 'high')
-  const medium = tasks.filter(t => t.priority === 'medium')
-  const low    = tasks.filter(t => t.priority === 'low')
-
-  const distributed: Task[][] = [[], [], [], []]
-  ;[...high, ...medium, ...low].forEach((t, i) => {
-    distributed[i % 4].push(t)
-  })
-
-  return blocks.map((b, i) => ({
-    label: b.label,
-    badge: b.color,
-    badgeText: b.emoji,
-    timeRange: b.timeRange,
-    tasks: distributed[i],
-  }))
-}
+import { assignTasksToBlocks } from '@/lib/plan'
 
 function TaskItem({ task, onToggle }: { task: Task; onToggle: () => void }) {
   return (
@@ -113,11 +95,16 @@ function BlockCard({
       {/* obojena leva accent linija po bloku */}
       <div className="absolute left-0 top-0 bottom-0 w-1" style={{ background: accent, opacity: 0.85 }} />
       <div className="flex items-center justify-between pl-5 pr-4 py-3" style={{ background: block.badge }}>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           <span>{block.badgeText}</span>
           <span className="font-medium text-sm" style={{ color: 'var(--text)' }}>{block.label}</span>
+          {block.peak && (
+            <span className="text-[0.58rem] font-bold tracking-wide px-1.5 py-0.5 rounded-full shrink-0" style={{ background: 'var(--gold)', color: '#fff' }}>
+              ⚡ VRH DANA
+            </span>
+          )}
         </div>
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 shrink-0">
           <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{block.timeRange}</span>
           <span className="text-[0.7rem] font-semibold px-2 py-0.5 rounded-full tabular-nums" style={{ background: 'var(--surface)', color: 'var(--text-muted)' }}>
             {done}/{total}
@@ -125,7 +112,13 @@ function BlockCard({
         </div>
       </div>
 
-      <div className="h-1.5 w-full" style={{ background: 'var(--surface2)' }}>
+      {block.rationale && (
+        <p className="px-5 pt-2.5 text-xs italic" style={{ color: 'var(--text-muted)' }}>
+          {block.rationale}
+        </p>
+      )}
+
+      <div className="h-1.5 w-full mt-2.5" style={{ background: 'var(--surface2)' }}>
         <div
           className="h-full transition-all duration-500"
           style={{ width: `${pct}%`, backgroundImage: 'linear-gradient(90deg, var(--gold-light), var(--gold))' }}
@@ -177,7 +170,7 @@ export default function PlanScreen({
   const [addingTask, setAddingTask] = useState(false)
 
   const blocks = calcBlocks(profile.start_time ?? '08:00', profile.sleep_time ?? '23:00', profile.rhythm)
-  const planBlocks = assignTasksToBlocks(tasks, blocks)
+  const planBlocks = assignTasksToBlocks(tasks, blocks, entry.energy_level, profile.rhythm)
 
   function getAppointmentsForBlock(blockIndex: number): Appointment[] {
     const b = blocks[blockIndex]

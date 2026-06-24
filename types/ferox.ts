@@ -43,6 +43,10 @@ export interface PlanBlock {
   badgeText: string
   timeRange: string
   tasks: Task[]
+  /** True for the user's peak-energy block (chronotype). */
+  peak?: boolean
+  /** Short Serbian "why these tasks are here" line, derived from the energy fit. */
+  rationale?: string
 }
 
 export type Theme = 'light' | 'dark' | 'system'

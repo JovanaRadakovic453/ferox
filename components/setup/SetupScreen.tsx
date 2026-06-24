@@ -4,7 +4,9 @@ import { useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { calcSleepHours, todayKey, formatDate } from '@/lib/utils'
+import { addDays } from '@/lib/date'
 import { energyLabel, sleepQuality } from '@/lib/energy'
+import { isHeavy, capacity } from '@/lib/plan'
 import { TASK_TYPE_LABELS } from '@/types/ferox'
 import type { Task, TaskType, Priority, Appointment, UserProfile } from '@/types/ferox'
 import Button from '@/components/ui/Button'
@@ -117,6 +119,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
   const [loading, setLoading] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [resetting, setResetting] = useState(false)
+  const [overloadDismissed, setOverloadDismissed] = useState(false)
   const [brainDumpText, setBrainDumpText] = useState('')
   const [showBrainDump, setShowBrainDump] = useState(false)
   const [brainDumpLoading, setBrainDumpLoading] = useState(false)
@@ -224,6 +227,29 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
       setSubmitError(err instanceof Error ? err.message : 'Greška mreže')
       setLoading(false)
     }
+  }
+
+  // Overload guard — previše teških zadataka za izabranu energiju.
+  const heavyCount = tasks.filter(isHeavy).length
+  const energyCapacity = energy ? capacity(energy) : Infinity
+  const overBy = energy ? Math.max(0, heavyCount - energyCapacity) : 0
+
+  async function deferHeavy() {
+    if (overBy <= 0) return
+    const toDefer = tasks.filter(isHeavy).slice(-overBy)
+    setTasks(prev => prev.filter(t => !toDefer.includes(t)))
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const nextKey = addDays(targetDate ?? todayKey(), 1)
+    const { data: existing } = await supabase.from('transferred_tasks')
+      .select('tasks').eq('user_id', user.id).eq('for_date', nextKey).maybeSingle()
+    const prevTasks = (existing?.tasks ?? []) as Task[]
+    await supabase.from('transferred_tasks').upsert({
+      user_id: user.id,
+      for_date: nextKey,
+      tasks: [...prevTasks, ...toDefer.map(t => ({ name: t.name, priority: t.priority, type: t.type, note: t.note ?? '', done: false }))],
+    }, { onConflict: 'user_id,for_date' })
   }
 
   const canSubmit = energy !== null && tasks.length > 0 && !brainDumpLoading
@@ -557,6 +583,18 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
             </button>
           )}
         </section>
+
+        {energy !== null && overBy > 0 && !overloadDismissed && (
+          <div className="rounded-[var(--r-md)] px-4 py-3.5 flex flex-col gap-3" style={{ background: 'var(--gold-tint)', border: '1px solid color-mix(in srgb, var(--gold) 30%, transparent)' }}>
+            <p className="text-sm" style={{ color: 'var(--text)' }}>
+              Danas si na <span className="font-semibold" style={{ color: 'var(--gold)' }}>{energyLabel(energy)}</span> — imaš {heavyCount} {heavyCount === 1 ? 'težak zadatak' : 'teža/težih zadataka'}, a realno je do {energyCapacity}. Da {overBy} {overBy === 1 ? 'najteži prebacimo' : 'najteža prebacimo'} za sutra?
+            </p>
+            <div className="flex gap-2">
+              <Button size="sm" variant="secondary" onClick={deferHeavy}>Prebaci {overBy} za sutra</Button>
+              <Button size="sm" variant="ghost" onClick={() => setOverloadDismissed(true)}>Ipak ostavi</Button>
+            </div>
+          </div>
+        )}
 
         {submitError && (
           <div className="rounded-[var(--r-md)] px-4 py-3 text-sm" style={{
