@@ -14,11 +14,5 @@ export default async function AppLayout({
     redirect('/login')
   }
 
-  return (
-    <div className="app-shell">
-      <div className="app-column">
-        <AppChrome>{children}</AppChrome>
-      </div>
-    </div>
-  )
+  return <AppChrome>{children}</AppChrome>
 }

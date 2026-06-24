@@ -15,6 +15,7 @@ import { useCountUp } from '@/lib/useCountUp'
 import DayProgress from '@/components/plan/DayProgress'
 import { useToast } from '@/components/ui/Toast'
 import { assignTasksToBlocks } from '@/lib/plan'
+import { DEFAULTS } from '@/lib/config'
 
 function TaskItem({ task, onToggle }: { task: Task; onToggle: () => void }) {
   return (
@@ -184,7 +185,7 @@ export default function PlanScreen({
   const [newTaskTime, setNewTaskTime] = useState('09:00')
   const [addingTask, setAddingTask] = useState(false)
   const [water, setWater] = useState(entry.water_intake ?? 0)
-  const waterGoal = entry.water_goal ?? 2000
+  const waterGoal = entry.water_goal ?? DEFAULTS.waterGoalMl
 
   async function addWater(ml: number) {
     const next = Math.max(0, water + ml)
@@ -361,12 +362,12 @@ export default function PlanScreen({
         date_key: entry.date_key,
         name: newTaskName.trim(),
         time: newTaskTime,
-        reminder: 15,
+        reminder: DEFAULTS.reminderMinutes,
         done: false,
       }).select('id').single()
 
       if (!error) {
-        setAppts(prev => [...prev, { id: data?.id, name: newTaskName.trim(), time: newTaskTime, reminder: 15, done: false }])
+        setAppts(prev => [...prev, { id: data?.id, name: newTaskName.trim(), time: newTaskTime, reminder: DEFAULTS.reminderMinutes, done: false }])
         closeAddTask()
       } else {
         toast({ message: 'Termin nije dodat — pokušaj ponovo', variant: 'error' })
@@ -398,9 +399,9 @@ export default function PlanScreen({
     const unfinished = tasks.filter(t => !t.done)
     const toTransfer = unfinished.filter(t => selectedForTransfer.has(t.name))
     return (
-      <main className="flex flex-col gap-5 pb-2">
+      <main className="flex flex-col gap-5 pb-2 lg:max-w-2xl lg:mx-auto lg:w-full">
         <div className="pt-1">
-          <h2 className="display foil text-3xl">
+          <h2 className="display foil text-3xl lg:text-4xl">
             Nedovršeni zadaci
           </h2>
           <p className="text-sm mt-1.5" style={{ color: 'var(--text-muted)' }}>
@@ -459,15 +460,16 @@ export default function PlanScreen({
   }
 
   return (
-    <main className="flex flex-col gap-5 pb-2">
+    <main className="flex flex-col gap-5 lg:gap-7 pb-2">
       {/* Header */}
-      <header className="flex items-end justify-between pt-1">
+      <header className="flex items-end justify-between gap-4 pt-1">
         <div className="min-w-0">
-          <h1 className="display foil text-3xl">
+          <div className="hidden lg:block mb-2"><span className="section-label">{formatDate(entry.date_key)}</span></div>
+          <h1 className="display foil text-3xl lg:text-5xl">
             {isToday ? 'Moj plan' : 'Plan'}
           </h1>
           {!isToday && (
-            <p className="text-xs font-medium mt-0.5" style={{ color: 'var(--gold)' }}>
+            <p className="text-xs font-medium mt-0.5 lg:hidden" style={{ color: 'var(--gold)' }}>
               🌙 {formatDate(entry.date_key)}
             </p>
           )}
@@ -483,8 +485,8 @@ export default function PlanScreen({
           </div>
         </div>
         <div className="text-right shrink-0 pl-3">
-          <p className="display text-5xl leading-none tabular-nums" style={{ color: 'var(--text)' }}>
-            {doneDisplay}<span className="text-2xl" style={{ color: 'var(--text-muted)' }}>/{total}</span>
+          <p className="display text-5xl lg:text-6xl leading-none tabular-nums" style={{ color: 'var(--text)' }}>
+            {doneDisplay}<span className="text-2xl lg:text-3xl" style={{ color: 'var(--text-muted)' }}>/{total}</span>
           </p>
           <p className="text-[0.65rem] font-semibold tracking-[0.14em] uppercase mt-1.5" style={{ color: 'var(--text-muted)' }}>završeno</p>
         </div>
@@ -501,94 +503,97 @@ export default function PlanScreen({
         </div>
       )}
 
-      {/* Ukupni progress — segmentiran po delovima dana */}
-      <div className="flex items-center gap-3">
-        <div className="flex-1">
-          <DayProgress blocks={planBlocks} />
+      {/* Status traka — progres + voda (jedan red na desktopu) */}
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch lg:gap-5">
+        <div className="card p-4 lg:p-5 flex items-center gap-3 lg:flex-1">
+          <div className="flex-1">
+            <DayProgress blocks={planBlocks} />
+          </div>
+          <span className="text-sm font-semibold tabular-nums shrink-0" style={{ color: 'var(--text-muted)' }}>
+            {total > 0 ? Math.round((done / total) * 100) : 0}%
+          </span>
         </div>
-        <span className="text-xs font-semibold tabular-nums shrink-0" style={{ color: 'var(--text-muted)' }}>
-          {total > 0 ? Math.round((done / total) * 100) : 0}%
-        </span>
+
+        {/* Voda (samo danas) */}
+        {isToday && (
+          <div className="card p-4 flex items-center gap-3 lg:w-[20rem] shrink-0">
+            <span className="text-xl" aria-hidden>💧</span>
+            <div className="flex-1 min-w-0">
+              <div className="flex justify-between text-xs mb-1" style={{ color: 'var(--text-muted)' }}>
+                <span>Voda</span><span className="tabular-nums">{water}/{waterGoal} ml</span>
+              </div>
+              <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--surface2)' }}>
+                <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(100, (water / waterGoal) * 100)}%`, backgroundImage: 'linear-gradient(90deg, #7cc6e8, #3b9fd4)' }} />
+              </div>
+            </div>
+            <button onClick={() => addWater(250)} className="text-xs font-semibold px-3 py-2 rounded-[var(--r-md)] shrink-0 transition-[filter] hover:brightness-105" style={{ background: 'var(--surface2)', color: 'var(--text)' }}>+250</button>
+          </div>
+        )}
       </div>
 
-      {/* Voda (samo danas) */}
-      {isToday && (
-        <div className="card p-4 flex items-center gap-3">
-          <span className="text-xl" aria-hidden>💧</span>
-          <div className="flex-1 min-w-0">
-            <div className="flex justify-between text-xs mb-1" style={{ color: 'var(--text-muted)' }}>
-              <span>Voda</span><span className="tabular-nums">{water}/{waterGoal} ml</span>
-            </div>
-            <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--surface2)' }}>
-              <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(100, (water / waterGoal) * 100)}%`, backgroundImage: 'linear-gradient(90deg, #7cc6e8, #3b9fd4)' }} />
-            </div>
+      {/* Telo — blokovi (glavna kolona) + akcije (rail na desktopu) */}
+      <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_var(--rail-w)] lg:gap-7 lg:items-start">
+        {/* Blokovi */}
+        {total === 0 ? (
+          <div className="card p-8 text-center flex flex-col items-center gap-3">
+            <span className="text-4xl">🗒️</span>
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+              Plan je prazan. Dodaj prvi zadatak da krenemo.
+            </p>
+            <Button size="sm" onClick={() => setShowAddTask(true)}>➕ Dodaj zadatak</Button>
           </div>
-          <button onClick={() => addWater(250)} className="text-xs font-semibold px-3 py-2 rounded-[var(--r-md)] shrink-0" style={{ background: 'var(--surface2)', color: 'var(--text)' }}>+250</button>
-        </div>
-      )}
-
-      {/* Blokovi */}
-      {total === 0 ? (
-        <div className="card p-8 text-center flex flex-col items-center gap-3">
-          <span className="text-4xl">🗒️</span>
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            Plan je prazan. Dodaj prvi zadatak da krenemo.
-          </p>
-          <Button size="sm" onClick={() => setShowAddTask(true)}>➕ Dodaj zadatak</Button>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-4">
-          {planBlocks.map((block, i) => (
-            <BlockCard key={block.label} block={block} appointments={getAppointmentsForBlock(i)} onToggle={toggleTask} onToggleAppt={toggleAppointment} />
-          ))}
-        </div>
-      )}
-
-      {/* Footer dugmad */}
-      <div className="flex flex-col gap-3 pt-2">
-        {/* Primarno: dok dan nije završen → "Završi dan"; kad jeste → povratak na početnu */}
-        {!dayFinished && (
-          <Button size="lg" className="w-full" onClick={startFinishDay} loading={savingEod}>
-            {allDone ? '🎉 Završi dan' : '✅ Završi dan'}
-          </Button>
+        ) : (
+          <div className="flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:gap-4 lg:items-start">
+            {planBlocks.map((block, i) => (
+              <BlockCard key={block.label} block={block} appointments={getAppointmentsForBlock(i)} onToggle={toggleTask} onToggleAppt={toggleAppointment} />
+            ))}
+          </div>
         )}
-        {dayFinished && isToday && (
-          <Button size="lg" className="w-full" onClick={() => { window.location.href = '/' }}>
-            ← Na početnu
-          </Button>
-        )}
-        <div className="grid grid-cols-2 gap-2">
-          <Button size="sm" variant="secondary" onClick={() => setShowAddTask(true)}>
-            ➕ Dodaj zadatak
-          </Button>
-          <Button size="sm" variant="secondary" onClick={() => setShowReplan(true)}>
-            🔥 Dan se raspao
-          </Button>
-          {isToday ? (
-            <>
-              <Button size="sm" variant="secondary" onClick={() => { window.location.href = '/?edit=1' }}>
-                ✏️ Uredi plan
-              </Button>
-              {tomorrowPlanned ? (
-                <Button size="sm" variant="secondary" onClick={() => { window.location.href = '/plan?date=' + tomorrowKey() }}>
-                  🌙 Pogledaj sutra
-                </Button>
-              ) : (
-                <Button size="sm" variant="secondary" onClick={() => { window.location.href = '/?sutra=1' }}>
-                  🌙 Planiraj sutra
-                </Button>
-              )}
-            </>
-          ) : (
-            <Button size="sm" variant="secondary" className="col-span-2" onClick={() => { window.location.href = '/plan' }}>
-              ← Nazad na današnji plan
+
+        {/* Akcije */}
+        <aside className="flex flex-col gap-3 rail-sticky">
+          {!dayFinished && (
+            <Button size="lg" className="w-full" onClick={startFinishDay} loading={savingEod}>
+              {allDone ? '🎉 Završi dan' : '✅ Završi dan'}
             </Button>
           )}
-        </div>
-      </div>
-
-      <div className="flex justify-center pb-4">
-        <LogoutButton />
+          {dayFinished && isToday && (
+            <Button size="lg" className="w-full" onClick={() => { window.location.href = '/' }}>
+              ← Na početnu
+            </Button>
+          )}
+          <div className="grid grid-cols-2 gap-2">
+            <Button size="sm" variant="secondary" onClick={() => setShowAddTask(true)}>
+              ➕ Dodaj zadatak
+            </Button>
+            <Button size="sm" variant="secondary" onClick={() => setShowReplan(true)}>
+              🔥 Dan se raspao
+            </Button>
+            {isToday ? (
+              <>
+                <Button size="sm" variant="secondary" onClick={() => { window.location.href = '/?edit=1' }}>
+                  ✏️ Uredi plan
+                </Button>
+                {tomorrowPlanned ? (
+                  <Button size="sm" variant="secondary" onClick={() => { window.location.href = '/plan?date=' + tomorrowKey() }}>
+                    🌙 Pogledaj sutra
+                  </Button>
+                ) : (
+                  <Button size="sm" variant="secondary" onClick={() => { window.location.href = '/?sutra=1' }}>
+                    🌙 Planiraj sutra
+                  </Button>
+                )}
+              </>
+            ) : (
+              <Button size="sm" variant="secondary" className="col-span-2" onClick={() => { window.location.href = '/plan' }}>
+                ← Nazad na današnji plan
+              </Button>
+            )}
+          </div>
+          <div className="flex justify-center pt-2">
+            <LogoutButton />
+          </div>
+        </aside>
       </div>
 
       {/* Dodaj zadatak modal */}

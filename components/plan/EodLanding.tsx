@@ -93,11 +93,11 @@ export default function EodLanding({
   }
 
   return (
-    <main className="flex flex-col gap-6 pb-2">
-      <header className="pt-6 text-center flex flex-col items-center gap-3">
-        <span className="text-5xl">🌙</span>
-        <h1 className="display text-4xl" style={{ color: 'var(--gold)' }}>Dan završen</h1>
-        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+    <main className="flex flex-col gap-6 lg:gap-7 pb-2 lg:max-w-2xl lg:mx-auto lg:w-full">
+      <header className="pt-6 lg:pt-10 text-center flex flex-col items-center gap-3">
+        <span className="text-5xl lg:text-6xl">🌙</span>
+        <h1 className="display text-4xl lg:text-5xl" style={{ color: 'var(--gold)' }}>Dan završen</h1>
+        <p className="text-sm lg:text-base" style={{ color: 'var(--text-muted)' }}>
           Odmori se — sutra je novi dan.
         </p>
         {streak > 0 && (
@@ -109,8 +109,8 @@ export default function EodLanding({
 
       {/* AI recap */}
       {recap && (
-        <div className="card p-5">
-          <p className="text-sm italic" style={{ color: 'var(--text)' }}>"{recap}"</p>
+        <div className="card p-5 lg:p-7">
+          <p className="text-sm lg:text-base italic leading-relaxed" style={{ color: 'var(--text)' }}>"{recap}"</p>
         </div>
       )}
 
@@ -121,9 +121,9 @@ export default function EodLanding({
             <p className="text-[0.65rem] font-semibold tracking-[0.14em] uppercase" style={{ color: 'var(--text-muted)' }}>
               Završeno
             </p>
-            <p className="display text-5xl leading-none mt-1" style={{ color: 'var(--text)' }}>
+            <p className="display text-5xl lg:text-6xl leading-none mt-1" style={{ color: 'var(--text)' }}>
               {doneCount}
-              <span className="text-2xl" style={{ color: 'var(--text-muted)' }}>/{total}</span>
+              <span className="text-2xl lg:text-3xl" style={{ color: 'var(--text-muted)' }}>/{total}</span>
             </p>
           </div>
           <span className="text-sm font-semibold tabular-nums" style={{ color: 'var(--gold)' }}>{pct}%</span>
@@ -179,17 +179,17 @@ export default function EodLanding({
       )}
 
       {/* Akcije */}
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3 lg:flex-row">
         {tomorrowPlanned || seeded ? (
-          <Button size="lg" className="w-full" onClick={() => { window.location.href = '/plan?date=' + tomorrowKey() }}>
+          <Button size="lg" className="w-full lg:flex-1" onClick={() => { window.location.href = '/plan?date=' + tomorrowKey() }}>
             🌙 Pogledaj plan za sutra
           </Button>
         ) : (
-          <Button size="lg" className="w-full" onClick={() => { window.location.href = '/?sutra=1' }}>
+          <Button size="lg" className="w-full lg:flex-1" onClick={() => { window.location.href = '/?sutra=1' }}>
             🌙 Planiraj sutra
           </Button>
         )}
-        <Button size="md" variant="secondary" className="w-full" onClick={() => { window.location.href = '/plan?date=' + dateKey }}>
+        <Button size="lg" variant="secondary" className="w-full lg:flex-1" onClick={() => { window.location.href = '/plan?date=' + dateKey }}>
           Pogledaj današnji plan
         </Button>
       </div>

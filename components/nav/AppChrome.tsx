@@ -5,9 +5,11 @@ import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import CoachSheet from '@/components/chat/CoachSheet'
 import InstallBanner from '@/components/nav/InstallBanner'
+import ThemeToggle from '@/components/ui/ThemeToggle'
 
-// Chrome (bottom TabBar) visibility. Pages with their own full-width bottom CTA
-// (e.g. SetupScreen) call setHidden(true) on mount to avoid a double bar.
+// Chrome visibility. Pages with their own full-width bottom CTA (e.g. SetupScreen)
+// call setHidden(true) on mount to avoid a double bar. This hides ONLY the mobile
+// bottom bar — the desktop sidebar always stays.
 type ChromeValue = { setHidden: (v: boolean) => void }
 const ChromeCtx = createContext<ChromeValue>({ setHidden: () => {} })
 export function useChrome() { return useContext(ChromeCtx) }
@@ -24,31 +26,98 @@ export default function AppChrome({ children }: { children: ReactNode }) {
   const [coachOpen, setCoachOpen] = useState(false)
   const pathname = usePathname() ?? '/'
   const onOnboarding = pathname.startsWith('/onboarding')
-  const showTabBar = !hidden && !onOnboarding
+  const showMobileNav = !hidden && !onOnboarding
+
+  // Onboarding owns the full viewport (its own split-screen layout) — no chrome.
+  if (onOnboarding) {
+    return (
+      <ChromeCtx.Provider value={{ setHidden }}>
+        <div className="min-h-dvh flex flex-col">{children}</div>
+      </ChromeCtx.Provider>
+    )
+  }
 
   return (
     <ChromeCtx.Provider value={{ setHidden }}>
-      <div className={showTabBar ? 'pb-28' : ''}>{children}</div>
-      {showTabBar && (
-        <button
-          onClick={() => setCoachOpen(true)}
-          aria-label="Ferox coach"
-          className="fixed right-4 bottom-24 z-40 w-12 h-12 rounded-full grid place-items-center text-xl active:scale-95 transition-transform"
-          style={{ backgroundImage: 'linear-gradient(135deg, var(--gold), var(--gold-deep))', color: '#fff', boxShadow: 'var(--sh-gold)' }}
-        >
-          💬
-        </button>
-      )}
-      {showTabBar && <TabBar pathname={pathname} />}
-      {showTabBar && <InstallBanner />}
+      <div className="app-shell">
+        <Sidebar pathname={pathname} onCoach={() => setCoachOpen(true)} />
+
+        <div className="app-viewport">
+          <div className="app-content">
+            <div className={`w-full flex-1 flex flex-col ${showMobileNav ? 'pb-28 lg:pb-0' : ''}`}>
+              {children}
+            </div>
+          </div>
+        </div>
+
+        {showMobileNav && (
+          <button
+            onClick={() => setCoachOpen(true)}
+            aria-label="Ferox coach"
+            className="lg:hidden fixed right-4 bottom-24 z-40 w-12 h-12 rounded-full grid place-items-center text-xl active:scale-95 transition-transform"
+            style={{ backgroundImage: 'linear-gradient(135deg, var(--gold), var(--gold-deep))', color: '#fff', boxShadow: 'var(--sh-gold)' }}
+          >
+            💬
+          </button>
+        )}
+        {showMobileNav && <MobileNav pathname={pathname} />}
+        {showMobileNav && <InstallBanner />}
+      </div>
+
       <CoachSheet open={coachOpen} onClose={() => setCoachOpen(false)} />
     </ChromeCtx.Provider>
   )
 }
 
-function TabBar({ pathname }: { pathname: string }) {
+/* ── Desktop left rail ─────────────────────────────────────────── */
+function Sidebar({ pathname, onCoach }: { pathname: string; onCoach: () => void }) {
   return (
-    <nav aria-label="Glavna navigacija" className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[520px] z-40 px-3">
+    <aside className="app-sidebar">
+      <Link href="/" aria-label="Ferox — početna" className="flex items-center gap-2.5 px-2 mb-7">
+        <span
+          className="grid place-items-center w-9 h-9 rounded-[12px] text-white title-serif text-xl shrink-0"
+          style={{ backgroundImage: 'linear-gradient(135deg, var(--gold-light), var(--gold-deep))', boxShadow: 'var(--sh-gold)' }}
+          aria-hidden
+        >
+          F
+        </span>
+        <span className="title-serif text-[1.65rem] leading-none foil">Ferox</span>
+      </Link>
+
+      <nav aria-label="Glavna navigacija" className="flex flex-col gap-1">
+        {TABS.map(tab => {
+          const active = tab.match(pathname)
+          return (
+            <Link key={tab.href} href={tab.href} aria-current={active ? 'page' : undefined} className="nav-item">
+              <span className="nav-ico" aria-hidden>{tab.icon}</span>
+              {tab.label}
+            </Link>
+          )
+        })}
+      </nav>
+
+      <button onClick={onCoach} className="nav-item mt-1 text-left">
+        <span className="nav-ico" aria-hidden>💬</span>
+        Coach
+        <span className="ml-auto text-[0.6rem] font-semibold tracking-wide px-1.5 py-0.5 rounded-full" style={{ background: 'var(--gold-tint)', color: 'var(--gold)' }}>AI</span>
+      </button>
+
+      <div className="flex-1" />
+
+      <div className="px-1 flex flex-col gap-3">
+        <ThemeToggle compact />
+        <p className="text-[0.68rem] leading-snug px-1" style={{ color: 'var(--text-muted)' }}>
+          Planiraj prema energiji,<br />ne prema satu.
+        </p>
+      </div>
+    </aside>
+  )
+}
+
+/* ── Mobile bottom bar ─────────────────────────────────────────── */
+function MobileNav({ pathname }: { pathname: string }) {
+  return (
+    <nav aria-label="Glavna navigacija" className="lg:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[520px] z-40 px-3">
       <div
         className="glass mb-3 rounded-[var(--r-lg)] px-1.5 py-1.5 flex items-center justify-around pb-safe"
         style={{ border: '1px solid var(--hairline)', boxShadow: 'var(--sh-md)' }}
@@ -60,8 +129,8 @@ function TabBar({ pathname }: { pathname: string }) {
               key={tab.href}
               href={tab.href}
               aria-current={active ? 'page' : undefined}
-              className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-[var(--r-md)] transition-colors active:scale-95"
-              style={{ color: active ? 'var(--gold)' : 'var(--text-muted)' }}
+              className="flex flex-col items-center gap-0.5 px-3.5 py-1.5 rounded-[var(--r-md)] transition-colors active:scale-95"
+              style={{ color: active ? 'var(--gold)' : 'var(--text-muted)', background: active ? 'var(--gold-tint)' : 'transparent' }}
             >
               <span className="text-lg leading-none" aria-hidden>{tab.icon}</span>
               <span className="text-[0.6rem] font-medium tracking-wide">{tab.label}</span>

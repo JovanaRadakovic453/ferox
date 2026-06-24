@@ -61,7 +61,7 @@ app/
     page.tsx                   — Setup / redirect na /plan / EodLanding (vidi "Routing")
     plan/                      — Plan ekran + plan/loading.tsx (skeleton)
     onboarding/                — 5-koračni onboarding (novi korisnici)
-    history/                   — Istorija dana (kalendar strip + dan kartice)
+    history/                   — Istorija dana (server fetch → HistoryView client)
     insights/                  — Pattern Coach (AI) + Energy Forecast + grafici
     settings/                  — Profil/prefs/tema + GDPR export/brisanje
     loading.tsx / error.tsx    — skeleton + error boundary
@@ -78,10 +78,10 @@ app/
 components/
   ui/Button|Input|Checkbox     — base UI
   ui/Toast.tsx                 — ToastProvider + useToast() (queue, framer-motion)
-  ui/Modal.tsx                 — pristupačan focus-trapped dialog/sheet (role=dialog, Esc)
-  ui/ThemeToggle.tsx           — light/dark/system (next-themes)
+  ui/Modal.tsx                 — pristupačan focus-trapped dialog (role=dialog, Esc); placement: 'center' (bottom-sheet→centriran) | 'drawer' (bottom-sheet→desni full-height drawer na ≥lg)
+  ui/ThemeToggle.tsx           — light/dark/system (next-themes); prop `compact` = ikon-only segmentirani (za sidebar)
   auth/AuthCard.tsx
-  nav/AppChrome.tsx            — bottom TabBar + ChromeContext(useChrome) + Coach FAB
+  nav/AppChrome.tsx            — RESPONSIVNI SHELL: desktop Sidebar (≥lg) + mobilni TabBar (<lg) + ChromeContext(useChrome) + Coach. setHidden() krije SAMO mobilni bar (sidebar ostaje)
   nav/SwRegister.tsx           — registruje service worker (PWA)
   nav/InstallBanner.tsx        — "Dodaj na početni ekran" (beforeinstallprompt)
   chat/CoachSheet.tsx          — Coach chat UI (čita /api/ai/chat stream)
@@ -90,7 +90,8 @@ components/
   plan/PlanScreen.tsx          — plan, blokovi, toggle PO ID-u, modali, EOD, voda
   plan/DayProgress.tsx         — segmentirani progres (izdvojeno, reusable)
   plan/EodLanding.tsx          — "Dan završen": recap + refleksija + streak + posej sutra
-  insights/InsightsView.tsx    — grafici + forecast + AI uvidi (client)
+  history/HistoryView.tsx      — istorija (client): grafik realizacije (7d mob / 14d desktop) + grid kartica dana
+  insights/InsightsView.tsx    — grafici + forecast + AI uvidi (client; dashboard grid na desktopu)
   settings/SettingsForm.tsx    — sva podešavanja + nalog
   LogoutButton.tsx
 lib/
@@ -193,10 +194,16 @@ Ranije je raspored bio round-robin (energija nije ništa radila). Sad:
     `number`). Tajne (ključevi, service-role) OSTAJU u `process.env`, ne u configu.
 
 ## Navigacija
-`app/(app)/layout.tsx` umotava sadržaj u `AppChrome`: fiksni donji **TabBar**
-(Danas / Istorija / Uvidi / Podešavanja, `aria-current`) + plivajući **Coach (💬)** +
-**InstallBanner**. Ekrani sa sopstvenim sticky CTA (npr. `SetupScreen`) sakriju
-TabBar preko `useChrome().setHidden(true)`. TabBar je skriven na `/onboarding`.
+`app/(app)/layout.tsx` samo prosleđuje u `AppChrome`, koji JE responsivni shell
+(vidi "Responsivni layout"):
+- **<lg (mobilni/tablet):** fiksni donji **TabBar** (Danas / Istorija / Uvidi /
+  Podešavanja, `aria-current`, active gold pill) + plivajući **Coach (💬)** + **InstallBanner**.
+- **≥lg (desktop):** levi **Sidebar** (logo, isti nav vertikalno, Coach dugme,
+  `ThemeToggle compact`); TabBar/FAB/InstallBanner su `lg:hidden`.
+- Iste `TABS` (sa `match(pathname)`) hrane i sidebar i TabBar — jedan izvor istine.
+- Ekrani sa sopstvenim sticky CTA (npr. `SetupScreen`) zovu `useChrome().setHidden(true)`
+  → krije **samo mobilni bar** (sidebar ostaje, jer ima svoj rail CTA na desktopu).
+- `/onboarding` je full-bleed (bez ikakvog chrome-a) — vlastiti split-screen layout.
 
 ## Routing na `app/(app)/page.tsx`
 - nema profila / `!completed_once` → `/onboarding`
@@ -219,20 +226,59 @@ varijable na utility klase (`bg-surface`, `text-gold`, `border-border`, ...).
 **Radii:** `--r-sm 10px` `--r-md 14px` `--r-lg 18px` `--r-xl 24px`
 **Senke:** `--sh-xs/sm/md/lg`, `--sh-gold`. **Fontovi:** `--font-serif`
 (Cormorant Garamond → naslovi/logo), `--font-sans` (Outfit → ostalo).
-**Utility:** `.card`, `.field`, `.foil`, `.glass`, `.section-label`, `.sr-only`, `.skeleton`.
+**Utility:** `.card` (+`.card-interactive` hover-lift), `.field`, `.foil`, `.glass`,
+`.section-label`, `.title-serif`/`.display`, `.sr-only`, `.skeleton`.
+**Layout (responsive shell):** `.app-shell` / `.app-viewport` / `.app-content` /
+`.app-sidebar` / `.nav-item` / `.rail-sticky` (vidi "Responsivni layout").
 
-**Pravila:** mobile-first, max-width ~520px; nikad čista bela/crna — uvek topli
+**Pravila:** mobile-first ALI responsive do desktopa (vidi "Responsivni layout"): mobilni
+540px kolona → desktop sidebar + sadržaj do 1200px. Nikad čista bela/crna — uvek topli
 tonovi; radius 14px kartice / 12px inputi / 10px mali elementi; `prefers-reduced-motion` ispoštovan.
+
+## Responsivni layout (mobilni → tablet → desktop)
+**Jedan kod, jedan prelaz.** Desktop se uključuje na **`lg` (1024px)** — i u CSS-u
+(`@media (min-width:1024px)` u `globals.css`) i u Tailwind klasama (`lg:`). Ne uvodi
+nove breakpointe bez razloga; drži prelaz na `lg`.
+
+Shell živi u `AppChrome` + `globals.css`:
+- **`.app-shell`** — `<lg`: običan blok; **`≥lg`: CSS grid `[var(--sidebar-w) minmax(0,1fr)]`**.
+- **`.app-sidebar`** — `display:none` na mobilnom; `≥lg` sticky, full-height vertikalni rail.
+- **`.app-viewport` / `.app-content`** — vlasnici centriranja i širine: mobilni 540px
+  kolona → **tablet (540–1023) uokvireni "sheet"** → desktop sadržaj do `--content-max`.
+- **Mobilni TabBar + Coach FAB + InstallBanner**: `lg:hidden`.
+
+Tokeni u `:root`: `--sidebar-w 16.5rem`, `--content-max 75rem` (1200px), `--rail-w 20rem`.
+
+**Po-ekran desktop obrazac** (sve preko `lg:` klasa; mobilni ostaje jedna kolona, dotegnut):
+- **Plan** — status traka (progres + voda) → blokovi u **2-kol grid** + sticky **rail akcija** (`--rail-w`).
+- **Setup** — forma levo + sticky **"Pregled" rail** (energija / san / kapacitet meter + CTA); fiksni CTA je `lg:hidden`.
+- **EOD** — centrirana fokus-kolona (`lg:max-w-2xl`), veći tipografski naglasak.
+- **History** — grafik 7d (mob) / 14d (desktop) + kartice u 1 / 2 / 3-kol grid.
+- **Insights** — dashboard: prognoza + ukupno (2-kol), AI uvidi (2-kol), 3 grafika (3-kol).
+- **Settings** — sekcije u 2-kol grid (`lg:max-w-5xl`), centriran "Sačuvaj", nalog 2-kol.
+- **Onboarding** — split-screen: brand/tagline panel (levo, `≥lg`) + koraci (desno).
+- **Coach** — `Modal placement="drawer"`: bottom-sheet (mob) → desni full-height drawer (desktop).
+
+> ⚠️ **Tailwind v4 layer gotcha (display utilities):** custom klase u `globals.css` koje
+> setuju `display` (npr. `.section-label` = `inline-flex`) su **unlayered** i POBEĐUJU
+> Tailwind `hidden`/`flex`/`block` (koji su u `@layer utilities`). Zato
+> `class="section-label hidden lg:flex"` NE krije na mobilnom. Rešenje: display-toggle
+> ide na čist wrapper — `<div className="hidden lg:block"><span className="section-label">…`.
+> (`.card`/`.field`/`.glass`/`.foil`/`.rail-sticky` ne setuju `display` → na njima rade.)
+> Isti koren kao reset-gotcha: unlayered > layered.
 
 ## Stanje projekta (energy-adaptive overhaul — grana `feat/energy-adaptive-overhaul`)
 - ✅ Auth, onboarding, setup, plan, EOD (osnova)
 - ✅ **Energetski motor** — plan stvarno zavisi od energije + hronotipa; overload guard; vrh dana + "zašto baš ovde"
 - ✅ **Foundation/trust** — id-mutacije, optimistički rollback + Toast, zod validacija, standardne greške, energy_level
-- ✅ **Navigacija** — TabBar + chrome-hide + Coach FAB
+- ✅ **Navigacija** — responsivni shell (desktop Sidebar + mobilni TabBar) + chrome-hide + Coach
 - ✅ **AI** — Coach chat UI, tool-use brain-dump (tasks+termini), EOD recap+refleksija, insights, prompt caching
 - ✅ **Ekrani** — History, Insights (Pattern Coach + Energy Forecast), Settings (+ GDPR export/delete)
 - ✅ **Retencija (bez push)** — PWA (manifest+SW+ikone+install), shame-free streak, mikro-feedback, "posej sutra"
 - ✅ **Polish** — a11y (ARIA/sr-only), skeleton/empty/error stanja, dark mode, water tracker, vitest
+- ✅ **Responsive / desktop UI** — desktop sidebar shell + per-ekran desktop layout (Plan rail+grid,
+  Setup "Pregled" rail, Insights/History/Settings grid, split-screen onboarding, Coach side-drawer);
+  mobilni dotegnut. Prelaz na `lg` (1024px). Usput popravljeno: nevidljive trake u History grafiku.
 - ⬜ **Odloženo:** push notifikacije (svesno), drag-reorder UI (`@dnd-kit`), Pomodoro,
   share card, Sentry, pun "comeback" ekran posle više dana pauze
 

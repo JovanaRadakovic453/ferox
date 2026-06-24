@@ -121,12 +121,14 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
   }
 
   return (
-    <main className="flex flex-col gap-5 pb-2">
+    <main className="flex flex-col gap-5 lg:gap-6 pb-2 lg:max-w-5xl lg:mx-auto lg:w-full">
       <header className="pt-2">
-        <h1 className="display foil text-3xl">Podešavanja</h1>
+        <div className="hidden lg:block mb-2"><span className="section-label">Tvoj nalog</span></div>
+        <h1 className="display foil text-3xl lg:text-5xl">Podešavanja</h1>
         <p className="text-sm mt-1.5" style={{ color: 'var(--text-muted)' }}>{email}</p>
       </header>
 
+      <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
       {/* Profil */}
       <section className="card p-5 flex flex-col gap-4">
         <p className="section-label">Profil</p>
@@ -199,19 +201,26 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
           🔔 Podsetnici (push notifikacije) — uskoro
         </div>
       </section>
+      </div>
 
-      <Button size="lg" className="w-full" onClick={save} loading={saving}>Sačuvaj izmene</Button>
+      <div className="lg:flex lg:justify-center">
+        <Button size="lg" className="w-full lg:w-auto lg:px-20" onClick={save} loading={saving}>Sačuvaj izmene</Button>
+      </div>
 
       {/* Nalog */}
-      <section className="card p-5 flex flex-col gap-4">
+      <section className="card p-5 lg:p-6 flex flex-col gap-4">
         <p className="section-label">Nalog</p>
-        <div className="flex flex-col gap-2">
-          <Input id="pw" label="Nova lozinka" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Bar 6 karaktera" />
-          <Button size="sm" variant="secondary" onClick={changePassword} loading={changingPw} disabled={!newPassword}>Promeni lozinku</Button>
+        <div className="grid gap-4 lg:grid-cols-2 lg:gap-8">
+          <div className="flex flex-col gap-2">
+            <Input id="pw" label="Nova lozinka" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Bar 6 karaktera" />
+            <Button size="sm" variant="secondary" onClick={changePassword} loading={changingPw} disabled={!newPassword}>Promeni lozinku</Button>
+          </div>
+          <div className="flex flex-col gap-3">
+            <a href="/api/account/export" className="text-sm font-medium" style={{ color: 'var(--gold)' }}>⬇️ Preuzmi sve svoje podatke</a>
+            <button onClick={() => setShowDelete(true)} className="text-sm text-left" style={{ color: '#c0392b' }}>🗑️ Trajno obriši nalog</button>
+            <div className="pt-1"><LogoutButton /></div>
+          </div>
         </div>
-        <a href="/api/account/export" className="text-sm font-medium" style={{ color: 'var(--gold)' }}>⬇️ Preuzmi sve svoje podatke</a>
-        <button onClick={() => setShowDelete(true)} className="text-sm text-left" style={{ color: '#c0392b' }}>🗑️ Trajno obriši nalog</button>
-        <div className="pt-1"><LogoutButton /></div>
       </section>
 
       <Modal open={showDelete} onClose={() => setShowDelete(false)} title="Obriši nalog">

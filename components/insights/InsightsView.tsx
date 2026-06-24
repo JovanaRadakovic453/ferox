@@ -22,7 +22,7 @@ function BarRow({ label, rate }: { label: string; rate: number }) {
 function ChartCard({ title, bars }: { title: string; bars: Bar[] }) {
   if (bars.length === 0) return null
   return (
-    <div className="card p-5 flex flex-col gap-3">
+    <div className="card p-5 lg:p-6 flex flex-col gap-3">
       <p className="section-label">{title}</p>
       <div className="flex flex-col gap-2.5">
         {bars.map((b, i) => <BarRow key={i} label={b.label} rate={b.rate} />)}
@@ -63,34 +63,41 @@ export default function InsightsView({ agg, forecast }: { agg: Aggregates; forec
   }))
 
   return (
-    <main className="flex flex-col gap-5 pb-2">
+    <main className="flex flex-col gap-5 lg:gap-6 pb-2">
       <header className="pt-2">
-        <h1 className="display foil text-3xl">Uvidi</h1>
+        <div className="hidden lg:block mb-2"><span className="section-label">Tvoji obrasci</span></div>
+        <h1 className="display foil text-3xl lg:text-5xl">Uvidi</h1>
         <p className="text-sm mt-1.5" style={{ color: 'var(--text-muted)' }}>
           Na osnovu {agg.dayCount} {agg.dayCount === 1 ? 'dana' : 'dana'}.
         </p>
       </header>
 
-      {/* Forecast */}
-      {forecast && (
-        <div className="card p-5" style={{ backgroundImage: 'linear-gradient(180deg, var(--gold-tint), transparent 60%)' }}>
-          <p className="section-label mb-2">Prognoza za sutra</p>
-          <p className="text-lg" style={{ color: 'var(--text)' }}>
-            Verovatno ćeš biti <span className="font-semibold" style={{ color: 'var(--gold)' }}>{ENERGY_LABELS[forecast.level as EnergyLevel]}</span>
-          </p>
-          <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-            {forecast.note} Pouzdanost: {forecast.confidence}.
-          </p>
+      {/* Prognoza + ukupna realizacija */}
+      <div className="grid gap-5 lg:grid-cols-2 lg:items-stretch">
+        {forecast && (
+          <div className="card p-5 lg:p-7 flex flex-col justify-center" style={{ backgroundImage: 'linear-gradient(180deg, var(--gold-tint), transparent 60%)' }}>
+            <p className="section-label mb-2">Prognoza za sutra</p>
+            <p className="text-lg lg:text-2xl leading-snug" style={{ color: 'var(--text)' }}>
+              Verovatno ćeš biti <span className="font-semibold" style={{ color: 'var(--gold)' }}>{ENERGY_LABELS[forecast.level as EnergyLevel]}</span>
+            </p>
+            <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>
+              {forecast.note} Pouzdanost: {forecast.confidence}.
+            </p>
+          </div>
+        )}
+        <div className={`card p-5 lg:p-7 flex items-center justify-between ${forecast ? '' : 'lg:col-span-2'}`}>
+          <p className="section-label">Ukupna realizacija</p>
+          <p className="display text-3xl lg:text-5xl" style={{ color: 'var(--gold)' }}>{agg.overallCompletion}%</p>
         </div>
-      )}
+      </div>
 
       {/* AI Pattern Coach */}
-      <div className="card p-5 flex flex-col gap-3">
+      <div className="card p-5 lg:p-6 flex flex-col gap-3">
         <p className="section-label">Pattern coach</p>
         {aiLoading ? (
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Tražim obrasce u tvojim danima…</p>
         ) : ai && ai.length > 0 ? (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:gap-3">
             {ai.map((ins, i) => (
               <div key={i} className="rounded-[var(--r-md)] p-3.5" style={{ background: 'var(--surface2)' }}>
                 <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{ins.title}</p>
@@ -103,22 +110,19 @@ export default function InsightsView({ agg, forecast }: { agg: Aggregates; forec
         )}
       </div>
 
-      {/* Overall */}
-      <div className="card p-5 flex items-center justify-between">
-        <p className="section-label">Ukupna realizacija</p>
-        <p className="display text-3xl" style={{ color: 'var(--gold)' }}>{agg.overallCompletion}%</p>
-      </div>
-
       {agg.sleepInsight && (
-        <div className="card p-5">
+        <div className="card p-5 lg:p-6">
           <p className="section-label mb-2">San i učinak</p>
-          <p className="text-sm" style={{ color: 'var(--text)' }}>😴 {agg.sleepInsight}</p>
+          <p className="text-sm lg:text-base" style={{ color: 'var(--text)' }}>😴 {agg.sleepInsight}</p>
         </div>
       )}
 
-      <ChartCard title="Realizacija po energiji" bars={agg.byEnergy} />
-      <ChartCard title="Realizacija po danu u nedelji" bars={agg.byWeekday} />
-      <ChartCard title="Realizacija po tipu zadatka" bars={typeBars} />
+      {/* Grafici */}
+      <div className="grid gap-5 lg:grid-cols-3 lg:items-start">
+        <ChartCard title="Realizacija po energiji" bars={agg.byEnergy} />
+        <ChartCard title="Realizacija po danu u nedelji" bars={agg.byWeekday} />
+        <ChartCard title="Realizacija po tipu zadatka" bars={typeBars} />
+      </div>
     </main>
   )
 }

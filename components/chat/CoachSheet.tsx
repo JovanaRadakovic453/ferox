@@ -80,13 +80,13 @@ export default function CoachSheet({ open, onClose }: { open: boolean; onClose: 
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Ferox coach">
-      <div className="flex items-center justify-between">
+    <Modal open={open} onClose={onClose} title="Ferox coach" placement="drawer">
+      <div className="flex items-center justify-between shrink-0">
         <h3 className="title-serif text-xl" style={{ color: 'var(--text)' }}>💬 Ferox coach</h3>
         <button onClick={onClose} aria-label="Zatvori" className="text-lg leading-none opacity-60 hover:opacity-100 transition-opacity" style={{ color: 'var(--text-muted)' }}>✕</button>
       </div>
 
-      <div className="flex flex-col gap-3 min-h-[160px] max-h-[48dvh] overflow-y-auto py-1">
+      <div className="flex flex-col gap-3 min-h-[160px] max-h-[48dvh] lg:max-h-none lg:flex-1 overflow-y-auto py-1">
         {messages.length === 0 && (
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
             Pitaj me bilo šta o današnjem danu — pomoći ću ti da odlučiš šta je realno.
@@ -105,7 +105,7 @@ export default function CoachSheet({ open, onClose }: { open: boolean; onClose: 
       </div>
 
       {messages.length === 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 shrink-0">
           {QUICK.map(q => (
             <button
               key={q}
@@ -120,7 +120,7 @@ export default function CoachSheet({ open, onClose }: { open: boolean; onClose: 
         </div>
       )}
 
-      <form onSubmit={e => { e.preventDefault(); send(input) }} className="flex gap-2">
+      <form onSubmit={e => { e.preventDefault(); send(input) }} className="flex gap-2 shrink-0">
         <input
           value={input}
           onChange={e => setInput(e.target.value)}

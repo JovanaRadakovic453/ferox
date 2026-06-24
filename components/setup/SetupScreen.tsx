@@ -12,6 +12,7 @@ import { TASK_TYPE_LABELS } from '@/types/ferox'
 import type { Task, TaskType, Priority, Appointment, UserProfile } from '@/types/ferox'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
+import { DEFAULTS } from '@/lib/config'
 
 const ENERGY_OPTIONS = [
   { level: 1, emoji: '🔥', label: 'Pun gas',     desc: 'Spreman/a za sve', tint: 'rgba(212,116,42,0.18)' },
@@ -32,8 +33,8 @@ const TYPE_OPTIONS = Object.entries(TASK_TYPE_LABELS).map(([value, label]) => ({
 }))
 
 const EMPTY_TASK = { name: '', note: '', priority: 'medium' as Priority, type: 'light' as TaskType }
-const EMPTY_APPT = { name: '', time: '09:00', reminder: 15 }
-const EMPTY_APPT_REMINDER = { value: 15, unit: 'min' as 'min' | 'sat' }
+const EMPTY_APPT = { name: '', time: '09:00', reminder: DEFAULTS.reminderMinutes }
+const EMPTY_APPT_REMINDER = { value: DEFAULTS.reminderMinutes, unit: 'min' as 'min' | 'sat' }
 
 async function fetchBrainDump(text: string): Promise<{ tasks: Task[]; appointments: Appointment[] }> {
   const res = await fetch('/api/ai/brain-dump', {
@@ -57,7 +58,7 @@ async function fetchBrainDump(text: string): Promise<{ tasks: Task[]; appointmen
     appointments: (appointments ?? []).map((a: { name: string; time: string }) => ({
       name: a.name,
       time: a.time,
-      reminder: 15,
+      reminder: DEFAULTS.reminderMinutes,
       done: false,
     })),
   }
@@ -279,10 +280,10 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
 
   return (
     <>
-      <main className="flex flex-col gap-7 stagger pb-44">
+      <main className="flex flex-col gap-7 pb-44 lg:pb-12">
         {/* Hero */}
-        <header className="flex flex-col gap-5 pt-2">
-          <div className="flex items-center justify-between">
+        <header className="flex flex-col gap-5 pt-2 animate-fade-slide">
+          <div className="flex items-center justify-between lg:hidden">
             <span className="display foil text-2xl tracking-[0.06em]">Ferox</span>
             <span
               className="text-xs font-medium px-3 py-1.5 rounded-full whitespace-nowrap"
@@ -292,15 +293,19 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
             </span>
           </div>
           <div>
-            <h1 className="title-serif text-[2.15rem] leading-[1.08]" style={{ color: 'var(--text)' }}>
+            <div className="hidden lg:block mb-3"><span className="section-label">{formatDate(targetDate ?? todayKey())}</span></div>
+            <h1 className="title-serif text-[2.15rem] lg:text-[2.9rem] leading-[1.08]" style={{ color: 'var(--text)' }}>
               {heroTitle},<br />
               <span className="foil">{profile.name}</span>
             </h1>
-            <p className="text-sm mt-3 max-w-[36ch]" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-sm mt-3 max-w-[42ch]" style={{ color: 'var(--text-muted)' }}>
               {heroSub}
             </p>
           </div>
         </header>
+
+        <div className="flex flex-col gap-7 lg:grid lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-8 lg:items-start">
+          <div className="flex flex-col gap-7 stagger">
 
         {/* Predloženi zadaci iz prethodnog dana (opt-in) */}
         {suggestedTransfers.length > 0 && (
@@ -628,10 +633,74 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
         >
           {resetting ? 'Brišem...' : '🗑️ Obriši sve za danas i počni iznova'}
         </button>
+          </div>
+
+          {/* Pregled (rail na desktopu) — živi sažetak + CTA */}
+          <aside className="hidden lg:flex lg:flex-col gap-4 rail-sticky">
+            <div className="card p-6 flex flex-col gap-5">
+              <div>
+                <p className="section-label mb-2">Pregled</p>
+                <h2 className="title-serif text-2xl" style={{ color: 'var(--text)' }}>
+                  {isSutraMode ? 'Sutrašnji plan' : 'Današnji plan'}
+                </h2>
+              </div>
+
+              {energy ? (
+                <div className="flex items-center gap-3 rounded-[var(--r-md)] p-3.5" style={{ background: 'var(--surface2)' }}>
+                  <span className="text-2xl">{ENERGY_OPTIONS[energy - 1].emoji}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Energija</p>
+                    <p className="text-sm font-semibold">{ENERGY_OPTIONS[energy - 1].label}</p>
+                  </div>
+                  <EnergyMeter strength={6 - energy} active={false} />
+                </div>
+              ) : (
+                <div className="rounded-[var(--r-md)] p-3.5 text-sm text-center" style={{ background: 'var(--surface2)', color: 'var(--text-muted)' }}>
+                  ⚡ Izaberi nivo energije
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-[var(--r-md)] p-3.5 text-center" style={{ background: 'var(--surface2)' }}>
+                  <p className="display text-3xl foil leading-none">{tasks.length}</p>
+                  <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>{taskWord}</p>
+                </div>
+                <div className="rounded-[var(--r-md)] p-3.5 text-center" style={{ background: 'var(--surface2)' }}>
+                  <p className="display text-3xl leading-none" style={{ color: 'var(--text)' }}>{sleepHours > 0 ? `${sleepHours}h` : '—'}</p>
+                  <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>sna</p>
+                </div>
+              </div>
+
+              {energy && (
+                <div className="flex flex-col gap-2">
+                  <div className="flex justify-between text-xs" style={{ color: 'var(--text-muted)' }}>
+                    <span>Teški zadaci</span>
+                    <span className="tabular-nums">{heavyCount} / {energyCapacity === Infinity ? '∞' : energyCapacity}</span>
+                  </div>
+                  <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--surface2)' }}>
+                    <div className="h-full rounded-full transition-all" style={{ width: `${energyCapacity === Infinity ? 0 : Math.min(100, (heavyCount / Math.max(1, energyCapacity)) * 100)}%`, backgroundImage: overBy > 0 ? 'linear-gradient(90deg, #ef4444, #dc2626)' : 'linear-gradient(90deg, var(--gold-light), var(--gold))' }} />
+                  </div>
+                  {overBy > 0 && <p className="text-xs" style={{ color: '#c0392b' }}>{overBy} iznad realnog kapaciteta za danas</p>}
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Button size="lg" className="w-full" disabled={!canSubmit} loading={loading} onClick={handleSubmit}>
+                {tasks.length > 0 ? `Napravi plan · ${tasks.length} ${taskWord} →` : 'Napravi moj plan →'}
+              </Button>
+              {!canSubmit && !loading && (
+                <p className="text-center text-xs" style={{ color: 'var(--text-muted)' }}>
+                  {!energy ? '⚡ Izaberi nivo energije' : '📋 Dodaj bar jedan zadatak'}
+                </p>
+              )}
+            </div>
+          </aside>
+        </div>
       </main>
 
-      {/* Sticky frosted CTA — uvek nadohvat palca */}
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[540px] z-40">
+      {/* Sticky frosted CTA (mobilni/tablet) — uvek nadohvat palca */}
+      <div className="lg:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[540px] z-40">
         <div className="glass px-5 min-[540px]:px-9 pt-3.5 pb-safe" style={{ borderTop: '1px solid var(--hairline)' }}>
           <Button size="lg" className="w-full" disabled={!canSubmit} loading={loading} onClick={handleSubmit}>
             {tasks.length > 0 ? `Napravi plan · ${tasks.length} ${taskWord} →` : 'Napravi moj plan →'}

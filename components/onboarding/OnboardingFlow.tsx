@@ -297,33 +297,56 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
   }
 
   return (
-    <main className="flex-1 flex flex-col">
-      <div className="flex-1 flex flex-col justify-center max-w-[460px] mx-auto w-full py-4">
-        {step > 1 && (
-          <button
-            onClick={back}
-            className="self-start mb-4 text-sm flex items-center gap-1 transition-opacity hover:opacity-70"
-            style={{ color: 'var(--text-muted)' }}
-          >
-            ← Nazad
-          </button>
-        )}
+    <main className="flex-1 flex flex-col lg:flex-row">
+      {/* Brand panel — desktop only */}
+      <aside
+        className="hidden lg:flex lg:flex-col lg:justify-between lg:w-[44%] lg:max-w-[600px] shrink-0 p-14"
+        style={{ background: 'color-mix(in srgb, var(--gold-tint) 55%, var(--surface))', borderRight: '1px solid var(--hairline)' }}
+      >
+        <div className="flex items-center gap-3">
+          <span className="grid place-items-center w-11 h-11 rounded-[14px] text-white title-serif text-2xl" style={{ backgroundImage: 'linear-gradient(135deg, var(--gold-light), var(--gold-deep))', boxShadow: 'var(--sh-gold)' }} aria-hidden>F</span>
+          <span className="title-serif text-3xl foil">Ferox</span>
+        </div>
+        <div>
+          <h2 className="title-serif text-[2.6rem] leading-[1.1]" style={{ color: 'var(--text)' }}>
+            Svi planeri misle da si svaki dan <span className="foil">ista osoba.</span><br />Nisi.
+          </h2>
+          <p className="text-base mt-6 max-w-[44ch]" style={{ color: 'var(--text-muted)' }}>
+            Ferox pomera tvoj raspored prema energiji koju ćeš zaista imati — ne prema fiksnom satu.
+          </p>
+        </div>
+        <p className="text-xs tracking-wide uppercase" style={{ color: 'var(--text-muted)', letterSpacing: '0.14em' }}>Planer za tvoj ritam</p>
+      </aside>
 
-        <StepDots total={5} current={step} />
+      {/* Koraci */}
+      <div className="flex-1 flex flex-col justify-center px-6 lg:px-12">
+        <div className="flex flex-col justify-center max-w-[460px] mx-auto w-full py-8">
+          {step > 1 && (
+            <button
+              onClick={back}
+              className="self-start mb-4 text-sm flex items-center gap-1 transition-opacity hover:opacity-70"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              ← Nazad
+            </button>
+          )}
 
-        <AnimatePresence mode="wait" custom={dir}>
-          <motion.div
-            key={step}
-            custom={dir}
-            variants={slideVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{ duration: 0.25, ease: 'easeOut' }}
-          >
-            {steps[step]}
-          </motion.div>
-        </AnimatePresence>
+          <StepDots total={5} current={step} />
+
+          <AnimatePresence mode="wait" custom={dir}>
+            <motion.div
+              key={step}
+              custom={dir}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+            >
+              {steps[step]}
+            </motion.div>
+          </AnimatePresence>
+        </div>
       </div>
     </main>
   )
