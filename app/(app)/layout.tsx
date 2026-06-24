@@ -14,8 +14,10 @@ export default async function AppLayout({
   }
 
   return (
-    <div className="max-w-[520px] mx-auto min-h-dvh flex flex-col" style={{ background: 'var(--bg)' }}>
-      {children}
+    <div className="min-h-dvh flex justify-center" style={{ background: 'var(--bg)' }}>
+      <div className="w-full max-w-[520px] flex flex-col">
+        {children}
+      </div>
     </div>
   )
 }

@@ -1,5 +1,4 @@
 import { createClient } from '@/lib/supabase/server'
-import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import SetupScreen from '@/components/setup/SetupScreen'
 import type { UserProfile, Task } from '@/types/ferox'
@@ -39,10 +38,8 @@ export default async function SetupPage({
     .eq('date_key', targetDate)
     .maybeSingle()
 
-  if (!isSutra && !isEdit) {
-    const cookieStore = await cookies()
-    const dayFinished = cookieStore.get('ferox_day_finished')?.value
-    if (entry && dayFinished !== today) redirect('/plan')
+  if (!isSutra && !isEdit && entry) {
+    redirect('/plan')
   }
 
   // Ako vec postoji plan za targetDate, ucitaj te zadatke
