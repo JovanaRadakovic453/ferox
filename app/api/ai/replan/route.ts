@@ -1,22 +1,27 @@
 import { anthropic } from '@/lib/anthropic'
 import { createClient } from '@/lib/supabase/server'
-import { NextRequest, NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+import { apiOk, ERR } from '@/lib/api'
+import { replanSchema, replanResultSchema } from '@/lib/validation'
+import { extractText } from '@/lib/ai/parse'
+import { AI } from '@/lib/config'
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return ERR.unauthorized()
 
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const json = await request.json().catch(() => null)
+  const parsed = replanSchema.safeParse(json)
+  if (!parsed.success) return ERR.invalidInput(parsed.error.issues)
+  const { situation, remainingTasks, energy } = parsed.data
 
-  const { situation, remainingTasks, energy } = await request.json()
-
-  const message = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 1024,
-    messages: [
-      {
+  let message
+  try {
+    message = await anthropic.messages.create({
+      model: AI.model,
+      max_tokens: AI.maxTokens.replan,
+      messages: [{
         role: 'user',
         content: `Korisnik ima energiju: ${energy}. Dan se raspao. Situacija: "${situation}".
 
@@ -28,21 +33,19 @@ Pomozi da replaniram dan. Vrati JSON sa:
 - obrisi: string[] (zadaci koje da otpišem)
 - poruka: string (kratka motivišuća poruka na srpskom, max 2 rečenice)
 
-Vrati SAMO JSON, bez ikakvog drugog teksta.`,
-      },
-    ],
-  })
-
-  const content = message.content[0]
-  if (content.type !== 'text') {
-    return NextResponse.json({ error: 'AI greška' }, { status: 500 })
+Koristi TAČNO imena zadataka iz liste. Vrati SAMO JSON, bez ikakvog drugog teksta.`,
+      }],
+    })
+  } catch (err) {
+    return ERR.aiUnavailable(err instanceof Error ? err.message : String(err))
   }
 
+  const text = extractText(message)
+  if (!text) return ERR.aiUnavailable('Prazan AI odgovor')
   try {
-    const cleaned = content.text.replace(/```json\n?|\n?```/g, '').trim()
-    const result = JSON.parse(cleaned)
-    return NextResponse.json(result)
+    const result = replanResultSchema.parse(JSON.parse(text))
+    return apiOk(result)
   } catch {
-    return NextResponse.json({ error: 'Nisam mogao da parsovam odgovor' }, { status: 500 })
+    return ERR.aiUnavailable('Nisam mogao da pročitam AI odgovor')
   }
 }

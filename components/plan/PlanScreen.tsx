@@ -1,64 +1,32 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { calcBlocks } from '@/lib/energy'
 import { addDays, tomorrowKey } from '@/lib/date'
 import { formatDate } from '@/lib/utils'
-import { TASK_TYPE_LABELS } from '@/types/ferox'
+import { TASK_TYPE_LABELS, PRIORITY_LABELS } from '@/types/ferox'
 import type { Task, Appointment, DayEntry, UserProfile, PlanBlock, TaskType, Priority } from '@/types/ferox'
 import Button from '@/components/ui/Button'
 import Checkbox from '@/components/ui/Checkbox'
 import LogoutButton from '@/components/LogoutButton'
-
-/** Smoothly animates an integer toward `value` (eased), for the done counter. */
-function useCountUp(value: number, duration = 550) {
-  const [display, setDisplay] = useState(value)
-  const prev = useRef(value)
-  useEffect(() => {
-    const from = prev.current
-    const to = value
-    if (from === to) return
-    let raf = 0
-    let start = 0
-    const stepFn = (now: number) => {
-      if (!start) start = now
-      const t = Math.min(1, (now - start) / duration)
-      const eased = 1 - Math.pow(1 - t, 3)
-      setDisplay(Math.round(from + (to - from) * eased))
-      if (t < 1) raf = requestAnimationFrame(stepFn)
-      else prev.current = to
-    }
-    raf = requestAnimationFrame(stepFn)
-    return () => cancelAnimationFrame(raf)
-  }, [value, duration])
-  return display
-}
-
-function assignTasksToBlocks(tasks: Task[], blocks: ReturnType<typeof calcBlocks>): PlanBlock[] {
-  const high   = tasks.filter(t => t.priority === 'high')
-  const medium = tasks.filter(t => t.priority === 'medium')
-  const low    = tasks.filter(t => t.priority === 'low')
-
-  const distributed: Task[][] = [[], [], [], []]
-  ;[...high, ...medium, ...low].forEach((t, i) => {
-    distributed[i % 4].push(t)
-  })
-
-  return blocks.map((b, i) => ({
-    label: b.label,
-    badge: b.color,
-    badgeText: b.emoji,
-    timeRange: b.timeRange,
-    tasks: distributed[i],
-  }))
-}
+import { useCountUp } from '@/lib/useCountUp'
+import DayProgress from '@/components/plan/DayProgress'
+import { useToast } from '@/components/ui/Toast'
+import { assignTasksToBlocks } from '@/lib/plan'
+import { DEFAULTS } from '@/lib/config'
 
 function TaskItem({ task, onToggle }: { task: Task; onToggle: () => void }) {
   return (
-    <button onClick={onToggle} className="flex items-start gap-3 w-full text-left py-2.5 transition-transform active:scale-[0.995]">
-      <span className="mt-0.5"><Checkbox checked={task.done} /></span>
+    <button
+      onClick={onToggle}
+      role="checkbox"
+      aria-checked={task.done}
+      aria-label={`${task.name} — ${PRIORITY_LABELS[task.priority]}${task.done ? ', završeno' : ''}`}
+      className="flex items-start gap-3 w-full text-left py-2.5 transition-transform active:scale-[0.995]"
+    >
+      <span className="mt-0.5" aria-hidden><Checkbox checked={task.done} /></span>
       <div className="flex-1 min-w-0">
         <p
           className="text-sm font-medium transition-all duration-200"
@@ -79,12 +47,14 @@ function TaskItem({ task, onToggle }: { task: Task; onToggle: () => void }) {
       </div>
       <span
         className="text-[0.65rem] font-semibold px-2 py-0.5 rounded-full shrink-0 mt-0.5 tracking-wide"
+        title={PRIORITY_LABELS[task.priority]}
         style={{
           background: task.priority === 'high' ? '#ef444418' : task.priority === 'medium' ? '#f59e0b18' : '#22c55e18',
           color: task.priority === 'high' ? '#ef4444' : task.priority === 'medium' ? '#d97706' : '#16a34a',
         }}
       >
-        {task.priority === 'high' ? 'V' : task.priority === 'medium' ? 'S' : 'N'}
+        <span aria-hidden>{task.priority === 'high' ? 'V' : task.priority === 'medium' ? 'S' : 'N'}</span>
+        <span className="sr-only">{PRIORITY_LABELS[task.priority]}</span>
       </span>
     </button>
   )
@@ -92,8 +62,15 @@ function TaskItem({ task, onToggle }: { task: Task; onToggle: () => void }) {
 
 function AppointmentItem({ appt, onToggle }: { appt: Appointment; onToggle: () => void }) {
   return (
-    <button onClick={onToggle} className="flex items-center gap-3 w-full text-left py-2.5 border-b transition-transform active:scale-[0.995]" style={{ borderColor: 'var(--hairline)' }}>
-      <Checkbox checked={appt.done} />
+    <button
+      onClick={onToggle}
+      role="checkbox"
+      aria-checked={appt.done}
+      aria-label={`${appt.time} ${appt.name} (termin)${appt.done ? ', završeno' : ''}`}
+      className="flex items-center gap-3 w-full text-left py-2.5 border-b transition-transform active:scale-[0.995]"
+      style={{ borderColor: 'var(--hairline)' }}
+    >
+      <span aria-hidden><Checkbox checked={appt.done} /></span>
       <span
         className="text-sm font-medium shrink-0 transition-all duration-200"
         style={{ color: appt.done ? 'var(--text-muted)' : 'var(--gold)', opacity: appt.done ? 0.6 : 1 }}
@@ -111,38 +88,13 @@ function AppointmentItem({ appt, onToggle }: { appt: Appointment; onToggle: () =
   )
 }
 
-/** Segmented day progress — one segment per active time-block, so the bar
- *  reads as the shape of the whole day rather than a single anonymous fill. */
-function DayProgress({ blocks }: { blocks: PlanBlock[] }) {
-  const active = blocks.filter(b => b.tasks.length > 0)
-  if (active.length === 0) {
-    return <div className="h-2.5 rounded-full" style={{ background: 'var(--surface2)' }} />
-  }
-  return (
-    <div className="flex items-center gap-1.5" aria-hidden>
-      {active.map(b => {
-        const done = b.tasks.filter(t => t.done).length
-        const pct = b.tasks.length ? (done / b.tasks.length) * 100 : 0
-        return (
-          <div key={b.label} className="flex-1 h-2.5 rounded-full overflow-hidden" style={{ background: 'var(--surface2)', boxShadow: 'inset 0 1px 2px rgba(26,23,20,0.07)' }}>
-            <div
-              className="h-full rounded-full transition-all duration-700"
-              style={{ width: `${pct}%`, backgroundImage: 'linear-gradient(90deg, var(--gold-light), var(--gold))' }}
-            />
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
 function BlockCard({
   block, appointments, onToggle, onToggleAppt,
 }: {
   block: PlanBlock
   appointments: Appointment[]
-  onToggle: (taskName: string) => void
-  onToggleAppt: (apptName: string, apptTime: string) => void
+  onToggle: (taskId: string) => void
+  onToggleAppt: (apptId: string) => void
 }) {
   const doneTasks = block.tasks.filter(t => t.done).length
   const doneAppts = appointments.filter(a => a.done).length
@@ -159,11 +111,16 @@ function BlockCard({
       {/* obojena leva accent linija po bloku */}
       <div className="absolute left-0 top-0 bottom-0 w-1" style={{ background: accent, opacity: 0.85 }} />
       <div className="flex items-center justify-between pl-5 pr-4 py-3" style={{ background: block.badge }}>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           <span>{block.badgeText}</span>
           <span className="font-medium text-sm" style={{ color: 'var(--text)' }}>{block.label}</span>
+          {block.peak && (
+            <span className="text-[0.58rem] font-bold tracking-wide px-1.5 py-0.5 rounded-full shrink-0" style={{ background: 'var(--gold)', color: '#fff' }}>
+              ⚡ VRH DANA
+            </span>
+          )}
         </div>
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 shrink-0">
           <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{block.timeRange}</span>
           <span className="text-[0.7rem] font-semibold px-2 py-0.5 rounded-full tabular-nums" style={{ background: 'var(--surface)', color: 'var(--text-muted)' }}>
             {done}/{total}
@@ -171,7 +128,13 @@ function BlockCard({
         </div>
       </div>
 
-      <div className="h-1.5 w-full" style={{ background: 'var(--surface2)' }}>
+      {block.rationale && (
+        <p className="px-5 pt-2.5 text-xs italic" style={{ color: 'var(--text-muted)' }}>
+          {block.rationale}
+        </p>
+      )}
+
+      <div className="h-1.5 w-full mt-2.5" style={{ background: 'var(--surface2)' }}>
         <div
           className="h-full transition-all duration-500"
           style={{ width: `${pct}%`, backgroundImage: 'linear-gradient(90deg, var(--gold-light), var(--gold))' }}
@@ -180,11 +143,11 @@ function BlockCard({
 
       <div className="pl-5 pr-4">
         {appointments.map(a => (
-          <AppointmentItem key={a.name + a.time} appt={a} onToggle={() => onToggleAppt(a.name, a.time)} />
+          <AppointmentItem key={a.id ?? a.name + a.time} appt={a} onToggle={() => a.id && onToggleAppt(a.id)} />
         ))}
         <div className="divide-y" style={{ borderColor: 'var(--hairline)' }}>
           {block.tasks.map(task => (
-            <TaskItem key={task.name} task={task} onToggle={() => onToggle(task.name)} />
+            <TaskItem key={task.id ?? task.name} task={task} onToggle={() => task.id && onToggle(task.id)} />
           ))}
         </div>
       </div>
@@ -204,6 +167,7 @@ export default function PlanScreen({
   isToday?: boolean
 }) {
   const router = useRouter()
+  const toast = useToast()
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
   const [appts, setAppts] = useState<Appointment[]>(appointments)
   const [savingEod, setSavingEod] = useState(false)
@@ -220,9 +184,19 @@ export default function PlanScreen({
   const [newTaskIsAppt, setNewTaskIsAppt] = useState(false)
   const [newTaskTime, setNewTaskTime] = useState('09:00')
   const [addingTask, setAddingTask] = useState(false)
+  const [water, setWater] = useState(entry.water_intake ?? 0)
+  const waterGoal = entry.water_goal ?? DEFAULTS.waterGoalMl
+
+  async function addWater(ml: number) {
+    const next = Math.max(0, water + ml)
+    setWater(next)
+    const supabase = createClient()
+    const { error } = await supabase.from('day_entries').update({ water_intake: next }).eq('id', entry.id!)
+    if (error) { setWater(water); toast({ message: 'Nije sačuvano', variant: 'error' }) }
+  }
 
   const blocks = calcBlocks(profile.start_time ?? '08:00', profile.sleep_time ?? '23:00', profile.rhythm)
-  const planBlocks = assignTasksToBlocks(tasks, blocks)
+  const planBlocks = assignTasksToBlocks(tasks, blocks, entry.energy_level, profile.rhythm)
 
   function getAppointmentsForBlock(blockIndex: number): Appointment[] {
     const b = blocks[blockIndex]
@@ -239,29 +213,40 @@ export default function PlanScreen({
   const allDone = done === total && total > 0
   const doneDisplay = useCountUp(done)
 
-  async function toggleTask(taskName: string) {
-    const supabase = createClient()
-    const task = tasks.find(t => t.name === taskName)
+  // Optimistički toggle PO ID-u (ne po imenu — dva ista naziva se više ne sudaraju).
+  // Na grešku vraćamo stanje i nudimo retry preko toasta.
+  async function toggleTask(taskId: string) {
+    const task = tasks.find(t => t.id === taskId)
     if (!task) return
-
     const newDone = !task.done
-    setTasks(prev => prev.map(t => t.name === taskName ? { ...t, done: newDone } : t))
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, done: newDone } : t))
 
-    await supabase
-      .from('tasks')
-      .update({ done: newDone })
-      .eq('entry_id', entry.id!)
-      .eq('name', taskName)
+    // Mikro-feedback: vibracija na završetak + proslava kad je sve gotovo.
+    if (newDone && profile.micro_feedback !== false) {
+      if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(15)
+      const totalCount = tasks.length + appts.length
+      const doneNow = tasks.filter(t => (t.id === taskId ? true : t.done)).length + appts.filter(a => a.done).length
+      if (totalCount > 0 && doneNow === totalCount) toast({ message: 'Sve gotovo za danas! 🎉', variant: 'success' })
+    }
+
+    const supabase = createClient()
+    const { error } = await supabase.from('tasks').update({ done: newDone }).eq('id', taskId)
+    if (error) {
+      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, done: !newDone } : t))
+      toast({ message: 'Nije sačuvano — proveri internet', variant: 'error', action: { label: 'Pokušaj', onClick: () => toggleTask(taskId) } })
+    }
   }
 
-  async function toggleAppointment(name: string, time: string) {
-    const appt = appts.find(a => a.name === name && a.time === time)
+  async function toggleAppointment(apptId: string) {
+    const appt = appts.find(a => a.id === apptId)
     if (!appt) return
     const newDone = !appt.done
-    setAppts(prev => prev.map(a => a.name === name && a.time === time ? { ...a, done: newDone } : a))
-    if (appt.id) {
-      const supabase = createClient()
-      await supabase.from('appointments').update({ done: newDone }).eq('id', appt.id)
+    setAppts(prev => prev.map(a => a.id === apptId ? { ...a, done: newDone } : a))
+    const supabase = createClient()
+    const { error } = await supabase.from('appointments').update({ done: newDone }).eq('id', apptId)
+    if (error) {
+      setAppts(prev => prev.map(a => a.id === apptId ? { ...a, done: !newDone } : a))
+      toast({ message: 'Nije sačuvano — proveri internet', variant: 'error', action: { label: 'Pokušaj', onClick: () => toggleAppointment(apptId) } })
     }
   }
 
@@ -287,21 +272,22 @@ export default function PlanScreen({
 
   async function applyReplan() {
     if (!replanResult) return
-    const supabase = createClient()
-    // Mark "obrisi" tasks as done, keep "danas" tasks, move "sutra" to tomorrow
-    const updatedTasks = tasks.map(t => ({
-      ...t,
-      done: t.done || replanResult.obrisi.includes(t.name),
-    }))
-    setTasks(updatedTasks)
-    // Sync to DB
-    for (const t of updatedTasks) {
-      await supabase.from('tasks').update({ done: t.done })
-        .eq('entry_id', entry.id!).eq('name', t.name)
-    }
+    const obrisi = new Set(replanResult.obrisi)
+    // "Otpiši" zadatke označavamo kao gotove. Jedan batch update po ID-u.
+    const idsToComplete = tasks.filter(t => !t.done && obrisi.has(t.name) && t.id).map(t => t.id!)
+    const prevTasks = tasks
+    setTasks(prev => prev.map(t => idsToComplete.includes(t.id!) ? { ...t, done: true } : t))
     setShowReplan(false)
     setReplanResult(null)
     setReplanText('')
+    if (idsToComplete.length > 0) {
+      const supabase = createClient()
+      const { error } = await supabase.from('tasks').update({ done: true }).in('id', idsToComplete)
+      if (error) {
+        setTasks(prevTasks)
+        toast({ message: 'Replan nije sačuvan — pokušaj ponovo', variant: 'error' })
+      }
+    }
   }
 
   function startFinishDay() {
@@ -376,29 +362,34 @@ export default function PlanScreen({
         date_key: entry.date_key,
         name: newTaskName.trim(),
         time: newTaskTime,
-        reminder: 15,
+        reminder: DEFAULTS.reminderMinutes,
         done: false,
       }).select('id').single()
 
       if (!error) {
-        setAppts(prev => [...prev, { id: data?.id, name: newTaskName.trim(), time: newTaskTime, reminder: 15, done: false }])
+        setAppts(prev => [...prev, { id: data?.id, name: newTaskName.trim(), time: newTaskTime, reminder: DEFAULTS.reminderMinutes, done: false }])
         closeAddTask()
+      } else {
+        toast({ message: 'Termin nije dodat — pokušaj ponovo', variant: 'error' })
       }
     } else {
-      const newTask: Task = { name: newTaskName.trim(), priority: newTaskPriority, type: newTaskType, note: '', done: false }
-      const { error } = await supabase.from('tasks').insert({
+      // .select('id') da novi zadatak odmah nosi id (za pouzdan toggle po ID-u).
+      const { data, error } = await supabase.from('tasks').insert({
         entry_id: entry.id,
         user_id: entry.user_id,
-        name: newTask.name,
+        name: newTaskName.trim(),
         done: false,
-        priority: newTask.priority,
-        type: newTask.type,
+        priority: newTaskPriority,
+        type: newTaskType,
         note: '',
         position: tasks.length,
-      })
+      }).select('id').single()
       if (!error) {
+        const newTask: Task = { id: data?.id, name: newTaskName.trim(), priority: newTaskPriority, type: newTaskType, note: '', done: false }
         setTasks(prev => [...prev, newTask])
         closeAddTask()
+      } else {
+        toast({ message: 'Zadatak nije dodat — pokušaj ponovo', variant: 'error' })
       }
     }
     setAddingTask(false)
@@ -408,9 +399,9 @@ export default function PlanScreen({
     const unfinished = tasks.filter(t => !t.done)
     const toTransfer = unfinished.filter(t => selectedForTransfer.has(t.name))
     return (
-      <main className="flex flex-col gap-5 pb-2">
+      <main className="flex flex-col gap-5 pb-2 lg:max-w-2xl lg:mx-auto lg:w-full">
         <div className="pt-1">
-          <h2 className="display foil text-3xl">
+          <h2 className="display foil text-3xl lg:text-4xl">
             Nedovršeni zadaci
           </h2>
           <p className="text-sm mt-1.5" style={{ color: 'var(--text-muted)' }}>
@@ -469,15 +460,16 @@ export default function PlanScreen({
   }
 
   return (
-    <main className="flex flex-col gap-5 pb-2">
+    <main className="flex flex-col gap-5 lg:gap-7 pb-2">
       {/* Header */}
-      <header className="flex items-end justify-between pt-1">
+      <header className="flex items-end justify-between gap-4 pt-1">
         <div className="min-w-0">
-          <h1 className="display foil text-3xl">
+          <div className="hidden lg:block mb-2"><span className="section-label">{formatDate(entry.date_key)}</span></div>
+          <h1 className="display foil text-3xl lg:text-5xl">
             {isToday ? 'Moj plan' : 'Plan'}
           </h1>
           {!isToday && (
-            <p className="text-xs font-medium mt-0.5" style={{ color: 'var(--gold)' }}>
+            <p className="text-xs font-medium mt-0.5 lg:hidden" style={{ color: 'var(--gold)' }}>
               🌙 {formatDate(entry.date_key)}
             </p>
           )}
@@ -493,8 +485,8 @@ export default function PlanScreen({
           </div>
         </div>
         <div className="text-right shrink-0 pl-3">
-          <p className="display text-5xl leading-none tabular-nums" style={{ color: 'var(--text)' }}>
-            {doneDisplay}<span className="text-2xl" style={{ color: 'var(--text-muted)' }}>/{total}</span>
+          <p className="display text-5xl lg:text-6xl leading-none tabular-nums" style={{ color: 'var(--text)' }}>
+            {doneDisplay}<span className="text-2xl lg:text-3xl" style={{ color: 'var(--text-muted)' }}>/{total}</span>
           </p>
           <p className="text-[0.65rem] font-semibold tracking-[0.14em] uppercase mt-1.5" style={{ color: 'var(--text-muted)' }}>završeno</p>
         </div>
@@ -511,68 +503,97 @@ export default function PlanScreen({
         </div>
       )}
 
-      {/* Ukupni progress — segmentiran po delovima dana */}
-      <div className="flex items-center gap-3">
-        <div className="flex-1">
-          <DayProgress blocks={planBlocks} />
+      {/* Status traka — progres + voda (jedan red na desktopu) */}
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch lg:gap-5">
+        <div className="card p-4 lg:p-5 flex items-center gap-3 lg:flex-1">
+          <div className="flex-1">
+            <DayProgress blocks={planBlocks} />
+          </div>
+          <span className="text-sm font-semibold tabular-nums shrink-0" style={{ color: 'var(--text-muted)' }}>
+            {total > 0 ? Math.round((done / total) * 100) : 0}%
+          </span>
         </div>
-        <span className="text-xs font-semibold tabular-nums shrink-0" style={{ color: 'var(--text-muted)' }}>
-          {total > 0 ? Math.round((done / total) * 100) : 0}%
-        </span>
+
+        {/* Voda (samo danas) */}
+        {isToday && (
+          <div className="card p-4 flex items-center gap-3 lg:w-[20rem] shrink-0">
+            <span className="text-xl" aria-hidden>💧</span>
+            <div className="flex-1 min-w-0">
+              <div className="flex justify-between text-xs mb-1" style={{ color: 'var(--text-muted)' }}>
+                <span>Voda</span><span className="tabular-nums">{water}/{waterGoal} ml</span>
+              </div>
+              <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--surface2)' }}>
+                <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(100, (water / waterGoal) * 100)}%`, backgroundImage: 'linear-gradient(90deg, #7cc6e8, #3b9fd4)' }} />
+              </div>
+            </div>
+            <button onClick={() => addWater(250)} className="text-xs font-semibold px-3 py-2 rounded-[var(--r-md)] shrink-0 transition-[filter] hover:brightness-105" style={{ background: 'var(--surface2)', color: 'var(--text)' }}>+250</button>
+          </div>
+        )}
       </div>
 
-      {/* Blokovi */}
-      <div className="flex flex-col gap-4">
-        {planBlocks.map((block, i) => (
-          <BlockCard key={block.label} block={block} appointments={getAppointmentsForBlock(i)} onToggle={toggleTask} onToggleAppt={toggleAppointment} />
-        ))}
-      </div>
+      {/* Telo — blokovi (glavna kolona) + akcije (rail na desktopu) */}
+      <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_var(--rail-w)] lg:gap-7 lg:items-start">
+        {/* Blokovi */}
+        {total === 0 ? (
+          <div className="card p-8 text-center flex flex-col items-center gap-3">
+            <span className="text-4xl">🗒️</span>
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+              Plan je prazan. Dodaj prvi zadatak da krenemo.
+            </p>
+            <Button size="sm" onClick={() => setShowAddTask(true)}>➕ Dodaj zadatak</Button>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:gap-4 lg:items-start">
+            {planBlocks.map((block, i) => (
+              <BlockCard key={block.label} block={block} appointments={getAppointmentsForBlock(i)} onToggle={toggleTask} onToggleAppt={toggleAppointment} />
+            ))}
+          </div>
+        )}
 
-      {/* Footer dugmad */}
-      <div className="flex flex-col gap-3 pt-2">
-        {/* Primarno: dok dan nije završen → "Završi dan"; kad jeste → povratak na početnu */}
-        {!dayFinished && (
-          <Button size="lg" className="w-full" onClick={startFinishDay} loading={savingEod}>
-            {allDone ? '🎉 Završi dan' : '✅ Završi dan'}
-          </Button>
-        )}
-        {dayFinished && isToday && (
-          <Button size="lg" className="w-full" onClick={() => { window.location.href = '/' }}>
-            ← Na početnu
-          </Button>
-        )}
-        <div className="grid grid-cols-2 gap-2">
-          <Button size="sm" variant="secondary" onClick={() => setShowAddTask(true)}>
-            ➕ Dodaj zadatak
-          </Button>
-          <Button size="sm" variant="secondary" onClick={() => setShowReplan(true)}>
-            🔥 Dan se raspao
-          </Button>
-          {isToday ? (
-            <>
-              <Button size="sm" variant="secondary" onClick={() => { window.location.href = '/?edit=1' }}>
-                ✏️ Uredi plan
-              </Button>
-              {tomorrowPlanned ? (
-                <Button size="sm" variant="secondary" onClick={() => { window.location.href = '/plan?date=' + tomorrowKey() }}>
-                  🌙 Pogledaj sutra
-                </Button>
-              ) : (
-                <Button size="sm" variant="secondary" onClick={() => { window.location.href = '/?sutra=1' }}>
-                  🌙 Planiraj sutra
-                </Button>
-              )}
-            </>
-          ) : (
-            <Button size="sm" variant="secondary" className="col-span-2" onClick={() => { window.location.href = '/plan' }}>
-              ← Nazad na današnji plan
+        {/* Akcije */}
+        <aside className="flex flex-col gap-3 rail-sticky">
+          {!dayFinished && (
+            <Button size="lg" className="w-full" onClick={startFinishDay} loading={savingEod}>
+              {allDone ? '🎉 Završi dan' : '✅ Završi dan'}
             </Button>
           )}
-        </div>
-      </div>
-
-      <div className="flex justify-center pb-4">
-        <LogoutButton />
+          {dayFinished && isToday && (
+            <Button size="lg" className="w-full" onClick={() => { window.location.href = '/' }}>
+              ← Na početnu
+            </Button>
+          )}
+          <div className="grid grid-cols-2 gap-2">
+            <Button size="sm" variant="secondary" onClick={() => setShowAddTask(true)}>
+              ➕ Dodaj zadatak
+            </Button>
+            <Button size="sm" variant="secondary" onClick={() => setShowReplan(true)}>
+              🔥 Dan se raspao
+            </Button>
+            {isToday ? (
+              <>
+                <Button size="sm" variant="secondary" onClick={() => { window.location.href = '/?edit=1' }}>
+                  ✏️ Uredi plan
+                </Button>
+                {tomorrowPlanned ? (
+                  <Button size="sm" variant="secondary" onClick={() => { window.location.href = '/plan?date=' + tomorrowKey() }}>
+                    🌙 Pogledaj sutra
+                  </Button>
+                ) : (
+                  <Button size="sm" variant="secondary" onClick={() => { window.location.href = '/?sutra=1' }}>
+                    🌙 Planiraj sutra
+                  </Button>
+                )}
+              </>
+            ) : (
+              <Button size="sm" variant="secondary" className="col-span-2" onClick={() => { window.location.href = '/plan' }}>
+                ← Nazad na današnji plan
+              </Button>
+            )}
+          </div>
+          <div className="flex justify-center pt-2">
+            <LogoutButton />
+          </div>
+        </aside>
       </div>
 
       {/* Dodaj zadatak modal */}

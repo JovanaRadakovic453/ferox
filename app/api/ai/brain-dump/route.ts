@@ -1,71 +1,87 @@
 import { anthropic } from '@/lib/anthropic'
 import { createClient } from '@/lib/supabase/server'
-import { NextRequest, NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+import { apiOk, ERR } from '@/lib/api'
+import { brainDumpSchema, aiBrainDumpResult, TASK_TYPES, PRIORITIES } from '@/lib/validation'
+import { TASK_TYPE_GUIDE } from '@/lib/ai/prompts'
+import { AI } from '@/lib/config'
+
+// Forced tool-use: the SDK guarantees valid JSON and enums can't be wrong.
+// Concrete times become appointments; everything else is a task.
+const extractTool = {
+  name: 'extract_plan',
+  description: 'Izdvoji zadatke i zakazane termine iz korisnikovog teksta na srpskom.',
+  input_schema: {
+    type: 'object' as const,
+    properties: {
+      tasks: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            name: { type: 'string', description: 'kratko ime na srpskom' },
+            type: { type: 'string', enum: [...TASK_TYPES] },
+            priority: { type: 'string', enum: [...PRIORITIES] },
+            note: { type: 'string' },
+            estMinutes: { type: 'number', description: 'realna procena trajanja u minutima (sa ADHD bufferom)' },
+          },
+          required: ['name', 'type', 'priority'],
+        },
+      },
+      appointments: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            time: { type: 'string', description: 'HH:MM, 24h' },
+          },
+          required: ['name', 'time'],
+        },
+      },
+    },
+    required: ['tasks', 'appointments'],
+  },
+}
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return ERR.unauthorized()
 
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  const { text } = await request.json()
-
-  if (!text?.trim()) {
-    return NextResponse.json({ error: 'Tekst je obavezan' }, { status: 400 })
-  }
+  const json = await request.json().catch(() => null)
+  const parsed = brainDumpSchema.safeParse(json)
+  if (!parsed.success) return ERR.invalidInput(parsed.error.issues)
+  const { text } = parsed.data
 
   let message
   try {
     message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 1024,
-      messages: [
-        {
-          role: 'user',
-          content: `Izvuci zadatke iz sledećeg teksta i vrati ih kao JSON niz.
-
-Svaki zadatak ima:
-- name (string): kratko ime zadatka na srpskom
-- priority (high/medium/low): koliko je hitno
-- type: izaberi JEDAN od sledećih tipova. Pazi na primere:
-  * creative — pisanje, dizajn, kreativni projekti
-  * analytical — analiza podataka, istraživanje, rešavanje problema
-  * meetings — sastanci, pozivi, video konferencije
-  * communication — mejlovi, poruke, odgovori na upite
-  * admin — SAMO kancelarijska birokratija: fakture, ugovori, poslovni dokumenti, prijave
-  * light — SVE lične obaveze i erandi: kupovina namirnica, odlazak u prodavnicu, sitni kućni poslovi, zakazivanje pregleda, plaćanje računa, odlazak na poštu
-  * rest — pauza, odmor, spavanje, opuštanje
-  * learning — učenje, online kursevi, stručna literatura
-  * exercise — trčanje, teretana, sport, šetnja, fizička aktivnost
-  * planning — planiranje projekta, pravljenje liste, organizacija
-  * reading — čitanje knjiga ili članaka za razonodu
-  * meditation — meditacija, disanje, mindfulness
-- note (string): kratka napomena, može biti prazna
-
-Maksimalno 8 zadataka. Vrati SAMO JSON niz, bez ikakvog drugog teksta.
-
-Tekst: "${text}"`,
-        },
-      ],
+      model: AI.model,
+      max_tokens: AI.maxTokens.brainDump,
+      tools: [extractTool],
+      tool_choice: { type: 'tool', name: 'extract_plan' },
+      system: [{ type: 'text', text: TASK_TYPE_GUIDE, cache_control: { type: 'ephemeral' } }],
+      messages: [{
+        role: 'user',
+        content:
+          `Izdvoji najviše ${AI.brainDumpMaxTasks} zadataka i sve zakazane termine iz teksta. ` +
+          `Ako tekst pominje konkretno vreme (npr. "u 14h", "sastanak u 9", "zubar u 11:30"), to je TERMIN sa time u HH:MM; inače je zadatak. ` +
+          `Tekst: "${text}"`,
+      }],
     })
   } catch (err) {
-    console.error('[brain-dump] Anthropic error:', err)
-    const msg = err instanceof Error ? err.message : String(err)
-    return NextResponse.json({ error: `AI nije dostupan: ${msg}` }, { status: 502 })
+    return ERR.aiUnavailable(err instanceof Error ? err.message : String(err))
   }
 
-  const content = message.content[0]
-  if (content.type !== 'text') {
-    return NextResponse.json({ error: 'AI greška' }, { status: 500 })
-  }
+  const block = message.content.find(c => c.type === 'tool_use')
+  if (!block || block.type !== 'tool_use') return ERR.aiUnavailable('AI nije vratio strukturu')
 
-  try {
-    const cleaned = content.text.replace(/```json\n?|\n?```/g, '').trim()
-    const tasks = JSON.parse(cleaned)
-    return NextResponse.json({ tasks })
-  } catch {
-    return NextResponse.json({ error: 'Nisam mogao da parsovam zadatke' }, { status: 500 })
-  }
+  const result = aiBrainDumpResult.safeParse(block.input)
+  if (!result.success) return ERR.aiUnavailable('Neispravna struktura odgovora')
+
+  return apiOk({
+    tasks: result.data.tasks.slice(0, AI.brainDumpMaxTasks),
+    appointments: result.data.appointments.slice(0, AI.brainDumpMaxTasks),
+  })
 }

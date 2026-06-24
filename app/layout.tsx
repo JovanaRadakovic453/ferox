@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from 'next'
 import { Cormorant_Garamond, Outfit } from 'next/font/google'
 import './globals.css'
+import Providers from './providers'
+import { APP } from '@/lib/config'
 
 const cormorant = Cormorant_Garamond({
   subsets: ['latin', 'latin-ext'],
@@ -18,13 +20,13 @@ const outfit = Outfit({
 })
 
 export const metadata: Metadata = {
-  title: 'Ferox — Planer prema energiji',
-  description: 'Energy-adaptive daily planner. Svi planeri pretpostavljaju da si svaki dan ista osoba. Nisi. Ferox pomera tvoj raspored prema energiji koju ćeš stvarno imati.',
+  title: APP.title,
+  description: APP.description,
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'Ferox',
+    title: APP.name,
   },
 }
 
@@ -45,7 +47,7 @@ export default function RootLayout({
   return (
     <html lang="sr" suppressHydrationWarning className={`${cormorant.variable} ${outfit.variable}`}>
       <body className="min-h-dvh antialiased">
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   )

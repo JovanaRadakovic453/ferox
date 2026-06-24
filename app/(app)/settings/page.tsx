@@ -1,10 +1,15 @@
-export default function SettingsPage() {
-  return (
-    <main className="pt-1">
-      <h2 className="title-serif text-3xl" style={{ color: 'var(--gold)' }}>
-        Podešavanja
-      </h2>
-      <p style={{ color: 'var(--text-muted)' }}>Lab + Settings — Faza 7</p>
-    </main>
-  )
+import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
+import SettingsForm from '@/components/settings/SettingsForm'
+import type { UserProfile } from '@/types/ferox'
+
+export default async function SettingsPage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+  if (!profile) redirect('/onboarding')
+
+  return <SettingsForm profile={profile as UserProfile} email={user.email ?? ''} />
 }

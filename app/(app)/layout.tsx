@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import AppChrome from '@/components/nav/AppChrome'
 
 export default async function AppLayout({
   children,
@@ -13,11 +14,5 @@ export default async function AppLayout({
     redirect('/login')
   }
 
-  return (
-    <div className="app-shell">
-      <div className="app-column">
-        {children}
-      </div>
-    </div>
-  )
+  return <AppChrome>{children}</AppChrome>
 }

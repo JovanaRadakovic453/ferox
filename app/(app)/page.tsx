@@ -4,6 +4,7 @@ import SetupScreen from '@/components/setup/SetupScreen'
 import EodLanding from '@/components/plan/EodLanding'
 import { todayKey, tomorrowKey } from '@/lib/date'
 import { energyLevelFromLabel } from '@/lib/energy'
+import { computeStreak } from '@/lib/streak'
 import type { UserProfile, Task } from '@/types/ferox'
 
 export default async function SetupPage({
@@ -32,7 +33,7 @@ export default async function SetupPage({
 
   const { data: entry } = await supabase
     .from('day_entries')
-    .select('id, energy, finished_at')
+    .select('id, energy, finished_at, eod_recap, reflection')
     .eq('user_id', user.id)
     .eq('date_key', targetDate)
     .maybeSingle()
@@ -49,14 +50,23 @@ export default async function SetupPage({
 
   // Završen današnji dan → čista "Dan završen" početna (ne baca nazad na /plan).
   if (!isSutra && !isEdit && entry && entry.finished_at) {
-    const [{ data: dayTasks }, { data: transferred }, { data: tomorrowEntry }] = await Promise.all([
+    const [{ data: dayTasks }, { data: transferred }, { data: tomorrowEntry }, { data: finishedRows }] = await Promise.all([
       supabase.from('tasks').select('done').eq('entry_id', entry.id).eq('user_id', user.id),
       supabase.from('transferred_tasks').select('tasks').eq('user_id', user.id).eq('for_date', tomorrowKey()).maybeSingle(),
       supabase.from('day_entries').select('id').eq('user_id', user.id).eq('date_key', tomorrowKey()).maybeSingle(),
+      supabase.from('day_entries').select('date_key').eq('user_id', user.id).not('finished_at', 'is', null).order('date_key', { ascending: false }).limit(60),
     ])
     const total = dayTasks?.length ?? 0
     const doneCount = (dayTasks ?? []).filter(t => t.done).length
     const transferredCount = ((transferred?.tasks ?? []) as Task[]).filter((t: Task) => !t.done).length
+
+    const finishedSet = new Set((finishedRows ?? []).map(r => r.date_key as string))
+    const streak = computeStreak(finishedSet, profile.rest_days ?? [0, 6], todayKey())
+    // Persist a new personal best (never erased on a bad stretch).
+    if (streak > (profile.best_streak ?? 0)) {
+      await supabase.from('profiles').update({ best_streak: streak }).eq('id', user.id)
+    }
+
     return (
       <EodLanding
         doneCount={doneCount}
@@ -64,6 +74,9 @@ export default async function SetupPage({
         transferredCount={transferredCount}
         tomorrowPlanned={!!tomorrowEntry}
         dateKey={targetDate}
+        eodRecap={entry.eod_recap}
+        reflection={entry.reflection}
+        streak={streak}
       />
     )
   }
