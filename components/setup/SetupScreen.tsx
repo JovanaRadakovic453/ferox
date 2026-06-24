@@ -35,7 +35,7 @@ const EMPTY_TASK = { name: '', note: '', priority: 'medium' as Priority, type: '
 const EMPTY_APPT = { name: '', time: '09:00', reminder: 15 }
 const EMPTY_APPT_REMINDER = { value: 15, unit: 'min' as 'min' | 'sat' }
 
-async function fetchBrainDump(text: string): Promise<Task[]> {
+async function fetchBrainDump(text: string): Promise<{ tasks: Task[]; appointments: Appointment[] }> {
   const res = await fetch('/api/ai/brain-dump', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -45,14 +45,22 @@ async function fetchBrainDump(text: string): Promise<Task[]> {
     const body = await res.json().catch(() => ({}))
     throw new Error(body.error?.message ?? body.error ?? `Greška ${res.status}`)
   }
-  const { tasks } = await res.json()
-  return (tasks ?? []).map((t: Partial<Task>) => ({
-    ...t,
-    done: false,
-    note: t.note ?? '',
-    priority: t.priority ?? 'medium',
-    type: t.type ?? 'light',
-  }))
+  const { tasks, appointments } = await res.json()
+  return {
+    tasks: (tasks ?? []).map((t: Partial<Task>) => ({
+      ...t,
+      done: false,
+      note: t.note ?? '',
+      priority: t.priority ?? 'medium',
+      type: t.type ?? 'light',
+    })),
+    appointments: (appointments ?? []).map((a: { name: string; time: string }) => ({
+      name: a.name,
+      time: a.time,
+      reminder: 15,
+      done: false,
+    })),
+  }
 }
 
 /** Tidy section header: tinted icon chip + tracked uppercase label + optional trailing slot. */
@@ -138,12 +146,13 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
     setBrainDumpLoading(true)
     setBrainDumpError(null)
     try {
-      const extracted = await fetchBrainDump(brainDumpText)
-      if (extracted.length === 0) {
+      const { tasks: extracted, appointments: extractedAppts } = await fetchBrainDump(brainDumpText)
+      if (extracted.length === 0 && extractedAppts.length === 0) {
         setBrainDumpError('AI nije pronašao zadatke. Pokušaj opisati konkretnije, npr: "Moram da kupim mleko, nazovem Marka, završim izveštaj"')
         return
       }
-      setTasks(prev => [...prev, ...extracted])
+      if (extracted.length) setTasks(prev => [...prev, ...extracted])
+      if (extractedAppts.length) setAppointments(prev => [...prev, ...extractedAppts])
       setBrainDumpText('')
       setShowBrainDump(false)
       setBrainDumpSuccess(extracted.length)

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import type { NextRequest } from 'next/server'
 import { ERR } from '@/lib/api'
 import { chatSchema } from '@/lib/validation'
+import { FEROX_PERSONA } from '@/lib/ai/prompts'
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
@@ -20,7 +21,11 @@ export async function POST(request: NextRequest) {
   const stream = await anthropic.messages.stream({
     model: 'claude-sonnet-4-6',
     max_tokens: 1024,
-    system: `Ti si Ferox asistent — energy coach za produktivnost. Pomažeš korisniku da bolje upravlja energijom i zadacima. Odgovaraj na srpskom, kratko, toplo i direktno. Nikad ne kritikuješ — fokus je na tome šta je realno danas. Kontekst dana korisnika: ${ctxStr}`,
+    // Fixed persona is prompt-cached; only the per-day context varies.
+    system: [
+      { type: 'text', text: FEROX_PERSONA, cache_control: { type: 'ephemeral' } },
+      { type: 'text', text: `Kontekst dana korisnika (JSON): ${ctxStr}` },
+    ],
     messages: [{ role: 'user', content: message }],
   })
 

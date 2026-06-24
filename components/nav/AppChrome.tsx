@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, type ReactNode } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
+import CoachSheet from '@/components/chat/CoachSheet'
 
 // Chrome (bottom TabBar) visibility. Pages with their own full-width bottom CTA
 // (e.g. SetupScreen) call setHidden(true) on mount to avoid a double bar.
@@ -19,6 +20,7 @@ const TABS = [
 
 export default function AppChrome({ children }: { children: ReactNode }) {
   const [hidden, setHidden] = useState(false)
+  const [coachOpen, setCoachOpen] = useState(false)
   const pathname = usePathname() ?? '/'
   const onOnboarding = pathname.startsWith('/onboarding')
   const showTabBar = !hidden && !onOnboarding
@@ -26,7 +28,18 @@ export default function AppChrome({ children }: { children: ReactNode }) {
   return (
     <ChromeCtx.Provider value={{ setHidden }}>
       <div className={showTabBar ? 'pb-28' : ''}>{children}</div>
+      {showTabBar && (
+        <button
+          onClick={() => setCoachOpen(true)}
+          aria-label="Ferox coach"
+          className="fixed right-4 bottom-24 z-40 w-12 h-12 rounded-full grid place-items-center text-xl active:scale-95 transition-transform"
+          style={{ backgroundImage: 'linear-gradient(135deg, var(--gold), var(--gold-deep))', color: '#fff', boxShadow: 'var(--sh-gold)' }}
+        >
+          💬
+        </button>
+      )}
       {showTabBar && <TabBar pathname={pathname} />}
+      <CoachSheet open={coachOpen} onClose={() => setCoachOpen(false)} />
     </ChromeCtx.Provider>
   )
 }

@@ -32,7 +32,7 @@ export default async function SetupPage({
 
   const { data: entry } = await supabase
     .from('day_entries')
-    .select('id, energy, finished_at')
+    .select('id, energy, finished_at, eod_recap, reflection')
     .eq('user_id', user.id)
     .eq('date_key', targetDate)
     .maybeSingle()
@@ -64,6 +64,8 @@ export default async function SetupPage({
         transferredCount={transferredCount}
         tomorrowPlanned={!!tomorrowEntry}
         dateKey={targetDate}
+        eodRecap={entry.eod_recap}
+        reflection={entry.reflection}
       />
     )
   }
