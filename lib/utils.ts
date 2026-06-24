@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
+import { todayKey as dayTodayKey } from '@/lib/date'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -15,8 +16,10 @@ export function formatDate(dateKey: string): string {
   return `${days[d.getDay()]}, ${d.getDate()}. ${months[d.getMonth()]}`
 }
 
+// Reeksport iz lib/date radi kompatibilnosti postojećih import-a.
+// Sada koristi lokalnu zonu (Europe/Belgrade), ne UTC.
 export function todayKey(): string {
-  return new Date().toISOString().split('T')[0]
+  return dayTodayKey()
 }
 
 export function calcSleepHours(sleepTime: string, wakeTime: string): number {

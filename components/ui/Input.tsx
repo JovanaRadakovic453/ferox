@@ -11,11 +11,11 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ className, label, error, id, ...props }, ref) => {
     return (
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-2">
         {label && (
           <label
             htmlFor={id}
-            className="text-sm font-medium"
+            className="text-xs font-semibold tracking-wide"
             style={{ color: 'var(--text-muted)' }}
           >
             {label}
@@ -25,11 +25,8 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           ref={ref}
           id={id}
           className={cn(
-            'w-full h-11 px-4 rounded-[12px] text-base outline-none transition-all duration-200',
-            'border border-[var(--border)] bg-[var(--surface)]',
-            'text-[var(--text)] placeholder:text-[var(--text-muted)]',
-            'focus:border-[var(--gold)] focus:ring-2 focus:ring-[var(--gold)]/20',
-            error && 'border-red-400 focus:border-red-400 focus:ring-red-400/20',
+            'field h-12 px-4 text-base',
+            error && '!border-red-400 focus:!border-red-400 focus:!shadow-[0_0_0_3px_rgba(248,113,113,0.18)]',
             className
           )}
           {...props}

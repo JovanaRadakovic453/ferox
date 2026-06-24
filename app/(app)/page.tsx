@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import SetupScreen from '@/components/setup/SetupScreen'
+import { todayKey, tomorrowKey } from '@/lib/date'
+import { energyLevelFromLabel } from '@/lib/energy'
 import type { UserProfile, Task } from '@/types/ferox'
 
 export default async function SetupPage({
@@ -25,15 +27,11 @@ export default async function SetupPage({
   const isSutra = params.sutra === '1'
   const isEdit = params.edit === '1'
 
-  const today = new Date().toISOString().split('T')[0]
-  const tomorrow = new Date()
-  tomorrow.setDate(tomorrow.getDate() + 1)
-  const tomorrowKey = tomorrow.toISOString().split('T')[0]
-  const targetDate = isSutra ? tomorrowKey : today
+  const targetDate = isSutra ? tomorrowKey() : todayKey()
 
   const { data: entry } = await supabase
     .from('day_entries')
-    .select('id')
+    .select('id, energy')
     .eq('user_id', user.id)
     .eq('date_key', targetDate)
     .maybeSingle()
@@ -42,12 +40,14 @@ export default async function SetupPage({
     redirect('/plan')
   }
 
-  // Ako vec postoji plan za targetDate, ucitaj te zadatke
+  // Ako vec postoji plan za targetDate, ucitaj te zadatke i izabranu energiju
   // Inace ucitaj prenesene zadatke iz prethodnog dana
   let initialTasks: Task[] = []
+  let initialEnergy: number | null = null
   let showTransferBanner = false
 
   if (entry) {
+    initialEnergy = energyLevelFromLabel(entry.energy)
     const { data: existingTasks } = await supabase
       .from('tasks')
       .select('name, note, priority, type, done, position')
@@ -72,6 +72,7 @@ export default async function SetupPage({
       profile={profile as UserProfile}
       targetDate={targetDate}
       transferredTasks={initialTasks}
+      initialEnergy={initialEnergy}
       showTransferBanner={showTransferBanner}
     />
   )

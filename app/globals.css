@@ -1,19 +1,45 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,600&family=Outfit:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
 :root {
+  /* Surfaces & text */
   --bg: #EAD9C8;
   --surface: #FDF8F3;
   --surface2: #F5EDE3;
   --gold: #D4742A;
   --gold-light: #E8924A;
+  --gold-deep: #B85C1E;
+  --gold-tint: rgba(212, 116, 42, 0.12);
   --text: #1A1714;
   --text-muted: #6B5F54;
   --border: #D9C9B8;
-  --sh1: 0 2px 12px rgba(26, 23, 20, 0.08);
-  --sh2: 0 4px 24px rgba(0,0,0,0.10);
-  --radius: 14px;
-  --radius-lg: 20px;
+  --hairline: rgba(26, 23, 20, 0.07);
+
+  /* Radii */
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 18px;
+  --r-xl: 24px;
+  --r-full: 999px;
+  --radius: 14px;     /* legacy alias */
+  --radius-lg: 18px;  /* legacy alias */
+
+  /* Shadows — warm, layered */
+  --sh-xs: 0 1px 2px rgba(26, 23, 20, 0.05);
+  --sh-sm: 0 2px 8px rgba(26, 23, 20, 0.06);
+  --sh-md: 0 1px 2px rgba(26, 23, 20, 0.04), 0 10px 28px -10px rgba(26, 23, 20, 0.16);
+  --sh-lg: 0 4px 12px rgba(26, 23, 20, 0.08), 0 24px 56px -16px rgba(26, 23, 20, 0.24);
+  --sh-gold: 0 6px 18px -4px rgba(212, 116, 42, 0.42), 0 2px 4px rgba(184, 92, 30, 0.24);
+  --sh1: var(--sh-sm);  /* legacy alias */
+  --sh2: var(--sh-md);  /* legacy alias */
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-fast: 0.16s;
+  --dur-base: 0.28s;
+  --dur-slow: 0.5s;
+
+  /* Atmosphere */
+  --grain-opacity: 0.5;
 }
 
 .dark {
@@ -22,11 +48,20 @@
   --surface2: #3d3830;
   --gold: #c9a96e;
   --gold-light: #d4b87a;
+  --gold-deep: #b3935a;
+  --gold-tint: rgba(201, 169, 110, 0.14);
   --text: #f5f2ec;
   --text-muted: #a89880;
   --border: #4a4238;
-  --sh1: 0 2px 12px rgba(0, 0, 0, 0.25);
-  --sh2: 0 4px 24px rgba(0, 0, 0, 0.35);
+  --hairline: rgba(255, 255, 255, 0.06);
+
+  --sh-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --sh-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --sh-md: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 28px -10px rgba(0, 0, 0, 0.5);
+  --sh-lg: 0 4px 12px rgba(0, 0, 0, 0.4), 0 24px 56px -16px rgba(0, 0, 0, 0.6);
+  --sh-gold: 0 6px 18px -4px rgba(201, 169, 110, 0.3), 0 2px 4px rgba(0, 0, 0, 0.3);
+
+  --grain-opacity: 0.35;
 }
 
 @theme inline {
@@ -35,11 +70,12 @@
   --color-surface2: var(--surface2);
   --color-gold: var(--gold);
   --color-gold-light: var(--gold-light);
+  --color-gold-deep: var(--gold-deep);
   --color-ferox-text: var(--text);
   --color-muted: var(--text-muted);
   --color-border: var(--border);
-  --font-serif: 'Cormorant Garamond', Georgia, serif;
-  --font-sans: 'Outfit', system-ui, sans-serif;
+  --font-serif: var(--font-cormorant), 'Cormorant Garamond', Georgia, serif;
+  --font-sans: var(--font-outfit), 'Outfit', system-ui, sans-serif;
 }
 
 * {
@@ -53,28 +89,177 @@ html {
 }
 
 body {
-  background: var(--bg);
+  position: relative;
   color: var(--text);
-  font-family: 'Outfit', system-ui, sans-serif;
+  font-family: var(--font-outfit), 'Outfit', system-ui, sans-serif;
   font-size: 16px;
   line-height: 1.5;
   min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
+  /* Warm atmospheric gradient — never a dead-flat fill */
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(120% 80% at 50% -10%, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 45%),
+    radial-gradient(100% 100% at 50% 120%, rgba(26, 23, 20, 0.06) 0%, rgba(26, 23, 20, 0) 50%);
+  background-attachment: fixed;
+}
+
+.dark body {
+  background-image:
+    radial-gradient(120% 80% at 50% -10%, rgba(201, 169, 110, 0.08) 0%, rgba(201, 169, 110, 0) 45%),
+    radial-gradient(100% 100% at 50% 120%, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0) 50%);
+}
+
+/* Fine paper grain overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: var(--grain-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
+  mix-blend-mode: multiply;
+}
+
+.dark body::before {
+  mix-blend-mode: overlay;
+}
+
+/* Keep app content above the grain layer */
+body > * {
+  position: relative;
+  z-index: 1;
+}
+
+::selection {
+  background: var(--gold);
+  color: #fff;
+}
+
+:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
 }
 
 /* Scrollbar */
 ::-webkit-scrollbar {
-  width: 4px;
+  width: 5px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
   background: var(--border);
-  border-radius: 2px;
+  border-radius: 3px;
 }
 
-/* Animations */
+/* ─────────────────────────────────────────────
+   Reusable primitives
+   ───────────────────────────────────────────── */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh-md);
+}
+
+.card-interactive {
+  transition: transform var(--dur-base) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out);
+}
+.card-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--sh-lg);
+}
+
+.section-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.section-label::before {
+  content: '';
+  width: 14px;
+  height: 1.5px;
+  border-radius: 2px;
+  background: var(--gold);
+  opacity: 0.75;
+}
+
+/* Shared field styling — keep hand-rolled inputs/selects/textareas
+   visually identical to the Input component */
+.field {
+  width: 100%;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
+  transition: border-color var(--dur-base) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out);
+}
+.field::placeholder {
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+.field:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px var(--gold-tint);
+}
+
+.title-serif {
+  font-family: var(--font-serif);
+  font-weight: 300;
+  letter-spacing: 0.01em;
+}
+.display {
+  font-family: var(--font-serif);
+  font-weight: 300;
+  line-height: 1;
+}
+
+/* ─────────────────────────────────────────────
+   App shell — single owner of centering & gutters
+   ───────────────────────────────────────────── */
+.app-shell {
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  min-height: 100dvh;
+  padding: 1.5rem 1.25rem;
+}
+@media (min-width: 640px) {
+  .app-shell {
+    padding: 2.5rem 1.5rem;
+  }
+}
+
+.app-column {
+  width: 100%;
+  max-width: 540px;
+  display: flex;
+  flex-direction: column;
+}
+@media (min-width: 768px) {
+  .app-column {
+    padding: 2rem 1.75rem 2.25rem;
+    border-radius: var(--r-xl);
+    background: color-mix(in srgb, var(--surface) 55%, transparent);
+    border: 1px solid var(--hairline);
+    box-shadow: var(--sh-md);
+  }
+}
+
+/* ─────────────────────────────────────────────
+   Animations
+   ───────────────────────────────────────────── */
 @keyframes fadeSlide {
   from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -90,10 +275,53 @@ body {
   50%       { transform: scale(1.05); }
 }
 
+@keyframes riseIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes backdropIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(20px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.modal-backdrop {
+  animation: backdropIn 0.2s ease forwards;
+}
+.modal-panel {
+  animation: modalIn 0.34s var(--ease-out) forwards;
+}
+
 .animate-fade-slide {
-  animation: fadeSlide 0.3s ease forwards;
+  animation: fadeSlide 0.3s var(--ease-out) forwards;
 }
 
 .animate-slide-up {
-  animation: slideUp 0.4s ease forwards;
+  animation: slideUp 0.4s var(--ease-out) forwards;
+}
+
+/* Staggered section reveal — set --i on each child */
+.stagger > * {
+  opacity: 0;
+  animation: riseIn 0.5s var(--ease-out) forwards;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .stagger > * {
+    opacity: 1;
+  }
 }

@@ -1,5 +1,21 @@
 import type { Metadata, Viewport } from 'next'
+import { Cormorant_Garamond, Outfit } from 'next/font/google'
 import './globals.css'
+
+const cormorant = Cormorant_Garamond({
+  subsets: ['latin', 'latin-ext'],
+  weight: ['300', '400', '500', '600', '700'],
+  style: ['normal', 'italic'],
+  variable: '--font-cormorant',
+  display: 'swap',
+})
+
+const outfit = Outfit({
+  subsets: ['latin', 'latin-ext'],
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-outfit',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
   title: 'Ferox — Planer prema energiji',
@@ -26,7 +42,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="sr" suppressHydrationWarning>
+    <html lang="sr" suppressHydrationWarning className={`${cormorant.variable} ${outfit.variable}`}>
       <body className="min-h-dvh antialiased">
         {children}
       </body>

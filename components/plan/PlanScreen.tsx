@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { calcBlocks } from '@/lib/energy'
+import { addDays } from '@/lib/date'
+import { formatDate } from '@/lib/utils'
 import { TASK_TYPE_LABELS } from '@/types/ferox'
 import type { Task, Appointment, DayEntry, UserProfile, PlanBlock, TaskType, Priority } from '@/types/ferox'
 import Button from '@/components/ui/Button'
@@ -116,43 +118,49 @@ function BlockCard({
 
   if (total === 0) return null
 
+  const accent = block.badge.replace('0.15)', '1)')
+  const pct = total > 0 ? (done / total) * 100 : 0
+
   return (
-    <div className="rounded-[16px] overflow-hidden" style={{ background: 'var(--surface)', boxShadow: 'var(--sh1)' }}>
-      <div className="flex items-center justify-between px-4 py-3" style={{ background: block.badge }}>
+    <div className="card overflow-hidden relative">
+      {/* obojena leva accent linija po bloku */}
+      <div className="absolute left-0 top-0 bottom-0 w-1" style={{ background: accent, opacity: 0.85 }} />
+      <div className="flex items-center justify-between pl-5 pr-4 py-3" style={{ background: block.badge }}>
         <div className="flex items-center gap-2">
           <span>{block.badgeText}</span>
           <span className="font-medium text-sm" style={{ color: 'var(--text)' }}>{block.label}</span>
         </div>
-        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{block.timeRange}</span>
+        <div className="flex items-center gap-2.5">
+          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{block.timeRange}</span>
+          <span className="text-[0.7rem] font-semibold px-2 py-0.5 rounded-full tabular-nums" style={{ background: 'var(--surface)', color: 'var(--text-muted)' }}>
+            {done}/{total}
+          </span>
+        </div>
       </div>
 
-      <div className="h-1 w-full" style={{ background: 'var(--border)' }}>
+      <div className="h-1.5 w-full" style={{ background: 'var(--surface2)' }}>
         <div
           className="h-full transition-all duration-500"
-          style={{ width: `${total > 0 ? (done / total) * 100 : 0}%`, background: 'var(--gold)' }}
+          style={{ width: `${pct}%`, backgroundImage: 'linear-gradient(90deg, var(--gold-light), var(--gold))' }}
         />
       </div>
 
-      <div className="px-4">
+      <div className="pl-5 pr-4">
         {appointments.map(a => (
           <AppointmentItem key={a.name + a.time} appt={a} onToggle={() => onToggleAppt(a.name, a.time)} />
         ))}
-        <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
+        <div className="divide-y" style={{ borderColor: 'var(--hairline)' }}>
           {block.tasks.map(task => (
             <TaskItem key={task.name} task={task} onToggle={() => onToggle(task.name)} />
           ))}
         </div>
-      </div>
-
-      <div className="px-4 py-2">
-        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{done}/{total} završeno</p>
       </div>
     </div>
   )
 }
 
 export default function PlanScreen({
-  entry, tasks: initialTasks, appointments, profile, dayFinished = false, tomorrowPlanned = false,
+  entry, tasks: initialTasks, appointments, profile, dayFinished = false, tomorrowPlanned = false, isToday = true,
 }: {
   entry: DayEntry
   tasks: Task[]
@@ -160,6 +168,7 @@ export default function PlanScreen({
   profile: UserProfile
   dayFinished?: boolean
   tomorrowPlanned?: boolean
+  isToday?: boolean
 }) {
   const router = useRouter()
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
@@ -291,24 +300,22 @@ export default function PlanScreen({
       await supabase.from('day_entries').update({ updated_at: new Date().toISOString() }).eq('id', entry.id!)
 
       if (user && tasksToTransfer.length > 0) {
-        const tomorrow = new Date()
-        tomorrow.setDate(tomorrow.getDate() + 1)
-        const tomorrowKey = tomorrow.toISOString().split('T')[0]
+        // Nedovršene zadatke prenosimo na dan POSLE prikazanog dana.
+        const nextKey = addDays(entry.date_key, 1)
         await supabase.from('transferred_tasks').upsert({
           user_id: user.id,
           tasks: tasksToTransfer.map(t => ({
             name: t.name, priority: t.priority, type: t.type, note: t.note ?? '', done: false,
           })),
-          for_date: tomorrowKey,
+          for_date: nextKey,
         }, { onConflict: 'user_id,for_date' })
       }
     } catch {
       // DB greška nije fatalna — nastavljamo sa završetkom dana
     }
 
-    const today = new Date().toISOString().split('T')[0]
-    document.cookie = `ferox_day_finished=${today}; max-age=86400; path=/`
-    window.location.href = '/plan'
+    document.cookie = `ferox_day_finished=${entry.date_key}; max-age=86400; path=/`
+    window.location.href = isToday ? '/plan' : `/plan?date=${entry.date_key}`
   }
 
   function closeAddTask() {
@@ -363,14 +370,15 @@ export default function PlanScreen({
     const unfinished = tasks.filter(t => !t.done)
     const toTransfer = unfinished.filter(t => selectedForTransfer.has(t.name))
     return (
-      <main className="min-h-dvh flex flex-col p-5 gap-5" style={{ background: 'var(--bg)', color: 'var(--text)' }}>
-        <div className="pt-2">
-          <h2 className="text-2xl font-light" style={{ fontFamily: 'var(--font-serif)', color: 'var(--gold)' }}>
+      <main className="flex flex-col gap-5 pb-2">
+        <div className="pt-1">
+          <h2 className="display text-3xl" style={{ color: 'var(--gold)' }}>
             Nedovršeni zadaci
           </h2>
-          <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
+          <p className="text-sm mt-1.5" style={{ color: 'var(--text-muted)' }}>
             Izaberi šta da prenesemo za sutra:
           </p>
+          <div className="h-px mt-4" style={{ background: 'linear-gradient(90deg, var(--gold), transparent)' }} />
         </div>
 
         <div className="flex flex-col gap-2">
@@ -431,26 +439,40 @@ export default function PlanScreen({
   }
 
   return (
-    <main className="min-h-dvh flex flex-col p-5 gap-5" style={{ background: 'var(--bg)', color: 'var(--text)' }}>
+    <main className="flex flex-col gap-5 pb-2">
       {/* Header */}
-      <div className="flex items-center justify-between pt-2">
-        <div>
-          <h1 className="text-2xl font-light" style={{ fontFamily: 'var(--font-serif)', color: 'var(--gold)' }}>
-            Moj plan
+      <header className="flex items-end justify-between pt-1">
+        <div className="min-w-0">
+          <h1 className="display text-3xl" style={{ color: 'var(--gold)' }}>
+            {isToday ? 'Moj plan' : 'Plan'}
           </h1>
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-            {entry.energy} · {entry.sleep_hours !== null ? `${entry.sleep_hours}h sna` : ''}
+          {!isToday && (
+            <p className="text-xs font-medium mt-0.5" style={{ color: 'var(--gold)' }}>
+              🌙 {formatDate(entry.date_key)}
+            </p>
+          )}
+          <div className="flex flex-wrap items-center gap-1.5 mt-2.5">
+            <span className="text-xs px-2.5 py-1 rounded-full" style={{ background: 'var(--surface2)', color: 'var(--text-muted)' }}>
+              {entry.energy}
+            </span>
+            {entry.sleep_hours !== null && (
+              <span className="text-xs px-2.5 py-1 rounded-full" style={{ background: 'var(--surface2)', color: 'var(--text-muted)' }}>
+                😴 {entry.sleep_hours}h sna
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="text-right shrink-0 pl-3">
+          <p className="display text-5xl leading-none" style={{ color: 'var(--text)' }}>
+            {done}<span className="text-2xl" style={{ color: 'var(--text-muted)' }}>/{total}</span>
           </p>
+          <p className="text-[0.65rem] font-semibold tracking-[0.14em] uppercase mt-1.5" style={{ color: 'var(--text-muted)' }}>završeno</p>
         </div>
-        <div className="text-right">
-          <p className="text-lg font-medium" style={{ color: 'var(--text)' }}>{done}/{total}</p>
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>završeno</p>
-        </div>
-      </div>
+      </header>
 
       {/* Baner kad je dan završen */}
       {dayFinished && (
-        <div className="rounded-[12px] px-4 py-3 flex items-center gap-3" style={{ background: 'rgba(212,116,42,0.10)', color: 'var(--gold)' }}>
+        <div className="rounded-[var(--r-md)] px-4 py-3 flex items-center gap-3" style={{ background: 'var(--gold-tint)', color: 'var(--gold)', border: '1px solid color-mix(in srgb, var(--gold) 25%, transparent)' }}>
           <span className="text-xl">🌙</span>
           <div className="text-sm">
             <p className="font-medium">Danas je završen</p>
@@ -460,11 +482,16 @@ export default function PlanScreen({
       )}
 
       {/* Ukupni progress */}
-      <div className="rounded-full overflow-hidden h-2" style={{ background: 'var(--border)' }}>
-        <div
-          className="h-full transition-all duration-700 rounded-full"
-          style={{ width: `${total > 0 ? (done / total) * 100 : 0}%`, background: 'var(--gold)' }}
-        />
+      <div className="flex items-center gap-3">
+        <div className="flex-1 rounded-full overflow-hidden h-2.5" style={{ background: 'var(--surface2)', boxShadow: 'inset 0 1px 2px rgba(26,23,20,0.08)' }}>
+          <div
+            className="h-full transition-all duration-700 rounded-full"
+            style={{ width: `${total > 0 ? (done / total) * 100 : 0}%`, backgroundImage: 'linear-gradient(90deg, var(--gold-light), var(--gold))' }}
+          />
+        </div>
+        <span className="text-xs font-semibold tabular-nums shrink-0" style={{ color: 'var(--text-muted)' }}>
+          {total > 0 ? Math.round((done / total) * 100) : 0}%
+        </span>
       </div>
 
       {/* Blokovi */}
@@ -475,24 +502,34 @@ export default function PlanScreen({
       </div>
 
       {/* Footer dugmad */}
-      <div className="flex flex-col gap-2 pt-2">
+      <div className="flex flex-col gap-3 pt-2">
         <Button size="lg" className="w-full" onClick={startFinishDay} loading={savingEod}>
           {allDone ? '🎉 Završi dan' : '✅ Završi dan'}
         </Button>
-        <Button size="sm" variant="ghost" className="w-full" onClick={() => setShowAddTask(true)}>
-          ➕ Dodaj zadatak
-        </Button>
-        <Button size="sm" variant="ghost" className="w-full" onClick={() => setShowReplan(true)}>
-          🔥 Dan se raspao
-        </Button>
-        <Button size="sm" variant="ghost" className="w-full" onClick={() => { window.location.href = '/?edit=1' }}>
-          ✏️ Uredi plan
-        </Button>
-        {!tomorrowPlanned && (
-          <Button size="sm" variant="ghost" className="w-full" onClick={() => { window.location.href = '/?sutra=1' }}>
-            🌙 Planiraj sutra
+        <div className="grid grid-cols-2 gap-2">
+          <Button size="sm" variant="secondary" onClick={() => setShowAddTask(true)}>
+            ➕ Dodaj zadatak
           </Button>
-        )}
+          <Button size="sm" variant="secondary" onClick={() => setShowReplan(true)}>
+            🔥 Dan se raspao
+          </Button>
+          {isToday ? (
+            <>
+              <Button size="sm" variant="secondary" onClick={() => { window.location.href = '/?edit=1' }}>
+                ✏️ Uredi plan
+              </Button>
+              {!tomorrowPlanned && (
+                <Button size="sm" variant="secondary" onClick={() => { window.location.href = '/?sutra=1' }}>
+                  🌙 Planiraj sutra
+                </Button>
+              )}
+            </>
+          ) : (
+            <Button size="sm" variant="secondary" className="col-span-2" onClick={() => { window.location.href = '/plan' }}>
+              ← Nazad na današnji plan
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="flex justify-center pb-4">
@@ -501,15 +538,16 @@ export default function PlanScreen({
 
       {/* Dodaj zadatak modal */}
       {showAddTask && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center p-4"
-          style={{ background: 'rgba(0,0,0,0.5)' }}
+        <div className="modal-backdrop fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+          style={{ background: 'rgba(26,23,20,0.45)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}
           onClick={e => { if (e.target === e.currentTarget) closeAddTask() }}>
-          <div className="w-full max-w-[520px] rounded-t-[20px] p-5 flex flex-col gap-4" style={{ background: 'var(--surface)' }}>
+          <div className="modal-panel w-full max-w-[460px] rounded-t-[var(--r-xl)] sm:rounded-[var(--r-xl)] p-5 sm:p-6 flex flex-col gap-4" style={{ background: 'var(--surface)', boxShadow: 'var(--sh-lg)', border: '1px solid var(--hairline)' }}>
+            <div className="sm:hidden mx-auto w-10 h-1 rounded-full -mt-1 mb-1" style={{ background: 'var(--border)' }} />
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text)' }}>
+              <h3 className="title-serif text-xl" style={{ color: 'var(--text)' }}>
                 {newTaskIsAppt ? 'Novi termin' : 'Novi zadatak'}
               </h3>
-              <button onClick={closeAddTask} style={{ color: 'var(--text-muted)' }}>✕</button>
+              <button onClick={closeAddTask} className="text-lg leading-none opacity-60 hover:opacity-100 transition-opacity" style={{ color: 'var(--text-muted)' }}>✕</button>
             </div>
 
             {/* Naziv */}
@@ -519,16 +557,15 @@ export default function PlanScreen({
               onChange={e => setNewTaskName(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && !newTaskIsAppt && addTask()}
               placeholder={newTaskIsAppt ? 'Naziv termina...' : 'Naziv zadatka...'}
-              className="w-full h-11 px-3 rounded-[12px] border text-sm outline-none"
-              style={{ background: 'var(--surface2)', borderColor: 'var(--border)', color: 'var(--text)' }}
+              className="field h-12 px-3.5 text-sm"
             />
 
             {/* Termin toggle */}
             <button
               onClick={() => setNewTaskIsAppt(p => !p)}
-              className="flex items-center justify-between w-full px-3 py-2.5 rounded-[12px] border text-sm"
+              className="flex items-center justify-between w-full px-3.5 py-3 rounded-[var(--r-md)] border text-sm transition-colors"
               style={{
-                background: newTaskIsAppt ? 'rgba(212,116,42,0.10)' : 'var(--surface2)',
+                background: newTaskIsAppt ? 'var(--gold-tint)' : 'var(--surface2)',
                 borderColor: newTaskIsAppt ? 'var(--gold)' : 'var(--border)',
               }}
             >
@@ -547,8 +584,7 @@ export default function PlanScreen({
                   type="time"
                   value={newTaskTime}
                   onChange={e => setNewTaskTime(e.target.value)}
-                  className="w-full h-11 px-3 rounded-[12px] border text-sm outline-none"
-                  style={{ background: 'var(--surface2)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                  className="field h-12 px-3.5 text-sm"
                 />
               </div>
             ) : (
@@ -559,8 +595,7 @@ export default function PlanScreen({
                   <select
                     value={newTaskType}
                     onChange={e => setNewTaskType(e.target.value as TaskType)}
-                    className="w-full h-10 px-2 rounded-[12px] border text-sm"
-                    style={{ background: 'var(--surface2)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                    className="field h-11 px-2 text-sm"
                   >
                     {Object.entries(TASK_TYPE_LABELS).map(([v, l]) => (
                       <option key={v} value={v}>{l}</option>
@@ -572,8 +607,7 @@ export default function PlanScreen({
                   <select
                     value={newTaskPriority}
                     onChange={e => setNewTaskPriority(e.target.value as Priority)}
-                    className="w-full h-10 px-2 rounded-[12px] border text-sm"
-                    style={{ background: 'var(--surface2)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                    className="field h-11 px-2 text-sm"
                   >
                     <option value="high">🔴 Visok</option>
                     <option value="medium">🟡 Srednji</option>
@@ -592,17 +626,18 @@ export default function PlanScreen({
 
       {/* Replan modal */}
       {showReplan && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center p-4"
-          style={{ background: 'rgba(0,0,0,0.5)' }}
+        <div className="modal-backdrop fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+          style={{ background: 'rgba(26,23,20,0.45)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}
           onClick={e => { if (e.target === e.currentTarget) { setShowReplan(false); setReplanResult(null); setReplanText('') } }}>
-          <div className="w-full max-w-[520px] rounded-t-[20px] p-5 flex flex-col gap-4"
-            style={{ background: 'var(--surface)' }}>
+          <div className="modal-panel w-full max-w-[460px] rounded-t-[var(--r-xl)] sm:rounded-[var(--r-xl)] p-5 sm:p-6 flex flex-col gap-4"
+            style={{ background: 'var(--surface)', boxShadow: 'var(--sh-lg)', border: '1px solid var(--hairline)' }}>
+            <div className="sm:hidden mx-auto w-10 h-1 rounded-full -mt-1 mb-1" style={{ background: 'var(--border)' }} />
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text)' }}>
+              <h3 className="title-serif text-xl" style={{ color: 'var(--text)' }}>
                 🔥 Dan se raspao
               </h3>
               <button onClick={() => { setShowReplan(false); setReplanResult(null); setReplanText('') }}
-                style={{ color: 'var(--text-muted)' }}>✕</button>
+                className="text-lg leading-none opacity-60 hover:opacity-100 transition-opacity" style={{ color: 'var(--text-muted)' }}>✕</button>
             </div>
 
             {!replanResult ? (
@@ -615,8 +650,7 @@ export default function PlanScreen({
                   onChange={e => setReplanText(e.target.value)}
                   placeholder="Npr: Hitna stvar na poslu, morao/la sam da ostavim sve i rešim problem..."
                   rows={3}
-                  className="w-full p-3 rounded-[12px] border text-sm resize-none outline-none"
-                  style={{ background: 'var(--surface2)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                  className="field p-3.5 text-sm resize-none"
                 />
                 <Button size="md" className="w-full" onClick={handleReplan}
                   loading={replanLoading} disabled={!replanText.trim()}>
@@ -625,7 +659,7 @@ export default function PlanScreen({
               </>
             ) : (
               <>
-                <div className="p-3 rounded-[12px]" style={{ background: 'rgba(212,116,42,0.08)' }}>
+                <div className="p-4 rounded-[var(--r-md)]" style={{ background: 'var(--gold-tint)' }}>
                   <p className="text-sm italic" style={{ color: 'var(--gold)' }}>"{replanResult.poruka}"</p>
                 </div>
                 {replanResult.danas.length > 0 && (

@@ -52,9 +52,11 @@ async function fetchBrainDump(text: string): Promise<Task[]> {
   }))
 }
 
-export default function SetupScreen({ profile, targetDate, transferredTasks = [], showTransferBanner = false }: { profile: UserProfile; targetDate?: string; transferredTasks?: Task[]; showTransferBanner?: boolean }) {
+export default function SetupScreen({ profile, targetDate, transferredTasks = [], initialEnergy = null, showTransferBanner = false }: { profile: UserProfile; targetDate?: string; transferredTasks?: Task[]; initialEnergy?: number | null; showTransferBanner?: boolean }) {
   const router = useRouter()
-  const [energy, setEnergy] = useState<number | null>(null)
+  // Pri ponovnom otvaranju plana (edit) vraćamo izabranu energiju da dugme
+  // "Napravi plan" ne ostane bezrazložno disabled.
+  const [energy, setEnergy] = useState<number | null>(initialEnergy)
   const [wakeTime, setWakeTime] = useState(profile.start_time ?? '08:00')
   const [sleepTime, setSleepTime] = useState(profile.last_sleep_time ?? profile.sleep_time ?? '23:00')
   // showTransferBanner=true → tasks su iz transferred_tasks (opt-in), ne pre-učitavaj ih automatski
@@ -168,7 +170,11 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
         return
       }
 
-      window.location.href = '/plan'
+      // Idi na plan TAČNO onog datuma koji je upravo snimljen — nikad "naslepo"
+      // na danas. Inače bi plan za sutra otvorio prazan današnji plan i bacio
+      // korisnika na praznu početnu.
+      const isToday = dateKey === todayKey()
+      window.location.href = isToday ? '/plan' : `/plan?date=${dateKey}`
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Greška mreže')
       setLoading(false)
@@ -178,21 +184,22 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
   const canSubmit = energy !== null && tasks.length > 0 && !brainDumpLoading
 
   return (
-    <main className="min-h-dvh flex flex-col p-5 gap-6" style={{ background: 'var(--bg)', color: 'var(--text)' }}>
-      <div className="pt-2">
-        <h1 className="text-3xl font-light" style={{ fontFamily: 'var(--font-serif)', color: 'var(--gold)' }}>Ferox</h1>
-        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+    <main className="flex flex-col gap-6 stagger pb-2">
+      <header className="pt-1">
+        <h1 className="display text-4xl tracking-[0.03em]" style={{ color: 'var(--gold)' }}>Ferox</h1>
+        <p className="text-sm mt-1.5" style={{ color: 'var(--text-muted)' }}>
           {targetDate && targetDate !== todayKey()
             ? `Planiramo sutra, ${profile.name} 🌙`
             : `Kako počinjemo danas, ${profile.name}?`}
         </p>
-      </div>
+        <div className="h-px mt-4" style={{ background: 'linear-gradient(90deg, var(--gold), transparent)' }} />
+      </header>
 
       {/* Predloženi zadaci iz prethodnog dana (opt-in) */}
       {suggestedTransfers.length > 0 && (
-        <section className="rounded-[16px] p-4 flex flex-col gap-3" style={{ background: 'var(--surface)', boxShadow: 'var(--sh1)' }}>
+        <section className="card p-5 flex flex-col gap-4">
           <div className="flex items-center justify-between">
-            <h2 className="font-medium text-sm" style={{ color: 'var(--text-muted)' }}>📋 IZ PRETHODNOG DANA</h2>
+            <h2 className="text-[0.7rem] font-semibold tracking-[0.12em] uppercase" style={{ color: 'var(--text-muted)' }}>📋 IZ PRETHODNOG DANA</h2>
             <button
               onClick={() => {
                 setTasks(prev => [...prev, ...suggestedTransfers])
@@ -241,8 +248,8 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
       )}
 
       {/* Spavanje */}
-      <section className="rounded-[16px] p-4 flex flex-col gap-3" style={{ background: 'var(--surface)', boxShadow: 'var(--sh1)' }}>
-        <h2 className="font-medium text-sm" style={{ color: 'var(--text-muted)' }}>😴 SPAVANJE</h2>
+      <section className="card p-5 flex flex-col gap-4">
+        <h2 className="text-[0.7rem] font-semibold tracking-[0.12em] uppercase" style={{ color: 'var(--text-muted)' }}>😴 SPAVANJE</h2>
         <div className="grid grid-cols-2 gap-3">
           <Input id="sleep" label="Legao/la sinoć" type="time" value={sleepTime} onChange={e => setSleepTime(e.target.value)} />
           <Input id="wake"  label="Probudio/la se" type="time" value={wakeTime}  onChange={e => setWakeTime(e.target.value)} />
@@ -253,31 +260,38 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
       </section>
 
       {/* Energija */}
-      <section className="rounded-[16px] p-4 flex flex-col gap-3" style={{ background: 'var(--surface)', boxShadow: 'var(--sh1)' }}>
-        <h2 className="font-medium text-sm" style={{ color: 'var(--text-muted)' }}>⚡ ENERGIJA DANAS</h2>
+      <section className="card p-5 flex flex-col gap-4">
+        <h2 className="text-[0.7rem] font-semibold tracking-[0.12em] uppercase" style={{ color: 'var(--text-muted)' }}>⚡ ENERGIJA DANAS</h2>
         <div className="flex flex-col gap-2">
-          {ENERGY_OPTIONS.map(opt => (
-            <button key={opt.level} type="button" onClick={() => setEnergy(opt.level)}
-              className="flex items-center gap-3 p-3 rounded-[12px] border text-left transition-all duration-200"
-              style={{
-                background: energy === opt.level ? 'var(--gold)' : 'var(--surface2)',
-                borderColor: energy === opt.level ? 'var(--gold)' : 'transparent',
-                color: energy === opt.level ? '#fff' : 'var(--text)',
-              }}>
-              <span className="text-xl">{opt.emoji}</span>
-              <div>
-                <div className="font-medium text-sm">{opt.label}</div>
-                <div className="text-xs opacity-70">{opt.desc}</div>
-              </div>
-            </button>
-          ))}
+          {ENERGY_OPTIONS.map(opt => {
+            const active = energy === opt.level
+            return (
+              <button key={opt.level} type="button" onClick={() => setEnergy(opt.level)}
+                className="flex items-center gap-3 p-3.5 text-left transition-all duration-200 active:scale-[0.99]"
+                style={{
+                  borderRadius: 'var(--r-md)',
+                  border: `1px solid ${active ? 'var(--gold)' : 'var(--border)'}`,
+                  backgroundImage: active ? 'linear-gradient(180deg, var(--gold-light), var(--gold))' : 'none',
+                  background: active ? undefined : 'var(--surface2)',
+                  color: active ? '#fff' : 'var(--text)',
+                  boxShadow: active ? 'var(--sh-gold)' : 'none',
+                }}>
+                <span className="text-xl">{opt.emoji}</span>
+                <div className="flex-1">
+                  <div className="font-medium text-sm">{opt.label}</div>
+                  <div className="text-xs opacity-70">{opt.desc}</div>
+                </div>
+                {active && <span className="text-base">✓</span>}
+              </button>
+            )
+          })}
         </div>
       </section>
 
       {/* Termini */}
-      <section className="rounded-[16px] p-4 flex flex-col gap-3" style={{ background: 'var(--surface)', boxShadow: 'var(--sh1)' }}>
+      <section className="card p-5 flex flex-col gap-4">
         <div className="flex items-center justify-between">
-          <h2 className="font-medium text-sm" style={{ color: 'var(--text-muted)' }}>🗓️ ZAKAZANI TERMINI</h2>
+          <h2 className="text-[0.7rem] font-semibold tracking-[0.12em] uppercase" style={{ color: 'var(--text-muted)' }}>🗓️ ZAKAZANI TERMINI</h2>
           <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--surface2)', color: 'var(--text-muted)' }}>{appointments.length}</span>
         </div>
 
@@ -295,7 +309,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
         )}
 
         {showApptForm ? (
-          <div className="flex flex-col gap-3 p-3 rounded-[12px] border" style={{ borderColor: 'var(--border)', background: 'var(--surface2)' }}>
+          <div className="flex flex-col gap-3 p-4 rounded-[var(--r-md)] border" style={{ borderColor: 'var(--border)', background: 'var(--surface2)' }}>
             <Input id="appt-name" placeholder="Naziv termina" value={apptForm.name}
               onChange={e => setApptForm(f => ({ ...f, name: e.target.value }))} autoFocus />
             <div className="grid grid-cols-2 gap-2">
@@ -310,14 +324,12 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
                     max={999}
                     value={reminderInput.value}
                     onChange={e => setReminderInput(r => ({ ...r, value: Math.max(0, Number(e.target.value)) }))}
-                    className="w-full h-11 px-2 rounded-[12px] text-sm border text-center"
-                    style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                    className="field h-11 px-2 text-sm text-center"
                   />
                   <select
                     value={reminderInput.unit}
                     onChange={e => setReminderInput(r => ({ ...r, unit: e.target.value as 'min' | 'sat' }))}
-                    className="h-11 px-2 rounded-[12px] text-sm border shrink-0"
-                    style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                    className="field h-11 px-2 text-sm shrink-0 w-auto"
                   >
                     <option value="min">min</option>
                     <option value="sat">sat</option>
@@ -332,17 +344,16 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
           </div>
         ) : (
           <button onClick={() => setShowApptForm(true)}
-            className="flex items-center gap-2 p-3 rounded-[12px] border-2 border-dashed text-sm w-full"
-            style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
+            className="flex items-center gap-2 p-3.5 rounded-[var(--r-md)] border-[1.5px] border-dashed border-[var(--border)] text-sm w-full text-[var(--text-muted)] transition-colors hover:border-[var(--gold)] hover:text-[var(--gold)]">
             <span className="text-lg">+</span> Dodaj termin
           </button>
         )}
       </section>
 
       {/* Brain Dump */}
-      <section className="rounded-[16px] p-4 flex flex-col gap-3" style={{ background: 'var(--surface)', boxShadow: 'var(--sh1)' }}>
+      <section className="card p-5 flex flex-col gap-4">
         <div className="flex items-center justify-between">
-          <h2 className="font-medium text-sm" style={{ color: 'var(--text-muted)' }}>✨ BRAIN DUMP</h2>
+          <h2 className="text-[0.7rem] font-semibold tracking-[0.12em] uppercase" style={{ color: 'var(--text-muted)' }}>✨ BRAIN DUMP</h2>
           <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(212,116,42,0.12)', color: 'var(--gold)' }}>AI</span>
         </div>
         {brainDumpSuccess !== null && (
@@ -361,12 +372,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
               placeholder="Npr: Danas moram da završim prezentaciju za klijenta, zakažem zubarku, odgovorim na mejlove i kupim namirnice..."
               rows={4}
               autoFocus
-              className="w-full p-3 rounded-[12px] border text-sm resize-none outline-none transition-all"
-              style={{
-                background: 'var(--surface2)',
-                borderColor: 'var(--border)',
-                color: 'var(--text)',
-              }}
+              className="field p-3 text-sm resize-none"
             />
             {brainDumpError && (
               <p className="text-xs px-1" style={{ color: '#c0392b' }}>Greška: {brainDumpError}</p>
@@ -383,17 +389,16 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
           </div>
         ) : (
           <button onClick={() => setShowBrainDump(true)}
-            className="flex items-center gap-2 p-3 rounded-[12px] border-2 border-dashed text-sm w-full"
-            style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
+            className="flex items-center gap-2 p-3.5 rounded-[var(--r-md)] border-[1.5px] border-dashed border-[var(--border)] text-sm w-full text-[var(--text-muted)] transition-colors hover:border-[var(--gold)] hover:text-[var(--gold)]">
             <span>✨</span> Piši slobodno, AI izvlači zadatke
           </button>
         )}
       </section>
 
       {/* Zadaci */}
-      <section className="rounded-[16px] p-4 flex flex-col gap-3" style={{ background: 'var(--surface)', boxShadow: 'var(--sh1)' }}>
+      <section className="card p-5 flex flex-col gap-4">
         <div className="flex items-center justify-between">
-          <h2 className="font-medium text-sm" style={{ color: 'var(--text-muted)' }}>📋 ZADACI ZA DANAS</h2>
+          <h2 className="text-[0.7rem] font-semibold tracking-[0.12em] uppercase" style={{ color: 'var(--text-muted)' }}>📋 ZADACI ZA DANAS</h2>
           <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--surface2)', color: 'var(--text-muted)' }}>{tasks.length}</span>
         </div>
 
@@ -420,7 +425,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
         )}
 
         {showTaskForm ? (
-          <div className="flex flex-col gap-3 p-3 rounded-[12px] border" style={{ borderColor: 'var(--border)', background: 'var(--surface2)' }}>
+          <div className="flex flex-col gap-3 p-4 rounded-[var(--r-md)] border" style={{ borderColor: 'var(--border)', background: 'var(--surface2)' }}>
             <Input id="task-name" placeholder="Naziv zadatka" value={taskForm.name}
               onChange={e => setTaskForm(f => ({ ...f, name: e.target.value }))}
               onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter' && taskForm.name.trim()) addTask() }}
@@ -432,8 +437,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
                 <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Prioritet</label>
                 <select value={taskForm.priority}
                   onChange={e => setTaskForm(f => ({ ...f, priority: e.target.value as Priority }))}
-                  className="w-full h-9 px-2 rounded-[10px] text-sm border"
-                  style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text)' }}>
+                  className="field h-10 px-2 text-sm">
                   {PRIORITY_OPTIONS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
                 </select>
               </div>
@@ -441,8 +445,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
                 <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Tip</label>
                 <select value={taskForm.type}
                   onChange={e => setTaskForm(f => ({ ...f, type: e.target.value as TaskType }))}
-                  className="w-full h-9 px-2 rounded-[10px] text-sm border"
-                  style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text)' }}>
+                  className="field h-10 px-2 text-sm">
                   {TYPE_OPTIONS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                 </select>
               </div>
@@ -454,8 +457,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
           </div>
         ) : (
           <button onClick={() => setShowTaskForm(true)}
-            className="flex items-center gap-2 p-3 rounded-[12px] border-2 border-dashed text-sm w-full"
-            style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
+            className="flex items-center gap-2 p-3.5 rounded-[var(--r-md)] border-[1.5px] border-dashed border-[var(--border)] text-sm w-full text-[var(--text-muted)] transition-colors hover:border-[var(--gold)] hover:text-[var(--gold)]">
             <span className="text-lg">+</span> Dodaj zadatak
           </button>
         )}
@@ -472,7 +474,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
       )}
 
       {submitError && (
-        <div className="rounded-[12px] px-4 py-3 text-sm" style={{
+        <div className="rounded-[var(--r-md)] px-4 py-3 text-sm" style={{
           background: submitError.startsWith('✅') ? 'rgba(34,197,94,0.12)' : 'rgba(192,57,43,0.10)',
           color: submitError.startsWith('✅') ? '#16a34a' : '#c0392b',
         }}>
@@ -480,6 +482,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
         </div>
       )}
 
+      <div className="h-px mt-2" style={{ background: 'var(--hairline)' }} />
       <button
         onClick={resetDay}
         disabled={resetting}

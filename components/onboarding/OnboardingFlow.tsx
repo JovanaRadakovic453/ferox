@@ -46,11 +46,13 @@ function Chip({
     <button
       type="button"
       onClick={onClick}
-      className="px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 border"
+      className="px-3.5 py-1.5 rounded-full text-sm font-medium transition-all duration-200 border active:scale-95"
       style={{
-        background: selected ? 'var(--gold)' : 'var(--surface2)',
-        color: selected ? '#fff' : 'var(--text)',
         borderColor: selected ? 'var(--gold)' : 'var(--border)',
+        backgroundImage: selected ? 'linear-gradient(180deg, var(--gold-light), var(--gold))' : 'none',
+        background: selected ? undefined : 'var(--surface2)',
+        color: selected ? '#fff' : 'var(--text)',
+        boxShadow: selected ? 'var(--sh-sm)' : 'none',
       }}
     >
       {label}
@@ -65,11 +67,13 @@ function OptionCard({
     <button
       type="button"
       onClick={onClick}
-      className="w-full text-left p-4 rounded-[14px] border transition-all duration-200"
+      className="w-full text-left p-4 rounded-[var(--r-md)] border transition-all duration-200 active:scale-[0.99]"
       style={{
-        background: selected ? 'var(--gold)' : 'var(--surface)',
         borderColor: selected ? 'var(--gold)' : 'var(--border)',
+        backgroundImage: selected ? 'linear-gradient(180deg, var(--gold-light), var(--gold))' : 'none',
+        background: selected ? undefined : 'var(--surface)',
         color: selected ? '#fff' : 'var(--text)',
+        boxShadow: selected ? 'var(--sh-gold)' : 'var(--sh-xs)',
       }}
     >
       <div className="flex items-center gap-3">
@@ -155,17 +159,11 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
   const steps: Record<number, React.ReactNode> = {
     1: (
       <div className="flex flex-col items-center text-center gap-6">
-        <div
-          className="text-8xl font-light tracking-widest"
-          style={{ fontFamily: 'var(--font-serif)', color: 'var(--gold)' }}
-        >
+        <div className="animate-fade-slide display text-8xl tracking-widest" style={{ color: 'var(--gold)' }}>
           F
         </div>
         <div>
-          <h1
-            className="text-3xl font-light mb-2"
-            style={{ fontFamily: 'var(--font-serif)', color: 'var(--text)' }}
-          >
+          <h1 className="title-serif text-4xl mb-2" style={{ color: 'var(--text)' }}>
             Dobrodošla u Ferox
           </h1>
           <p className="text-sm leading-relaxed max-w-[280px]" style={{ color: 'var(--text-muted)' }}>
@@ -181,7 +179,7 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
     2: (
       <div className="flex flex-col gap-6">
         <div>
-          <h2 className="text-2xl font-light mb-1" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text)' }}>
+          <h2 className="title-serif text-3xl mb-1" style={{ color: 'var(--text)' }}>
             Kako da te zovemo?
           </h2>
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
@@ -209,7 +207,7 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
     3: (
       <div className="flex flex-col gap-5">
         <div>
-          <h2 className="text-2xl font-light mb-1" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text)' }}>
+          <h2 className="title-serif text-3xl mb-1" style={{ color: 'var(--text)' }}>
             Zašto koristiš Ferox?
           </h2>
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
@@ -231,7 +229,7 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
     4: (
       <div className="flex flex-col gap-5">
         <div>
-          <h2 className="text-2xl font-light mb-1" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text)' }}>
+          <h2 className="title-serif text-3xl mb-1" style={{ color: 'var(--text)' }}>
             Kad si najproduktivnija?
           </h2>
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
@@ -253,7 +251,7 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
     5: (
       <div className="flex flex-col gap-5">
         <div>
-          <h2 className="text-2xl font-light mb-1" style={{ fontFamily: 'var(--font-serif)', color: 'var(--text)' }}>
+          <h2 className="title-serif text-3xl mb-1" style={{ color: 'var(--text)' }}>
             Tvoje navike
           </h2>
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
@@ -297,11 +295,8 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
   }
 
   return (
-    <main
-      className="min-h-dvh flex flex-col p-5"
-      style={{ background: 'var(--bg)', color: 'var(--text)' }}
-    >
-      <div className="flex-1 flex flex-col justify-center max-w-[480px] mx-auto w-full">
+    <main className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col justify-center max-w-[460px] mx-auto w-full py-4">
         {step > 1 && (
           <button
             onClick={back}

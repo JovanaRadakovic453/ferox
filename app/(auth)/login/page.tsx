@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
+import AuthCard from '@/components/auth/AuthCard'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -50,82 +51,10 @@ export default function LoginPage() {
   }
 
   return (
-    <main
-      className="min-h-dvh flex flex-col items-center justify-center p-5"
-      style={{ background: 'var(--bg)' }}
-    >
-      <div
-        className="w-full max-w-[400px] rounded-[20px] p-7 shadow-lg"
-        style={{ background: 'var(--surface)', boxShadow: 'var(--sh2)' }}
-      >
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <h1
-            className="text-5xl font-light tracking-wider mb-1"
-            style={{ fontFamily: 'var(--font-serif)', color: 'var(--gold)' }}
-          >
-            Ferox
-          </h1>
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            Planira dan prema tvojoj energiji
-          </p>
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <Input
-            id="email"
-            label="Email"
-            type="email"
-            placeholder="tvoj@email.com"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            required
-            autoComplete="email"
-          />
-          <Input
-            id="password"
-            label="Lozinka"
-            type="password"
-            placeholder="••••••••"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            required
-            autoComplete="current-password"
-            error={error}
-          />
-
-          <Button
-            type="submit"
-            size="lg"
-            loading={loading}
-            className="w-full mt-2"
-          >
-            Prijavi se
-          </Button>
-
-          <button
-            type="button"
-            onClick={handleReset}
-            disabled={resetLoading}
-            className="w-full text-sm text-center py-1 opacity-60 hover:opacity-100 transition-opacity"
-            style={{ color: 'var(--gold)' }}
-          >
-            {resetLoading ? 'Šaljem...' : 'Zaboravio/la lozinku?'}
-          </button>
-
-          {resetSent && (
-            <p className="text-sm text-center rounded-[10px] px-3 py-2" style={{ background: 'rgba(34,197,94,0.12)', color: '#16a34a' }}>
-              ✓ Poslali smo ti link za reset lozinke na email
-            </p>
-          )}
-        </form>
-
-        {/* Switch to register */}
-        <p
-          className="text-center text-sm mt-6"
-          style={{ color: 'var(--text-muted)' }}
-        >
+    <AuthCard
+      subtitle="Planira dan prema tvojoj energiji"
+      footer={
+        <>
           Nemaš nalog?{' '}
           <Link
             href="/register"
@@ -134,8 +63,57 @@ export default function LoginPage() {
           >
             Registruj se
           </Link>
-        </p>
-      </div>
-    </main>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <Input
+          id="email"
+          label="Email"
+          type="email"
+          placeholder="tvoj@email.com"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          required
+          autoComplete="email"
+        />
+        <Input
+          id="password"
+          label="Lozinka"
+          type="password"
+          placeholder="••••••••"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          required
+          autoComplete="current-password"
+          error={error}
+        />
+
+        <Button
+          type="submit"
+          size="lg"
+          loading={loading}
+          className="w-full mt-2"
+        >
+          Prijavi se
+        </Button>
+
+        <button
+          type="button"
+          onClick={handleReset}
+          disabled={resetLoading}
+          className="w-full text-sm text-center py-1 opacity-60 hover:opacity-100 transition-opacity"
+          style={{ color: 'var(--gold)' }}
+        >
+          {resetLoading ? 'Šaljem...' : 'Zaboravio/la lozinku?'}
+        </button>
+
+        {resetSent && (
+          <p className="text-sm text-center rounded-[10px] px-3 py-2" style={{ background: 'rgba(34,197,94,0.12)', color: '#16a34a' }}>
+            ✓ Poslali smo ti link za reset lozinke na email
+          </p>
+        )}
+      </form>
+    </AuthCard>
   )
 }

@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
+import AuthCard from '@/components/auth/AuthCard'
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -64,76 +65,10 @@ export default function RegisterPage() {
   }
 
   return (
-    <main
-      className="min-h-dvh flex flex-col items-center justify-center p-5"
-      style={{ background: 'var(--bg)' }}
-    >
-      <div
-        className="w-full max-w-[400px] rounded-[20px] p-7 shadow-lg"
-        style={{ background: 'var(--surface)', boxShadow: 'var(--sh2)' }}
-      >
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <h1
-            className="text-5xl font-light tracking-wider mb-1"
-            style={{ fontFamily: 'var(--font-serif)', color: 'var(--gold)' }}
-          >
-            Ferox
-          </h1>
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            Napravi nalog i počni da planiraš pametnije
-          </p>
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <Input
-            id="name"
-            label="Tvoje ime"
-            type="text"
-            placeholder="Jovana"
-            value={name}
-            onChange={e => setName(e.target.value)}
-            required
-            autoComplete="given-name"
-          />
-          <Input
-            id="email"
-            label="Email"
-            type="email"
-            placeholder="tvoj@email.com"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            required
-            autoComplete="email"
-          />
-          <Input
-            id="password"
-            label="Lozinka"
-            type="password"
-            placeholder="Min. 6 karaktera"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            required
-            autoComplete="new-password"
-            error={error}
-          />
-
-          <Button
-            type="submit"
-            size="lg"
-            loading={loading}
-            className="w-full mt-2"
-          >
-            Napravi nalog
-          </Button>
-        </form>
-
-        {/* Switch to login */}
-        <p
-          className="text-center text-sm mt-6"
-          style={{ color: 'var(--text-muted)' }}
-        >
+    <AuthCard
+      subtitle="Napravi nalog i počni da planiraš pametnije"
+      footer={
+        <>
           Već imaš nalog?{' '}
           <Link
             href="/login"
@@ -142,8 +77,51 @@ export default function RegisterPage() {
           >
             Prijavi se
           </Link>
-        </p>
-      </div>
-    </main>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <Input
+          id="name"
+          label="Tvoje ime"
+          type="text"
+          placeholder="Jovana"
+          value={name}
+          onChange={e => setName(e.target.value)}
+          required
+          autoComplete="given-name"
+        />
+        <Input
+          id="email"
+          label="Email"
+          type="email"
+          placeholder="tvoj@email.com"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          required
+          autoComplete="email"
+        />
+        <Input
+          id="password"
+          label="Lozinka"
+          type="password"
+          placeholder="Min. 6 karaktera"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          required
+          autoComplete="new-password"
+          error={error}
+        />
+
+        <Button
+          type="submit"
+          size="lg"
+          loading={loading}
+          className="w-full mt-2"
+        >
+          Napravi nalog
+        </Button>
+      </form>
+    </AuthCard>
   )
 }

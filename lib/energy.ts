@@ -45,6 +45,16 @@ export function energyLabel(level: number): string {
   return map[level] ?? ''
 }
 
+// Obrnuto od energyLabel: iz sačuvanog labela (npr. '🔥 Pun gas') vrati nivo 1–5.
+// Koristi se da se pri ponovnom otvaranju plana (edit) vrati izabrana energija.
+export function energyLevelFromLabel(label?: string | null): number | null {
+  if (!label) return null
+  for (let lvl = 1; lvl <= 5; lvl++) {
+    if (energyLabel(lvl) === label) return lvl
+  }
+  return null
+}
+
 export function sleepQuality(hours: number): string {
   if (hours >= 8) return '😴 Odlično spavanje'
   if (hours >= 7) return '👍 Dobro spavanje'
