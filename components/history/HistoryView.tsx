@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
+import { DEFAULTS } from '@/lib/config'
 
 export type HistoryDay = {
   id: string
@@ -31,8 +32,8 @@ function Strip({ days }: { days: HistoryDay[] }) {
 }
 
 export default function HistoryView({ days }: { days: HistoryDay[] }) {
-  const strip7 = [...days].slice(0, 7).reverse()
-  const strip14 = [...days].slice(0, 14).reverse()
+  const strip7 = [...days].slice(0, DEFAULTS.historyDaysMobile).reverse()
+  const strip14 = [...days].slice(0, DEFAULTS.historyDaysDesktop).reverse()
 
   return (
     <main className="flex flex-col gap-6 lg:gap-7 pb-2">

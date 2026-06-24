@@ -1,13 +1,11 @@
 import { z } from 'zod'
 import { isValidDayKey } from '@/lib/date'
 import { DEFAULTS } from '@/lib/config'
+import { TASK_TYPES, PRIORITIES } from '@/types/ferox'
 
-// Jedinstveni izvor enum-a (mora se poklapati sa types/ferox.ts i schema.sql CHECK).
-export const TASK_TYPES = [
-  'creative', 'analytical', 'meetings', 'communication', 'admin', 'light',
-  'rest', 'learning', 'exercise', 'planning', 'reading', 'meditation',
-] as const
-export const PRIORITIES = ['high', 'medium', 'low'] as const
+// Enum-i žive u types/ferox.ts (jedan izvor istine, izveden union tip); ovde ih
+// samo uvozimo za z.enum i re-eksportujemo radi postojećih import-a iz ovog modula.
+export { TASK_TYPES, PRIORITIES }
 
 export const zPriority = z.enum(PRIORITIES)
 export const zTaskType = z.enum(TASK_TYPES)
@@ -88,6 +86,34 @@ export const replanResultSchema = z.object({
   sutra: z.array(z.string()).default([]),
   obrisi: z.array(z.string()).default([]),
   poruka: z.string().default(''),
+})
+
+// Insights ulaz: agregati su PRE-izračunati na klijentu (vidi lib/insights.ts
+// Aggregates). Validacija ograničava veličinu (odbrana + cap na token-trošak).
+const zBar = z.object({
+  label: z.string().max(40),
+  rate: z.number(),
+  n: z.number().int().min(0),
+})
+export const insightsInputSchema = z.object({
+  aggregates: z.object({
+    dayCount: z.number().int().min(0),
+    overallCompletion: z.number(),
+    byEnergy: z.array(zBar).max(10),
+    byWeekday: z.array(zBar).max(10),
+    byType: z.array(zBar).max(20),
+    sleepInsight: z.string().max(300).nullable(),
+  }),
+})
+
+// Insights izlaz (tool-use) — re-validira se zod-om kao i brain-dump.
+export const aiInsightSchema = z.object({
+  title: z.string().trim().min(1).max(120),
+  body: z.string().trim().min(1).max(400),
+  type: z.enum(['pattern', 'tip', 'win']).optional(),
+})
+export const aiInsightsResult = z.object({
+  insights: z.array(aiInsightSchema).default([]),
 })
 
 export type CreateDayBody = z.infer<typeof createDaySchema>

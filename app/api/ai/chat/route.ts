@@ -4,12 +4,16 @@ import type { NextRequest } from 'next/server'
 import { ERR } from '@/lib/api'
 import { chatSchema } from '@/lib/validation'
 import { FEROX_PERSONA } from '@/lib/ai/prompts'
-import { AI } from '@/lib/config'
+import { AI, RATE_LIMITS } from '@/lib/config'
+import { checkRateLimit } from '@/lib/rateLimit'
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return ERR.unauthorized()
+
+  const rl = RATE_LIMITS.chat
+  if (!(await checkRateLimit(supabase, 'chat', rl.limit, rl.windowSec))) return ERR.rateLimited()
 
   const json = await request.json().catch(() => null)
   const parsed = chatSchema.safeParse(json)

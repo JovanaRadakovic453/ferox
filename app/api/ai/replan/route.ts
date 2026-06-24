@@ -4,12 +4,16 @@ import type { NextRequest } from 'next/server'
 import { apiOk, ERR } from '@/lib/api'
 import { replanSchema, replanResultSchema } from '@/lib/validation'
 import { extractText } from '@/lib/ai/parse'
-import { AI } from '@/lib/config'
+import { AI, RATE_LIMITS } from '@/lib/config'
+import { checkRateLimit } from '@/lib/rateLimit'
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return ERR.unauthorized()
+
+  const rl = RATE_LIMITS.replan
+  if (!(await checkRateLimit(supabase, 'replan', rl.limit, rl.windowSec))) return ERR.rateLimited()
 
   const json = await request.json().catch(() => null)
   const parsed = replanSchema.safeParse(json)
@@ -37,7 +41,8 @@ Koristi TAČNO imena zadataka iz liste. Vrati SAMO JSON, bez ikakvog drugog teks
       }],
     })
   } catch (err) {
-    return ERR.aiUnavailable(err instanceof Error ? err.message : String(err))
+    console.error('replan', err)
+    return ERR.aiUnavailable()
   }
 
   const text = extractText(message)

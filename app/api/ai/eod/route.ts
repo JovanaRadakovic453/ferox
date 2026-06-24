@@ -9,7 +9,8 @@ import { FEROX_PERSONA } from '@/lib/ai/prompts'
 import { energyLabel } from '@/lib/energy'
 import { TASK_TYPE_LABELS } from '@/types/ferox'
 import type { TaskType } from '@/types/ferox'
-import { AI } from '@/lib/config'
+import { AI, RATE_LIMITS } from '@/lib/config'
+import { checkRateLimit } from '@/lib/rateLimit'
 
 const bodySchema = z.object({ dateKey: zStrictDate })
 
@@ -17,6 +18,9 @@ export async function POST(request: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return ERR.unauthorized()
+
+  const rl = RATE_LIMITS.eod
+  if (!(await checkRateLimit(supabase, 'eod', rl.limit, rl.windowSec))) return ERR.rateLimited()
 
   const json = await request.json().catch(() => null)
   const parsed = bodySchema.safeParse(json)

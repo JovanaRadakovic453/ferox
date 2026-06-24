@@ -4,7 +4,8 @@ import type { NextRequest } from 'next/server'
 import { apiOk, ERR } from '@/lib/api'
 import { brainDumpSchema, aiBrainDumpResult, TASK_TYPES, PRIORITIES } from '@/lib/validation'
 import { TASK_TYPE_GUIDE } from '@/lib/ai/prompts'
-import { AI } from '@/lib/config'
+import { AI, RATE_LIMITS } from '@/lib/config'
+import { checkRateLimit } from '@/lib/rateLimit'
 
 // Forced tool-use: the SDK guarantees valid JSON and enums can't be wrong.
 // Concrete times become appointments; everything else is a task.
@@ -49,6 +50,9 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return ERR.unauthorized()
 
+  const rl = RATE_LIMITS.brainDump
+  if (!(await checkRateLimit(supabase, 'brain-dump', rl.limit, rl.windowSec))) return ERR.rateLimited()
+
   const json = await request.json().catch(() => null)
   const parsed = brainDumpSchema.safeParse(json)
   if (!parsed.success) return ERR.invalidInput(parsed.error.issues)
@@ -71,7 +75,8 @@ export async function POST(request: NextRequest) {
       }],
     })
   } catch (err) {
-    return ERR.aiUnavailable(err instanceof Error ? err.message : String(err))
+    console.error('brain-dump', err)
+    return ERR.aiUnavailable()
   }
 
   const block = message.content.find(c => c.type === 'tool_use')

@@ -15,8 +15,11 @@ export async function POST(request: NextRequest) {
 
   const result = await createDay(supabase, user.id, parsed.data)
   if (!result.ok) {
+    // COUNT_MISMATCH detail je samo { sent, saved } brojači (bezbedno za klijent).
     if (result.code === 'COUNT_MISMATCH') return apiError(result.code, result.message, 409, result.detail)
-    return ERR.server(result.detail ?? result.message)
+    // Ne prosleđuj sirov DB detail klijentu — loguj na serveru, vrati generičku grešku.
+    console.error('day/create', result.code, result.detail ?? result.message)
+    return ERR.server()
   }
   return apiOk({ ok: true, entryId: result.entryId, tasks: result.tasks })
 }
