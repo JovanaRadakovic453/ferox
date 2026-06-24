@@ -4,6 +4,7 @@ import { createContext, useContext, useState, type ReactNode } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import CoachSheet from '@/components/chat/CoachSheet'
+import InstallBanner from '@/components/nav/InstallBanner'
 
 // Chrome (bottom TabBar) visibility. Pages with their own full-width bottom CTA
 // (e.g. SetupScreen) call setHidden(true) on mount to avoid a double bar.
@@ -39,6 +40,7 @@ export default function AppChrome({ children }: { children: ReactNode }) {
         </button>
       )}
       {showTabBar && <TabBar pathname={pathname} />}
+      {showTabBar && <InstallBanner />}
       <CoachSheet open={coachOpen} onClose={() => setCoachOpen(false)} />
     </ChromeCtx.Provider>
   )

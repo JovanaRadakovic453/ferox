@@ -194,6 +194,15 @@ export default function PlanScreen({
     if (!task) return
     const newDone = !task.done
     setTasks(prev => prev.map(t => t.id === taskId ? { ...t, done: newDone } : t))
+
+    // Mikro-feedback: vibracija na završetak + proslava kad je sve gotovo.
+    if (newDone && profile.micro_feedback !== false) {
+      if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(15)
+      const totalCount = tasks.length + appts.length
+      const doneNow = tasks.filter(t => (t.id === taskId ? true : t.done)).length + appts.filter(a => a.done).length
+      if (totalCount > 0 && doneNow === totalCount) toast({ message: 'Sve gotovo za danas! 🎉', variant: 'success' })
+    }
+
     const supabase = createClient()
     const { error } = await supabase.from('tasks').update({ done: newDone }).eq('id', taskId)
     if (error) {
