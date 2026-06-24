@@ -57,7 +57,10 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
   const [energy, setEnergy] = useState<number | null>(null)
   const [wakeTime, setWakeTime] = useState(profile.start_time ?? '08:00')
   const [sleepTime, setSleepTime] = useState(profile.last_sleep_time ?? profile.sleep_time ?? '23:00')
-  const [tasks, setTasks] = useState<Task[]>(transferredTasks)
+  // showTransferBanner=true → tasks su iz transferred_tasks (opt-in), ne pre-učitavaj ih automatski
+  // showTransferBanner=false → tasks su iz postojećeg day_entry (edit mode), pre-učitaj ih
+  const [tasks, setTasks] = useState<Task[]>(showTransferBanner ? [] : transferredTasks)
+  const [suggestedTransfers, setSuggestedTransfers] = useState<Task[]>(showTransferBanner ? transferredTasks : [])
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [taskForm, setTaskForm] = useState(EMPTY_TASK)
   const [apptForm, setApptForm] = useState(EMPTY_APPT)
@@ -72,6 +75,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
   const [brainDumpLoading, setBrainDumpLoading] = useState(false)
   const [brainDumpError, setBrainDumpError] = useState<string | null>(null)
   const [brainDumpSuccess, setBrainDumpSuccess] = useState<number | null>(null)
+  const isSutraMode = targetDate !== undefined && targetDate !== todayKey()
   const sleepHours = calcSleepHours(sleepTime, wakeTime)
 
   async function handleBrainDump() {
@@ -184,11 +188,56 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
         </p>
       </div>
 
-      {/* Baner za prenete zadatke */}
-      {showTransferBanner && transferredTasks.length > 0 && (
-        <div className="rounded-[12px] px-4 py-3 text-sm" style={{ background: 'rgba(212,116,42,0.10)', color: 'var(--gold)' }}>
-          📋 {transferredTasks.length} {transferredTasks.length === 1 ? 'zadatak preneto' : 'zadataka preneto'} iz prethodnog dana
-        </div>
+      {/* Predloženi zadaci iz prethodnog dana (opt-in) */}
+      {suggestedTransfers.length > 0 && (
+        <section className="rounded-[16px] p-4 flex flex-col gap-3" style={{ background: 'var(--surface)', boxShadow: 'var(--sh1)' }}>
+          <div className="flex items-center justify-between">
+            <h2 className="font-medium text-sm" style={{ color: 'var(--text-muted)' }}>📋 IZ PRETHODNOG DANA</h2>
+            <button
+              onClick={() => {
+                setTasks(prev => [...prev, ...suggestedTransfers])
+                setSuggestedTransfers([])
+              }}
+              className="text-xs font-medium"
+              style={{ color: 'var(--gold)' }}
+            >
+              Dodaj sve
+            </button>
+          </div>
+          <div className="flex flex-col gap-2">
+            {suggestedTransfers.map((t, i) => (
+              <div key={i} className="flex items-center gap-3 p-3 rounded-[10px]" style={{ background: 'var(--surface2)' }}>
+                <span className="text-xs px-1.5 py-0.5 rounded shrink-0" style={{
+                  background: t.priority === 'high' ? '#ef444420' : t.priority === 'medium' ? '#f59e0b20' : '#22c55e20',
+                  color: t.priority === 'high' ? '#ef4444' : t.priority === 'medium' ? '#f59e0b' : '#22c55e',
+                }}>
+                  {t.priority === 'high' ? 'V' : t.priority === 'medium' ? 'S' : 'N'}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{t.name}</p>
+                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{TASK_TYPE_LABELS[t.type]}</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setTasks(prev => [...prev, t])
+                    setSuggestedTransfers(prev => prev.filter((_, idx) => idx !== i))
+                  }}
+                  className="text-xs font-semibold shrink-0 px-2 py-1 rounded-[8px] transition-all"
+                  style={{ background: 'rgba(212,116,42,0.12)', color: 'var(--gold)' }}
+                >
+                  + Dodaj
+                </button>
+                <button
+                  onClick={() => setSuggestedTransfers(prev => prev.filter((_, idx) => idx !== i))}
+                  className="text-xs shrink-0 opacity-40 hover:opacity-80 transition-opacity ml-1"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
       )}
 
       {/* Spavanje */}
@@ -351,15 +400,19 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
         {tasks.length > 0 && (
           <div className="flex flex-col gap-2">
             {tasks.map((t, i) => (
-              <div key={i} className="flex items-start gap-2 p-3 rounded-[10px]" style={{ background: 'var(--surface2)' }}>
+              <div key={i} className="flex items-center gap-3 p-3 rounded-[10px]" style={{ background: 'var(--surface2)' }}>
+                <span className="text-xs px-1.5 py-0.5 rounded shrink-0" style={{
+                  background: t.priority === 'high' ? '#ef444420' : t.priority === 'medium' ? '#f59e0b20' : '#22c55e20',
+                  color: t.priority === 'high' ? '#ef4444' : t.priority === 'medium' ? '#f59e0b' : '#22c55e',
+                }}>
+                  {t.priority === 'high' ? 'V' : t.priority === 'medium' ? 'S' : 'N'}
+                </span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{t.name}</p>
-                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                    {PRIORITY_OPTIONS.find(p => p.value === t.priority)?.label} · {TASK_TYPE_LABELS[t.type]}
-                  </p>
+                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{TASK_TYPE_LABELS[t.type]}</p>
                 </div>
                 <button onClick={() => setTasks(prev => prev.filter((_, idx) => idx !== i))}
-                  className="text-xs shrink-0 px-1.5 py-0.5 rounded opacity-50 hover:opacity-100"
+                  className="text-xs shrink-0 opacity-40 hover:opacity-80 transition-opacity"
                   style={{ color: 'var(--text-muted)' }}>✕</button>
               </div>
             ))}

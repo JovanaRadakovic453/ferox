@@ -27,10 +27,10 @@ export function calcBlocks(wakeTime: string, sleepTime: string, rhythm: Rhythm):
   }
 
   return [
-    { label: 'Jutro',      emoji: '🌅', color: 'rgba(212,116,42,0.15)',  timeRange: `${fmt(wh)} – ${fmt(b1End)}`, start: wh,   end: b1End },
-    { label: 'Prepodne',   emoji: '☀️', color: 'rgba(212,116,42,0.10)',  timeRange: `${fmt(b1End)} – ${fmt(b2End)}`, start: b1End, end: b2End },
-    { label: 'Popodne',    emoji: '🌤️', color: 'rgba(100,120,200,0.10)', timeRange: `${fmt(b2End)} – ${fmt(b3End)}`, start: b2End, end: b3End },
-    { label: 'Veče',       emoji: '🌙', color: 'rgba(100,80,180,0.12)',  timeRange: `${fmt(b3End)} – ${fmt(bedHour % 24)}`, start: b3End, end: bedHour },
+    { label: 'Jutro',    emoji: '🌅', color: 'rgba(212,116,42,0.15)',  timeRange: `${fmt(wh)} – ${fmt(b1End)}`, start: wh,   end: b1End },
+    { label: 'Prepodne', emoji: '☀️',  color: 'rgba(45,106,79,0.15)',   timeRange: `${fmt(b1End)} – ${fmt(b2End)}`, start: b1End, end: b2End },
+    { label: 'Popodne',  emoji: '🌤️', color: 'rgba(45,79,138,0.15)',   timeRange: `${fmt(b2End)} – ${fmt(b3End)}`, start: b2End, end: b3End },
+    { label: 'Veče',     emoji: '🌙', color: 'rgba(106,45,138,0.15)',  timeRange: `${fmt(b3End)} – ${fmt(bedHour % 24)}`, start: b3End, end: bedHour },
   ]
 }
 

@@ -13,6 +13,19 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [resetSent, setResetSent] = useState(false)
+  const [resetLoading, setResetLoading] = useState(false)
+
+  async function handleReset() {
+    if (!email.trim()) { setError('Upiši email pa klikni "Zaboravio/la lozinku?"'); return }
+    setResetLoading(true)
+    const supabase = createClient()
+    await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+    })
+    setResetSent(true)
+    setResetLoading(false)
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -90,6 +103,22 @@ export default function LoginPage() {
           >
             Prijavi se
           </Button>
+
+          <button
+            type="button"
+            onClick={handleReset}
+            disabled={resetLoading}
+            className="w-full text-sm text-center py-1 opacity-60 hover:opacity-100 transition-opacity"
+            style={{ color: 'var(--gold)' }}
+          >
+            {resetLoading ? 'Šaljem...' : 'Zaboravio/la lozinku?'}
+          </button>
+
+          {resetSent && (
+            <p className="text-sm text-center rounded-[10px] px-3 py-2" style={{ background: 'rgba(34,197,94,0.12)', color: '#16a34a' }}>
+              ✓ Poslali smo ti link za reset lozinke na email
+            </p>
+          )}
         </form>
 
         {/* Switch to register */}

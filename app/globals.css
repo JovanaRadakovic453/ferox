@@ -11,7 +11,7 @@
   --text-muted: #6B5F54;
   --border: #D9C9B8;
   --sh1: 0 2px 12px rgba(26, 23, 20, 0.08);
-  --sh2: 0 4px 24px rgba(26, 23, 20, 0.12);
+  --sh2: 0 4px 24px rgba(0,0,0,0.10);
   --radius: 14px;
   --radius-lg: 20px;
 }

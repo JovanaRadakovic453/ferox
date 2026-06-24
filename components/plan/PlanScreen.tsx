@@ -9,6 +9,7 @@ import type { Task, Appointment, DayEntry, UserProfile, PlanBlock, TaskType, Pri
 import Button from '@/components/ui/Button'
 import LogoutButton from '@/components/LogoutButton'
 
+
 function assignTasksToBlocks(tasks: Task[], blocks: ReturnType<typeof calcBlocks>): PlanBlock[] {
   const high   = tasks.filter(t => t.priority === 'high')
   const medium = tasks.filter(t => t.priority === 'medium')
@@ -28,14 +29,9 @@ function assignTasksToBlocks(tasks: Task[], blocks: ReturnType<typeof calcBlocks
   }))
 }
 
-function TaskItem({
-  task, onToggle,
-}: { task: Task; onToggle: () => void }) {
+function TaskItem({ task, onToggle }: { task: Task; onToggle: () => void }) {
   return (
-    <button
-      onClick={onToggle}
-      className="flex items-start gap-3 w-full text-left py-2 group"
-    >
+    <button onClick={onToggle} className="flex items-start gap-3 w-full text-left py-2 group">
       <div
         className="mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all duration-200"
         style={{
@@ -286,27 +282,33 @@ export default function PlanScreen({
   async function finishDay(tasksToTransfer: Task[]) {
     setSavingEod(true)
     setShowTransferPicker(false)
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
 
-    await supabase.from('day_entries').update({ updated_at: new Date().toISOString() }).eq('id', entry.id!)
+    try {
+      const supabase = createClient()
+      const { data: authData } = await supabase.auth.getUser()
+      const user = authData?.user
 
-    if (user && tasksToTransfer.length > 0) {
-      const tomorrow = new Date()
-      tomorrow.setDate(tomorrow.getDate() + 1)
-      const tomorrowKey = tomorrow.toISOString().split('T')[0]
-      await supabase.from('transferred_tasks').upsert({
-        user_id: user.id,
-        tasks: tasksToTransfer.map(t => ({
-          name: t.name, priority: t.priority, type: t.type, note: t.note ?? '', done: false,
-        })),
-        for_date: tomorrowKey,
-      }, { onConflict: 'user_id,for_date' })
+      await supabase.from('day_entries').update({ updated_at: new Date().toISOString() }).eq('id', entry.id!)
+
+      if (user && tasksToTransfer.length > 0) {
+        const tomorrow = new Date()
+        tomorrow.setDate(tomorrow.getDate() + 1)
+        const tomorrowKey = tomorrow.toISOString().split('T')[0]
+        await supabase.from('transferred_tasks').upsert({
+          user_id: user.id,
+          tasks: tasksToTransfer.map(t => ({
+            name: t.name, priority: t.priority, type: t.type, note: t.note ?? '', done: false,
+          })),
+          for_date: tomorrowKey,
+        }, { onConflict: 'user_id,for_date' })
+      }
+    } catch {
+      // DB greška nije fatalna — nastavljamo sa završetkom dana
     }
 
     const today = new Date().toISOString().split('T')[0]
     document.cookie = `ferox_day_finished=${today}; max-age=86400; path=/`
-    window.location.href = '/?sutra=1'
+    window.location.href = '/plan'
   }
 
   function closeAddTask() {
@@ -437,7 +439,7 @@ export default function PlanScreen({
             Moj plan
           </h1>
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-            {entry.energy} · {entry.sleep_hours}h sna · {initialTasks.length} zadataka za {entry.date_key}
+            {entry.energy} · {entry.sleep_hours !== null ? `${entry.sleep_hours}h sna` : ''}
           </p>
         </div>
         <div className="text-right">
@@ -486,6 +488,11 @@ export default function PlanScreen({
         <Button size="sm" variant="ghost" className="w-full" onClick={() => { window.location.href = '/?edit=1' }}>
           ✏️ Uredi plan
         </Button>
+        {!tomorrowPlanned && (
+          <Button size="sm" variant="ghost" className="w-full" onClick={() => { window.location.href = '/?sutra=1' }}>
+            🌙 Planiraj sutra
+          </Button>
+        )}
       </div>
 
       <div className="flex justify-center pb-4">
