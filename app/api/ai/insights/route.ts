@@ -3,7 +3,9 @@ import { createClient } from '@/lib/supabase/server'
 import type { NextRequest } from 'next/server'
 import { apiOk, ERR } from '@/lib/api'
 import { FEROX_PERSONA } from '@/lib/ai/prompts'
-import { AI } from '@/lib/config'
+import { AI, RATE_LIMITS } from '@/lib/config'
+import { checkRateLimit } from '@/lib/rateLimit'
+import { insightsInputSchema, aiInsightsResult } from '@/lib/validation'
 
 // Tool-use over PRE-AGGREGATED stats only (cheap + private — no raw task text leaves).
 const insightsTool = {
@@ -34,9 +36,13 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return ERR.unauthorized()
 
+  const rl = RATE_LIMITS.insights
+  if (!(await checkRateLimit(supabase, 'insights', rl.limit, rl.windowSec))) return ERR.rateLimited()
+
   const json = await request.json().catch(() => null)
-  const aggregates = json?.aggregates
-  if (!aggregates || typeof aggregates !== 'object') return ERR.invalidInput('Nedostaju agregati')
+  const parsed = insightsInputSchema.safeParse(json)
+  if (!parsed.success) return ERR.invalidInput(parsed.error.issues)
+  const { aggregates } = parsed.data
 
   try {
     const message = await anthropic.messages.create({
@@ -55,8 +61,9 @@ export async function POST(request: NextRequest) {
     })
     const block = message.content.find(c => c.type === 'tool_use')
     if (!block || block.type !== 'tool_use') return apiOk({ insights: [] })
-    const input = block.input as { insights?: unknown }
-    const insights = Array.isArray(input.insights) ? input.insights.slice(0, AI.insightsMax) : []
+    // Re-validiraj izlaz modela zod-om (kao brain-dump) umesto sirovog cast-a.
+    const out = aiInsightsResult.safeParse(block.input)
+    const insights = out.success ? out.data.insights.slice(0, AI.insightsMax) : []
     return apiOk({ insights })
   } catch {
     // Soft-fail: the deterministic charts still render without AI.

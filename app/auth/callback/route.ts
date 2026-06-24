@@ -4,7 +4,13 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/'
+  // Spreči open-redirect: dozvoli samo interne, relativne putanje (počinju '/',
+  // ne '//' ni '/\'). Sve ostalo pada na početnu.
+  const rawNext = searchParams.get('next') ?? '/'
+  const next =
+    rawNext.startsWith('/') && !rawNext.startsWith('//') && !rawNext.startsWith('/\\')
+      ? rawNext
+      : '/'
 
   if (code) {
     const supabase = await createClient()

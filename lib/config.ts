@@ -44,7 +44,27 @@ export const DEFAULTS = {
   reminderMinutes: 15,
   /** Koliko dana unazad computeStreak gleda (≈ gornja granica niza). */
   streakLookbackDays: 400,
+  /** History grafik: koliko dana prikazati (mobilni / desktop). */
+  historyDaysMobile: 7,
+  historyDaysDesktop: 14,
+  /** Insights: koliko najboljih tipova zadatka prikazati u grafiku. */
+  insightsTopTaskTypes: 6,
 }
+
+/**
+ * Per-ruta rate limit (po korisniku) — sprečava neograničen trošak Anthropic
+ * poziva / zloupotrebu brisanja naloga. Implementacija: lib/rateLimit.ts preko
+ * Supabase rate_limit_hit funkcije (atomično, RLS-bezbedno). `limit` zahteva po
+ * `windowSec` sekundi.
+ */
+export const RATE_LIMITS = {
+  chat: { limit: 20, windowSec: 60 },
+  brainDump: { limit: 10, windowSec: 60 },
+  replan: { limit: 10, windowSec: 60 },
+  eod: { limit: 10, windowSec: 60 },
+  insights: { limit: 10, windowSec: 300 },
+  accountDelete: { limit: 3, windowSec: 86400 },
+} as const
 
 /** Statički identitet aplikacije / metapodaci. */
 export const APP = {

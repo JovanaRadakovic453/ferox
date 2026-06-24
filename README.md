@@ -1,36 +1,44 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Ferox
 
-## Getting Started
+**Energy-adaptive daily planner** za balkansko tržište (srpski jezik). Planira dan
+prema **energiji** korisnika i hronotipu, ne fiksnom rasporedu. Target: ADHD/neurodivergentni
+profesionalci i freelanceri.
 
-First, run the development server:
+> "Svi planeri pretpostavljaju da si svaki dan ista osoba. Nisi."
 
+Tok dana: **Setup** (energija + san + zadaci, uz AI brain-dump) → energetski motor rasporedi
+zadatke po blokovima dana → tokom dana checkuješ zadatke / pitaš **Coach** → **EOD** (završi
+dan): AI recap, refleksija, streak, prenos nedovršenih zadataka.
+
+## Tech stack
+Next.js 16 (App Router) · React 19 · TypeScript · Tailwind v4 · Supabase (Postgres + Auth + RLS) ·
+Anthropic (`claude-sonnet-4-6`, samo server-side) · zod · vitest · Vercel.
+
+## Pokretanje lokalno
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env.local   # popuni vrednosti (vidi .env.example)
+npm run dev                  # http://localhost:3000
+npm test                     # vitest (unit testovi za lib/)
+npm run typecheck            # tsc --noEmit
 ```
+Node 20+.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+> **Windows cert bug (Node 22):** `npm install` / `next build` mogu pasti sa `X509_STORE_add_cert`
+> assertion-om. Workaround i detalji su u [CLAUDE.md](CLAUDE.md) ("Pokretanje lokalno").
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Env varijable
+Vidi [.env.example](.env.example). Obavezne (validiraju se u `lib/env.ts`):
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Server-only tajne
+(`SUPABASE_SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY`) su opcione i feature-gated.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Baza
+Pun schema je u [supabase/schema.sql](supabase/schema.sql); migracije u
+[supabase/migrations/](supabase/migrations/). Primeni preko Supabase SQL editora ili
+Management API-ja. Sve tabele imaju RLS (pristup samo `auth.uid()`).
 
-## Learn More
+## Deploy
+`git push origin main` → Vercel auto-deploy.
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Arhitektura i konvencije
+Detaljan vodič kroz strukturu, energetski motor i obavezne konvencije je u
+[CLAUDE.md](CLAUDE.md).

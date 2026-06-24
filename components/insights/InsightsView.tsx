@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import type { Aggregates, Forecast, Bar } from '@/lib/insights'
 import { ENERGY_LABELS, TASK_TYPE_LABELS } from '@/types/ferox'
 import type { TaskType, EnergyLevel } from '@/types/ferox'
+import { DEFAULTS } from '@/lib/config'
 
 type AiInsight = { title: string; body: string; type?: string }
 
@@ -38,7 +39,15 @@ export default function InsightsView({ agg, forecast }: { agg: Aggregates; forec
   useEffect(() => {
     const key = 'ferox_insights_' + agg.dayCount + '_' + agg.overallCompletion
     const cached = sessionStorage.getItem(key)
-    if (cached) { setAi(JSON.parse(cached)); setAiLoading(false); return }
+    if (cached) {
+      try {
+        setAi(JSON.parse(cached))
+        setAiLoading(false)
+        return
+      } catch {
+        sessionStorage.removeItem(key) // pokvaren keš — ignoriši i ponovo dohvati
+      }
+    }
     let cancelled = false
     fetch('/api/ai/insights', {
       method: 'POST',
@@ -57,7 +66,7 @@ export default function InsightsView({ agg, forecast }: { agg: Aggregates; forec
     return () => { cancelled = true }
   }, [agg])
 
-  const typeBars = agg.byType.slice(0, 6).map(b => ({
+  const typeBars = agg.byType.slice(0, DEFAULTS.insightsTopTaskTypes).map(b => ({
     ...b,
     label: TASK_TYPE_LABELS[b.label as TaskType] ?? b.label,
   }))

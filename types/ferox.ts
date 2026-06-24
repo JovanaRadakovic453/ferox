@@ -1,18 +1,14 @@
-export type TaskType =
-  | 'creative'
-  | 'analytical'
-  | 'meetings'
-  | 'communication'
-  | 'admin'
-  | 'light'
-  | 'rest'
-  | 'learning'
-  | 'exercise'
-  | 'planning'
-  | 'reading'
-  | 'meditation'
+// Jedan izvor istine za enum-e: const niz + izveden union tip. Mora se i dalje
+// poklapati sa schema.sql CHECK ograničenjima. lib/validation.ts uvozi ove
+// nizove (z.enum) umesto da ih duplira.
+export const TASK_TYPES = [
+  'creative', 'analytical', 'meetings', 'communication', 'admin', 'light',
+  'rest', 'learning', 'exercise', 'planning', 'reading', 'meditation',
+] as const
+export type TaskType = (typeof TASK_TYPES)[number]
 
-export type Priority = 'high' | 'medium' | 'low'
+export const PRIORITIES = ['high', 'medium', 'low'] as const
+export type Priority = (typeof PRIORITIES)[number]
 export type Reason = 'work' | 'school' | 'personal' | 'all'
 export type Rhythm = 'morning' | 'midday' | 'evening' | 'mixed'
 

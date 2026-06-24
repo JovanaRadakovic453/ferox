@@ -18,5 +18,6 @@ export const ERR = {
   invalidInput: (detail?: unknown) => apiError('INVALID_INPUT', 'Neispravni podaci', 400, detail),
   aiUnavailable: (detail?: unknown) => apiError('AI_UNAVAILABLE', 'AI trenutno nije dostupan', 502, detail),
   conflict: (code: string, message: string, detail?: unknown) => apiError(code, message, 409, detail),
+  rateLimited: () => apiError('RATE_LIMITED', 'Previše zahteva — sačekaj malo pa pokušaj ponovo', 429),
   server: (detail?: unknown) => apiError('SERVER_ERROR', 'Došlo je do greške na serveru', 500, detail),
 }

@@ -1,0 +1,46 @@
+import Checkbox from '@/components/ui/Checkbox'
+import { TASK_TYPE_LABELS, PRIORITY_LABELS } from '@/types/ferox'
+import type { Task } from '@/types/ferox'
+
+export default function TaskItem({ task, onToggle }: { task: Task; onToggle: () => void }) {
+  return (
+    <button
+      onClick={onToggle}
+      role="checkbox"
+      aria-checked={task.done}
+      aria-label={`${task.name} — ${PRIORITY_LABELS[task.priority]}${task.done ? ', završeno' : ''}`}
+      className="flex items-start gap-3 w-full text-left py-2.5 transition-transform active:scale-[0.995]"
+    >
+      <span className="mt-0.5" aria-hidden><Checkbox checked={task.done} /></span>
+      <div className="flex-1 min-w-0">
+        <p
+          className="text-sm font-medium transition-all duration-200"
+          style={{
+            color: task.done ? 'var(--text-muted)' : 'var(--text)',
+            textDecoration: task.done ? 'line-through' : 'none',
+            opacity: task.done ? 0.6 : 1,
+          }}
+        >
+          {task.name}
+        </p>
+        {task.note && (
+          <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{task.note}</p>
+        )}
+        <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+          {TASK_TYPE_LABELS[task.type]}
+        </p>
+      </div>
+      <span
+        className="text-[0.65rem] font-semibold px-2 py-0.5 rounded-full shrink-0 mt-0.5 tracking-wide"
+        title={PRIORITY_LABELS[task.priority]}
+        style={{
+          background: task.priority === 'high' ? '#ef444418' : task.priority === 'medium' ? '#f59e0b18' : '#22c55e18',
+          color: task.priority === 'high' ? '#ef4444' : task.priority === 'medium' ? '#d97706' : '#16a34a',
+        }}
+      >
+        <span aria-hidden>{task.priority === 'high' ? 'V' : task.priority === 'medium' ? 'S' : 'N'}</span>
+        <span className="sr-only">{PRIORITY_LABELS[task.priority]}</span>
+      </span>
+    </button>
+  )
+}
