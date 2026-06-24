@@ -54,9 +54,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Korak 2b: Azuriraj postojeci entry
+    // finished_at: null → svako snimanje preko postojeceg dana (npr. "Uredi plan")
+    // reotvara dan; ujedno sluzi kao ne-destruktivni undo slucajnog "Zavrsi dan".
     const { error: updateErr } = await supabase
       .from('day_entries')
-      .update({ energy, sleep_hours: sleepHours, updated_at: new Date().toISOString() })
+      .update({ energy, sleep_hours: sleepHours, finished_at: null, updated_at: new Date().toISOString() })
       .eq('user_id', user.id)
       .eq('id', entryId)
 
@@ -116,14 +118,11 @@ export async function POST(request: NextRequest) {
   const sentCount = tasks.length
   const dbCount = dbTasks?.length ?? 0
 
+  // Pravi neuspeh je vec uhvacen kroz insertTasksErr iznad. Ovaj re-count je samo
+  // sanity provera (npr. dva ista naziva, RLS filter, trka) i NE sme da obori
+  // validan upis — zato samo logujemo upozorenje, ne vracamo 500.
   if (dbCount !== sentCount) {
-    return NextResponse.json({
-      error: `Baza ima ${dbCount} zadataka, ali poslato ${sentCount}. Kontaktiraj podršku.`,
-      detail: 'count_mismatch',
-      sentCount,
-      dbCount,
-      dbTaskNames: dbTasks?.map(t => t.name),
-    }, { status: 500 })
+    console.warn('day/create count_mismatch', { sentCount, dbCount, dbTaskNames: dbTasks?.map(t => t.name) })
   }
 
   // Korak 4: Termini

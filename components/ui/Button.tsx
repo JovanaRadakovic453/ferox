@@ -21,7 +21,8 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           ...(isPrimary
             ? {
                 backgroundImage: 'linear-gradient(180deg, var(--gold-light), var(--gold) 55%, var(--gold-deep))',
-                boxShadow: 'var(--sh-gold)',
+                boxShadow: 'var(--sh-gold), inset 0 1px 0 rgba(255,255,255,0.28)',
+                textShadow: '0 1px 1px rgba(120,55,15,0.25)',
               }
             : {}),
           ...style,

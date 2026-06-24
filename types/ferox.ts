@@ -66,6 +66,7 @@ export interface DayEntry {
   sleep_hours: number | null
   water_intake: number
   water_goal: number
+  finished_at?: string | null
   tasks?: Task[]
   appointments?: Appointment[]
 }

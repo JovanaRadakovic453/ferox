@@ -159,7 +159,7 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
   const steps: Record<number, React.ReactNode> = {
     1: (
       <div className="flex flex-col items-center text-center gap-6">
-        <div className="animate-fade-slide display text-8xl tracking-widest" style={{ color: 'var(--gold)' }}>
+        <div className="animate-fade-slide display foil text-8xl tracking-widest">
           F
         </div>
         <div>

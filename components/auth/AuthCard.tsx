@@ -27,7 +27,7 @@ export default function AuthCard({
             style={{ background: 'linear-gradient(90deg, transparent, var(--gold), transparent)' }}
           />
           <div className="text-center mb-8">
-            <h1 className="display text-6xl tracking-[0.04em] mb-2" style={{ color: 'var(--gold)' }}>
+            <h1 className="display foil text-6xl tracking-[0.04em] mb-2">
               Ferox
             </h1>
             <p className="text-sm" style={{ color: 'var(--text-muted)' }}>

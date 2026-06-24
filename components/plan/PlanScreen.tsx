@@ -1,16 +1,40 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { calcBlocks } from '@/lib/energy'
-import { addDays } from '@/lib/date'
+import { addDays, tomorrowKey } from '@/lib/date'
 import { formatDate } from '@/lib/utils'
 import { TASK_TYPE_LABELS } from '@/types/ferox'
 import type { Task, Appointment, DayEntry, UserProfile, PlanBlock, TaskType, Priority } from '@/types/ferox'
 import Button from '@/components/ui/Button'
+import Checkbox from '@/components/ui/Checkbox'
 import LogoutButton from '@/components/LogoutButton'
 
+/** Smoothly animates an integer toward `value` (eased), for the done counter. */
+function useCountUp(value: number, duration = 550) {
+  const [display, setDisplay] = useState(value)
+  const prev = useRef(value)
+  useEffect(() => {
+    const from = prev.current
+    const to = value
+    if (from === to) return
+    let raf = 0
+    let start = 0
+    const stepFn = (now: number) => {
+      if (!start) start = now
+      const t = Math.min(1, (now - start) / duration)
+      const eased = 1 - Math.pow(1 - t, 3)
+      setDisplay(Math.round(from + (to - from) * eased))
+      if (t < 1) raf = requestAnimationFrame(stepFn)
+      else prev.current = to
+    }
+    raf = requestAnimationFrame(stepFn)
+    return () => cancelAnimationFrame(raf)
+  }, [value, duration])
+  return display
+}
 
 function assignTasksToBlocks(tasks: Task[], blocks: ReturnType<typeof calcBlocks>): PlanBlock[] {
   const high   = tasks.filter(t => t.priority === 'high')
@@ -33,16 +57,8 @@ function assignTasksToBlocks(tasks: Task[], blocks: ReturnType<typeof calcBlocks
 
 function TaskItem({ task, onToggle }: { task: Task; onToggle: () => void }) {
   return (
-    <button onClick={onToggle} className="flex items-start gap-3 w-full text-left py-2 group">
-      <div
-        className="mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all duration-200"
-        style={{
-          borderColor: task.done ? 'var(--gold)' : 'var(--border)',
-          background: task.done ? 'var(--gold)' : 'transparent',
-        }}
-      >
-        {task.done && <span className="text-white text-xs">✓</span>}
-      </div>
+    <button onClick={onToggle} className="flex items-start gap-3 w-full text-left py-2.5 transition-transform active:scale-[0.995]">
+      <span className="mt-0.5"><Checkbox checked={task.done} /></span>
       <div className="flex-1 min-w-0">
         <p
           className="text-sm font-medium transition-all duration-200"
@@ -62,10 +78,10 @@ function TaskItem({ task, onToggle }: { task: Task; onToggle: () => void }) {
         </p>
       </div>
       <span
-        className="text-xs px-1.5 py-0.5 rounded shrink-0"
+        className="text-[0.65rem] font-semibold px-2 py-0.5 rounded-full shrink-0 mt-0.5 tracking-wide"
         style={{
-          background: task.priority === 'high' ? '#ef444420' : task.priority === 'medium' ? '#f59e0b20' : '#22c55e20',
-          color: task.priority === 'high' ? '#ef4444' : task.priority === 'medium' ? '#f59e0b' : '#22c55e',
+          background: task.priority === 'high' ? '#ef444418' : task.priority === 'medium' ? '#f59e0b18' : '#22c55e18',
+          color: task.priority === 'high' ? '#ef4444' : task.priority === 'medium' ? '#d97706' : '#16a34a',
         }}
       >
         {task.priority === 'high' ? 'V' : task.priority === 'medium' ? 'S' : 'N'}
@@ -76,16 +92,8 @@ function TaskItem({ task, onToggle }: { task: Task; onToggle: () => void }) {
 
 function AppointmentItem({ appt, onToggle }: { appt: Appointment; onToggle: () => void }) {
   return (
-    <button onClick={onToggle} className="flex items-center gap-3 w-full text-left py-2 border-b" style={{ borderColor: 'var(--border)' }}>
-      <div
-        className="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all duration-200"
-        style={{
-          borderColor: appt.done ? 'var(--gold)' : 'var(--border)',
-          background: appt.done ? 'var(--gold)' : 'transparent',
-        }}
-      >
-        {appt.done && <span className="text-white text-xs">✓</span>}
-      </div>
+    <button onClick={onToggle} className="flex items-center gap-3 w-full text-left py-2.5 border-b transition-transform active:scale-[0.995]" style={{ borderColor: 'var(--hairline)' }}>
+      <Checkbox checked={appt.done} />
       <span
         className="text-sm font-medium shrink-0 transition-all duration-200"
         style={{ color: appt.done ? 'var(--text-muted)' : 'var(--gold)', opacity: appt.done ? 0.6 : 1 }}
@@ -100,6 +108,31 @@ function AppointmentItem({ appt, onToggle }: { appt: Appointment; onToggle: () =
       </p>
       <span className="text-xs px-1.5 py-0.5 rounded shrink-0" style={{ background: 'rgba(212,116,42,0.12)', color: 'var(--gold)' }}>termin</span>
     </button>
+  )
+}
+
+/** Segmented day progress — one segment per active time-block, so the bar
+ *  reads as the shape of the whole day rather than a single anonymous fill. */
+function DayProgress({ blocks }: { blocks: PlanBlock[] }) {
+  const active = blocks.filter(b => b.tasks.length > 0)
+  if (active.length === 0) {
+    return <div className="h-2.5 rounded-full" style={{ background: 'var(--surface2)' }} />
+  }
+  return (
+    <div className="flex items-center gap-1.5" aria-hidden>
+      {active.map(b => {
+        const done = b.tasks.filter(t => t.done).length
+        const pct = b.tasks.length ? (done / b.tasks.length) * 100 : 0
+        return (
+          <div key={b.label} className="flex-1 h-2.5 rounded-full overflow-hidden" style={{ background: 'var(--surface2)', boxShadow: 'inset 0 1px 2px rgba(26,23,20,0.07)' }}>
+            <div
+              className="h-full rounded-full transition-all duration-700"
+              style={{ width: `${pct}%`, backgroundImage: 'linear-gradient(90deg, var(--gold-light), var(--gold))' }}
+            />
+          </div>
+        )
+      })}
+    </div>
   )
 }
 
@@ -204,6 +237,7 @@ export default function PlanScreen({
   const done = doneTasks + doneAppts
   const total = tasks.length + appts.length
   const allDone = done === total && total > 0
+  const doneDisplay = useCountUp(done)
 
   async function toggleTask(taskName: string) {
     const supabase = createClient()
@@ -297,7 +331,10 @@ export default function PlanScreen({
       const { data: authData } = await supabase.auth.getUser()
       const user = authData?.user
 
-      await supabase.from('day_entries').update({ updated_at: new Date().toISOString() }).eq('id', entry.id!)
+      // finished_at je server-autoritativni marker da je dan završen (izvor istine).
+      await supabase.from('day_entries')
+        .update({ finished_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+        .eq('id', entry.id!)
 
       if (user && tasksToTransfer.length > 0) {
         // Nedovršene zadatke prenosimo na dan POSLE prikazanog dana.
@@ -314,8 +351,9 @@ export default function PlanScreen({
       // DB greška nije fatalna — nastavljamo sa završetkom dana
     }
 
-    document.cookie = `ferox_day_finished=${entry.date_key}; max-age=86400; path=/`
-    window.location.href = isToday ? '/plan' : `/plan?date=${entry.date_key}`
+    // Danas → početna (EodLanding "vrati se na početnu"); ne-danas → ostani na tom
+    // planu (koji sad zna finished_at). Pun reload da server pročita svež finished_at.
+    window.location.href = isToday ? '/' : `/plan?date=${entry.date_key}`
   }
 
   function closeAddTask() {
@@ -372,7 +410,7 @@ export default function PlanScreen({
     return (
       <main className="flex flex-col gap-5 pb-2">
         <div className="pt-1">
-          <h2 className="display text-3xl" style={{ color: 'var(--gold)' }}>
+          <h2 className="display foil text-3xl">
             Nedovršeni zadaci
           </h2>
           <p className="text-sm mt-1.5" style={{ color: 'var(--text-muted)' }}>
@@ -388,22 +426,14 @@ export default function PlanScreen({
               <button
                 key={task.name}
                 onClick={() => toggleTransfer(task.name)}
-                className="flex items-center gap-3 p-4 rounded-[14px] text-left transition-all"
+                className="flex items-center gap-3 p-4 rounded-[var(--r-md)] text-left transition-all active:scale-[0.99]"
                 style={{
-                  background: checked ? 'rgba(212,116,42,0.10)' : 'var(--surface)',
+                  background: checked ? 'var(--gold-tint)' : 'var(--surface)',
                   border: `1.5px solid ${checked ? 'var(--gold)' : 'var(--border)'}`,
-                  boxShadow: 'var(--sh1)',
+                  boxShadow: 'var(--sh-sm)',
                 }}
               >
-                <div
-                  className="w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-all"
-                  style={{
-                    borderColor: checked ? 'var(--gold)' : 'var(--border)',
-                    background: checked ? 'var(--gold)' : 'transparent',
-                  }}
-                >
-                  {checked && <span className="text-white text-xs">✓</span>}
-                </div>
+                <Checkbox checked={checked} shape="round" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium">{task.name}</p>
                   <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
@@ -443,7 +473,7 @@ export default function PlanScreen({
       {/* Header */}
       <header className="flex items-end justify-between pt-1">
         <div className="min-w-0">
-          <h1 className="display text-3xl" style={{ color: 'var(--gold)' }}>
+          <h1 className="display foil text-3xl">
             {isToday ? 'Moj plan' : 'Plan'}
           </h1>
           {!isToday && (
@@ -463,8 +493,8 @@ export default function PlanScreen({
           </div>
         </div>
         <div className="text-right shrink-0 pl-3">
-          <p className="display text-5xl leading-none" style={{ color: 'var(--text)' }}>
-            {done}<span className="text-2xl" style={{ color: 'var(--text-muted)' }}>/{total}</span>
+          <p className="display text-5xl leading-none tabular-nums" style={{ color: 'var(--text)' }}>
+            {doneDisplay}<span className="text-2xl" style={{ color: 'var(--text-muted)' }}>/{total}</span>
           </p>
           <p className="text-[0.65rem] font-semibold tracking-[0.14em] uppercase mt-1.5" style={{ color: 'var(--text-muted)' }}>završeno</p>
         </div>
@@ -481,13 +511,10 @@ export default function PlanScreen({
         </div>
       )}
 
-      {/* Ukupni progress */}
+      {/* Ukupni progress — segmentiran po delovima dana */}
       <div className="flex items-center gap-3">
-        <div className="flex-1 rounded-full overflow-hidden h-2.5" style={{ background: 'var(--surface2)', boxShadow: 'inset 0 1px 2px rgba(26,23,20,0.08)' }}>
-          <div
-            className="h-full transition-all duration-700 rounded-full"
-            style={{ width: `${total > 0 ? (done / total) * 100 : 0}%`, backgroundImage: 'linear-gradient(90deg, var(--gold-light), var(--gold))' }}
-          />
+        <div className="flex-1">
+          <DayProgress blocks={planBlocks} />
         </div>
         <span className="text-xs font-semibold tabular-nums shrink-0" style={{ color: 'var(--text-muted)' }}>
           {total > 0 ? Math.round((done / total) * 100) : 0}%
@@ -503,9 +530,17 @@ export default function PlanScreen({
 
       {/* Footer dugmad */}
       <div className="flex flex-col gap-3 pt-2">
-        <Button size="lg" className="w-full" onClick={startFinishDay} loading={savingEod}>
-          {allDone ? '🎉 Završi dan' : '✅ Završi dan'}
-        </Button>
+        {/* Primarno: dok dan nije završen → "Završi dan"; kad jeste → povratak na početnu */}
+        {!dayFinished && (
+          <Button size="lg" className="w-full" onClick={startFinishDay} loading={savingEod}>
+            {allDone ? '🎉 Završi dan' : '✅ Završi dan'}
+          </Button>
+        )}
+        {dayFinished && isToday && (
+          <Button size="lg" className="w-full" onClick={() => { window.location.href = '/' }}>
+            ← Na početnu
+          </Button>
+        )}
         <div className="grid grid-cols-2 gap-2">
           <Button size="sm" variant="secondary" onClick={() => setShowAddTask(true)}>
             ➕ Dodaj zadatak
@@ -518,7 +553,11 @@ export default function PlanScreen({
               <Button size="sm" variant="secondary" onClick={() => { window.location.href = '/?edit=1' }}>
                 ✏️ Uredi plan
               </Button>
-              {!tomorrowPlanned && (
+              {tomorrowPlanned ? (
+                <Button size="sm" variant="secondary" onClick={() => { window.location.href = '/plan?date=' + tomorrowKey() }}>
+                  🌙 Pogledaj sutra
+                </Button>
+              ) : (
                 <Button size="sm" variant="secondary" onClick={() => { window.location.href = '/?sutra=1' }}>
                   🌙 Planiraj sutra
                 </Button>
@@ -595,7 +634,7 @@ export default function PlanScreen({
                   <select
                     value={newTaskType}
                     onChange={e => setNewTaskType(e.target.value as TaskType)}
-                    className="field h-11 px-2 text-sm"
+                    className="field field-select h-11 px-2 text-sm"
                   >
                     {Object.entries(TASK_TYPE_LABELS).map(([v, l]) => (
                       <option key={v} value={v}>{l}</option>
@@ -607,7 +646,7 @@ export default function PlanScreen({
                   <select
                     value={newTaskPriority}
                     onChange={e => setNewTaskPriority(e.target.value as Priority)}
-                    className="field h-11 px-2 text-sm"
+                    className="field field-select h-11 px-2 text-sm"
                   >
                     <option value="high">🔴 Visok</option>
                     <option value="medium">🟡 Srednji</option>

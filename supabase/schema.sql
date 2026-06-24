@@ -69,6 +69,7 @@ create table if not exists public.day_entries (
   water_goal int not null default 2000,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
+  finished_at timestamptz,  -- NULL = aktivan dan; != NULL = dan je završen
   unique(user_id, date_key)
 );
 

@@ -1,5 +1,4 @@
 import { createClient } from '@/lib/supabase/server'
-import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import PlanScreen from '@/components/plan/PlanScreen'
 import { todayKey, tomorrowKey, isValidDayKey } from '@/lib/date'
@@ -22,15 +21,15 @@ export default async function PlanPage({
   const viewDate = isValidDayKey(params.date) ? params.date : today
   const isToday = viewDate === today
 
-  const cookieStore = await cookies()
-  const dayFinished = cookieStore.get('ferox_day_finished')?.value === viewDate
-
   const [{ data: profile }, { data: entry }] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', user.id).single(),
     supabase.from('day_entries').select('*').eq('user_id', user.id).eq('date_key', viewDate).single(),
   ])
 
   if (!entry) redirect('/')
+
+  // finished_at je izvor istine da je dan završen (više se ne oslanjamo na cookie).
+  const dayFinished = !!entry.finished_at
 
   const [{ data: tasks }, { data: appointments }, { data: tomorrowEntry }] = await Promise.all([
     supabase.from('tasks').select('*').eq('entry_id', entry.id).order('position'),

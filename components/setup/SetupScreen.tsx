@@ -186,7 +186,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
   return (
     <main className="flex flex-col gap-6 stagger pb-2">
       <header className="pt-1">
-        <h1 className="display text-4xl tracking-[0.03em]" style={{ color: 'var(--gold)' }}>Ferox</h1>
+        <h1 className="display foil text-4xl tracking-[0.03em]">Ferox</h1>
         <p className="text-sm mt-1.5" style={{ color: 'var(--text-muted)' }}>
           {targetDate && targetDate !== todayKey()
             ? `Planiramo sutra, ${profile.name} 🌙`
@@ -274,7 +274,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
                   backgroundImage: active ? 'linear-gradient(180deg, var(--gold-light), var(--gold))' : 'none',
                   background: active ? undefined : 'var(--surface2)',
                   color: active ? '#fff' : 'var(--text)',
-                  boxShadow: active ? 'var(--sh-gold)' : 'none',
+                  boxShadow: active ? 'var(--sh-gold), inset 0 1px 0 rgba(255,255,255,0.25)' : 'none',
                 }}>
                 <span className="text-xl">{opt.emoji}</span>
                 <div className="flex-1">
@@ -329,7 +329,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
                   <select
                     value={reminderInput.unit}
                     onChange={e => setReminderInput(r => ({ ...r, unit: e.target.value as 'min' | 'sat' }))}
-                    className="field h-11 px-2 text-sm shrink-0 w-auto"
+                    className="field field-select h-11 px-2 text-sm shrink-0 w-auto"
                   >
                     <option value="min">min</option>
                     <option value="sat">sat</option>
@@ -437,7 +437,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
                 <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Prioritet</label>
                 <select value={taskForm.priority}
                   onChange={e => setTaskForm(f => ({ ...f, priority: e.target.value as Priority }))}
-                  className="field h-10 px-2 text-sm">
+                  className="field field-select h-10 px-2 text-sm">
                   {PRIORITY_OPTIONS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
                 </select>
               </div>
@@ -445,7 +445,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
                 <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Tip</label>
                 <select value={taskForm.type}
                   onChange={e => setTaskForm(f => ({ ...f, type: e.target.value as TaskType }))}
-                  className="field h-10 px-2 text-sm">
+                  className="field field-select h-10 px-2 text-sm">
                   {TYPE_OPTIONS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                 </select>
               </div>
