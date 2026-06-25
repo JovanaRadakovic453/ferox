@@ -65,8 +65,16 @@ NEXT_PUBLIC_SUPABASE_URL=https://scwsifonygvfxiixaiak.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_DLpcNCKEMKoUIHrL1pzDKA_ftfNdn9T
 SUPABASE_SERVICE_ROLE_KEY=          # server-only (potrebno za brisanje naloga)
 ANTHROPIC_API_KEY=                  # server-only
+DEEPSEEK_API_KEY=                   # server-only, opciono (alt. provajder za Coach chat)
+AI_PROVIDER=anthropic               # 'deepseek' uključuje DeepSeek za Coach chat
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
+
+**DeepSeek (alt. AI provajder):** `lib/deepseek.ts` je OpenAI-kompatibilan fetch klijent
+(bez novog npm paketa). Coach chat (`/api/ai/chat`) koristi DeepSeek SAMO kad je
+`AI_PROVIDER=deepseek` I `DEEPSEEK_API_KEY` postavljen — inače default Anthropic. Ostale
+AI rute (brain-dump/eod/insights/replan) i dalje koriste Anthropic (tool-use + caching).
+DeepSeek model/URL su u `lib/config.ts` (`AI.deepseek`).
 
 ## Struktura projekta
 ```

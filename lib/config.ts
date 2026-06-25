@@ -25,6 +25,16 @@ export const AI = {
   brainDumpMaxTasks: 8,
   /** Najviše uvida koje Pattern Coach vrati. */
   insightsMax: 3,
+  /**
+   * DeepSeek (OpenAI-compatible) — alternativni provajder za Coach chat.
+   * Uključuje se tek kad je env `AI_PROVIDER=deepseek` I `DEEPSEEK_API_KEY`
+   * postavljen (vidi lib/deepseek.ts). Model id i URL nisu tajne; ključ ostaje
+   * u process.env. Default ostaje Anthropic — bez env-a se ništa ne menja.
+   */
+  deepseek: {
+    model: 'deepseek-chat',
+    baseUrl: 'https://api.deepseek.com',
+  },
 } as const
 
 /**
