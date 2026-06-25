@@ -14,9 +14,20 @@ export async function GET(request: NextRequest) {
 
   if (code) {
     const supabase = await createClient()
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
-      return NextResponse.redirect(`${origin}${next}`)
+      let destination = next
+      // Supabase may strip ?next= query params from redirectTo in the email link.
+      // Detect password recovery via JWT AMR claim so we always land on the right page.
+      if (data.session) {
+        try {
+          const payload = JSON.parse(atob(data.session.access_token.split('.')[1]))
+          if (payload.amr?.some((m: { method: string }) => m.method === 'recovery')) {
+            destination = '/reset-password'
+          }
+        } catch {}
+      }
+      return NextResponse.redirect(`${origin}${destination}`)
     }
   }
 
