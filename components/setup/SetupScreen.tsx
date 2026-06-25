@@ -159,7 +159,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
     ? 'Pripremi sutrašnji dan na miru — zakaži ga dok je sveže. 🌙'
     : 'Oblikujmo dan prema energiji koju zaista imaš.'
   const taskWord = tasks.length === 1 ? 'zadatak' : 'zadataka'
-  const totalWord = totalItems === 1 ? 'stavka' : totalItems < 5 ? 'stavke' : 'stavki'
+  const totalWord = totalItems === 1 ? 'zadatak' : totalItems < 5 ? 'zadatka' : 'zadataka'
 
   return (
     <>

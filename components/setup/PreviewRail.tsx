@@ -47,13 +47,8 @@ export default function PreviewRail({
 
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-[var(--r-md)] p-3.5 text-center" style={{ background: 'var(--surface2)' }}>
-            <p className="display text-3xl foil leading-none">{taskCount}</p>
-            <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>{taskWord}</p>
-            {apptCount > 0 && (
-              <p className="text-[0.65rem] mt-1 font-medium" style={{ color: 'var(--gold)' }}>
-                +{apptCount} {apptCount === 1 ? 'termin' : 'termina'}
-              </p>
-            )}
+            <p className="display text-3xl foil leading-none">{totalItems}</p>
+            <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>{totalWord}</p>
           </div>
           <div className="rounded-[var(--r-md)] p-3.5 text-center" style={{ background: 'var(--surface2)' }}>
             <p className="display text-3xl leading-none" style={{ color: 'var(--text)' }}>{sleepHours > 0 ? `${sleepHours}h` : '—'}</p>
@@ -79,6 +74,7 @@ export default function PreviewRail({
         <Button size="lg" className="w-full" disabled={!canSubmit} loading={loading} onClick={onSubmit}>
           {totalItems > 0 ? `Napravi plan · ${totalItems} ${totalWord} →` : 'Napravi moj plan →'}
         </Button>
+
         {!canSubmit && !loading && (
           <p className="text-center text-xs" style={{ color: 'var(--text-muted)' }}>
             {!energy ? '⚡ Izaberi nivo energije' : '📋 Dodaj bar jedan zadatak ili termin'}

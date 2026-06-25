@@ -179,17 +179,17 @@ export default function EodLanding({
       )}
 
       {/* Akcije */}
-      <div className="flex flex-col gap-3 lg:flex-row">
+      <div className="flex flex-col gap-3">
         {tomorrowPlanned || seeded ? (
-          <Button size="lg" className="w-full lg:flex-1" onClick={() => { window.location.href = '/plan?date=' + tomorrowKey() }}>
-            🌙 Pogledaj plan za sutra
+          <Button size="lg" className="w-full" onClick={() => { window.location.href = '/plan?date=' + tomorrowKey() }}>
+            🌙 Pogledaj plan za sutra →
           </Button>
         ) : (
-          <Button size="lg" className="w-full lg:flex-1" onClick={() => { window.location.href = '/?sutra=1' }}>
-            🌙 Planiraj sutra
+          <Button size="lg" className="w-full" onClick={() => { window.location.href = '/?sutra=1' }}>
+            🌙 Isplaniraj sutra →
           </Button>
         )}
-        <Button size="lg" variant="secondary" className="w-full lg:flex-1" onClick={() => { window.location.href = '/plan?date=' + dateKey }}>
+        <Button size="lg" variant="ghost" className="w-full" onClick={() => { window.location.href = '/plan?date=' + dateKey }}>
           Pogledaj današnji plan
         </Button>
       </div>

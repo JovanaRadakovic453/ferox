@@ -56,13 +56,17 @@ export default async function SetupPage({
       supabase.from('day_entries').select('id').eq('user_id', user.id).eq('date_key', tomorrowKey()).maybeSingle(),
       supabase.from('day_entries').select('date_key').eq('user_id', user.id).not('finished_at', 'is', null).order('date_key', { ascending: false }).limit(60),
     ])
+    // Sutra je već isplanirano → idi direktno na sutrašnji plan.
+    if (tomorrowEntry) {
+      redirect(`/plan?date=${tomorrowKey()}`)
+    }
+
     const total = dayTasks?.length ?? 0
     const doneCount = (dayTasks ?? []).filter(t => t.done).length
     const transferredCount = ((transferred?.tasks ?? []) as Task[]).filter((t: Task) => !t.done).length
 
     const finishedSet = new Set((finishedRows ?? []).map(r => r.date_key as string))
     const streak = computeStreak(finishedSet, profile.rest_days ?? [0, 6], todayKey())
-    // Persist a new personal best (never erased on a bad stretch).
     if (streak > (profile.best_streak ?? 0)) {
       await supabase.from('profiles').update({ best_streak: streak }).eq('id', user.id)
     }
