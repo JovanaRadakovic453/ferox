@@ -34,6 +34,7 @@ export default function PlanScreen({
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
   const [appts, setAppts] = useState<Appointment[]>(appointments)
   const [savingEod, setSavingEod] = useState(false)
+  const [dayJustFinished, setDayJustFinished] = useState(false)
   const [showTransferPicker, setShowTransferPicker] = useState(false)
   const [selectedForTransfer, setSelectedForTransfer] = useState<Set<string>>(new Set())
   const [showReplan, setShowReplan] = useState(false)
@@ -172,9 +173,8 @@ export default function PlanScreen({
       // DB greška nije fatalna — nastavljamo sa završetkom dana
     }
 
-    // Reload plana (ne `/`) da server pročita svež finished_at i ActionRail
-    // odmah prikaže "Isplaniraj sutra". EodLanding ostaje dostupan via "Na početnu".
-    window.location.href = `/plan?date=${entry.date_key}`
+    setSavingEod(false)
+    setDayJustFinished(true)
   }
 
   async function handleAddTask({ name, type, priority }: { name: string; type: TaskType; priority: Priority }): Promise<boolean> {
@@ -214,6 +214,26 @@ export default function PlanScreen({
         onBack={() => setShowTransferPicker(false)}
         saving={savingEod}
       />
+    )
+  }
+
+  if (dayJustFinished || (dayFinished && isToday)) {
+    return (
+      <main className="min-h-[70vh] flex flex-col items-center justify-center gap-8 px-4">
+        <div className="text-center flex flex-col items-center gap-3">
+          <span className="text-6xl">🌙</span>
+          <h1 className="display text-4xl" style={{ color: 'var(--gold)' }}>Dan završen</h1>
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Odmori se — sutra je novi dan.</p>
+        </div>
+        <div className="flex flex-col gap-3 w-full max-w-xs">
+          <Button size="lg" className="w-full" onClick={() => { window.location.href = tomorrowPlanned ? '/plan?date=' + addDays(entry.date_key, 1) : '/?sutra=1' }}>
+            🌙 {tomorrowPlanned ? 'Pogledaj plan za sutra →' : 'Isplaniraj sutra →'}
+          </Button>
+          <Button size="lg" variant="secondary" className="w-full" onClick={() => { window.location.href = '/' }}>
+            Pregled današnjeg dana
+          </Button>
+        </div>
+      </main>
     )
   }
 
