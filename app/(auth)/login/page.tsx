@@ -20,10 +20,16 @@ export default function LoginPage() {
   async function handleReset() {
     if (!email.trim()) { setError('Upiši email pa klikni "Zaboravio/la lozinku?"'); return }
     setResetLoading(true)
+    setError('')
     const supabase = createClient()
-    await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/callback`,
     })
+    if (resetError) {
+      setError(resetError.message)
+      setResetLoading(false)
+      return
+    }
     setResetSent(true)
     setResetLoading(false)
   }
