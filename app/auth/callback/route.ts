@@ -21,7 +21,9 @@ export async function GET(request: NextRequest) {
       // Detect password recovery via JWT AMR claim so we always land on the right page.
       if (data.session) {
         try {
-          const payload = JSON.parse(atob(data.session.access_token.split('.')[1]))
+          // JWT uses base64url (- and _ instead of + and /); Buffer handles it natively.
+          const raw = data.session.access_token.split('.')[1]
+          const payload = JSON.parse(Buffer.from(raw, 'base64url').toString('utf8'))
           if (payload.amr?.some((m: { method: string }) => m.method === 'recovery')) {
             destination = '/reset-password'
           }
