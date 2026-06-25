@@ -3,12 +3,15 @@ import { EnergyMeter, ENERGY_OPTIONS } from '@/components/setup/primitives'
 
 // Desktop rail: živi sažetak (energija / zadaci / san / kapacitet) + CTA.
 export default function PreviewRail({
-  isSutraMode, energy, taskCount, taskWord, sleepHours, heavyCount, energyCapacity, overBy, canSubmit, loading, onSubmit,
+  isSutraMode, energy, taskCount, taskWord, apptCount, totalItems, totalWord, sleepHours, heavyCount, energyCapacity, overBy, canSubmit, loading, onSubmit,
 }: {
   isSutraMode: boolean
   energy: number | null
   taskCount: number
   taskWord: string
+  apptCount: number
+  totalItems: number
+  totalWord: string
   sleepHours: number
   heavyCount: number
   energyCapacity: number
@@ -46,6 +49,11 @@ export default function PreviewRail({
           <div className="rounded-[var(--r-md)] p-3.5 text-center" style={{ background: 'var(--surface2)' }}>
             <p className="display text-3xl foil leading-none">{taskCount}</p>
             <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>{taskWord}</p>
+            {apptCount > 0 && (
+              <p className="text-[0.65rem] mt-1 font-medium" style={{ color: 'var(--gold)' }}>
+                +{apptCount} {apptCount === 1 ? 'termin' : 'termina'}
+              </p>
+            )}
           </div>
           <div className="rounded-[var(--r-md)] p-3.5 text-center" style={{ background: 'var(--surface2)' }}>
             <p className="display text-3xl leading-none" style={{ color: 'var(--text)' }}>{sleepHours > 0 ? `${sleepHours}h` : '—'}</p>
@@ -69,11 +77,11 @@ export default function PreviewRail({
 
       <div className="flex flex-col gap-2">
         <Button size="lg" className="w-full" disabled={!canSubmit} loading={loading} onClick={onSubmit}>
-          {taskCount > 0 ? `Napravi plan · ${taskCount} ${taskWord} →` : 'Napravi moj plan →'}
+          {totalItems > 0 ? `Napravi plan · ${totalItems} ${totalWord} →` : 'Napravi moj plan →'}
         </Button>
         {!canSubmit && !loading && (
           <p className="text-center text-xs" style={{ color: 'var(--text-muted)' }}>
-            {!energy ? '⚡ Izaberi nivo energije' : '📋 Dodaj bar jedan zadatak'}
+            {!energy ? '⚡ Izaberi nivo energije' : '📋 Dodaj bar jedan zadatak ili termin'}
           </p>
         )}
       </div>

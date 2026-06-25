@@ -84,7 +84,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
   }
 
   async function handleSubmit() {
-    if (!energy || tasks.length === 0) return
+    if (!energy || (tasks.length + appointments.length) === 0) return
     setLoading(true)
     setSubmitError(null)
 
@@ -148,7 +148,8 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
     }, { onConflict: 'user_id,for_date' })
   }
 
-  const canSubmit = energy !== null && tasks.length > 0 && !brainDumpLoading
+  const totalItems = tasks.length + appointments.length
+  const canSubmit = energy !== null && totalItems > 0 && !brainDumpLoading
 
   // Pozdrav prema dobu dana (klijentski; samo za UI ton).
   const hour = new Date().getHours()
@@ -158,6 +159,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
     ? 'Pripremi sutrašnji dan na miru — zakaži ga dok je sveže. 🌙'
     : 'Oblikujmo dan prema energiji koju zaista imaš.'
   const taskWord = tasks.length === 1 ? 'zadatak' : 'zadataka'
+  const totalWord = totalItems === 1 ? 'stavka' : totalItems < 5 ? 'stavke' : 'stavki'
 
   return (
     <>
@@ -251,6 +253,9 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
             energy={energy}
             taskCount={tasks.length}
             taskWord={taskWord}
+            apptCount={appointments.length}
+            totalItems={totalItems}
+            totalWord={totalWord}
             sleepHours={sleepHours}
             heavyCount={heavyCount}
             energyCapacity={energyCapacity}
@@ -266,11 +271,11 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
       <div className="lg:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[540px] z-40">
         <div className="glass px-5 min-[540px]:px-9 pt-3.5 pb-safe" style={{ borderTop: '1px solid var(--hairline)' }}>
           <Button size="lg" className="w-full" disabled={!canSubmit} loading={loading} onClick={handleSubmit}>
-            {tasks.length > 0 ? `Napravi plan · ${tasks.length} ${taskWord} →` : 'Napravi moj plan →'}
+            {totalItems > 0 ? `Napravi plan · ${totalItems} ${totalWord} →` : 'Napravi moj plan →'}
           </Button>
           {!canSubmit && !loading && (
             <p className="text-center text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
-              {!energy ? '⚡ Izaberi nivo energije' : '📋 Dodaj bar jedan zadatak'}
+              {!energy ? '⚡ Izaberi nivo energije' : '📋 Dodaj bar jedan zadatak ili termin'}
             </p>
           )}
         </div>
