@@ -18,7 +18,8 @@ export default async function PlanPage({
   const today = todayKey()
   // Učitavamo plan tačno za traženi datum (default: danas). Time se datum
   // upisa i datum čitanja uvek poklapaju — nema bacanja na praznu početnu.
-  const viewDate = isValidDayKey(params.date) ? params.date : today
+  const hasDateParam = !!params.date && isValidDayKey(params.date)
+  const viewDate = hasDateParam ? params.date! : today
   const isToday = viewDate === today
 
   const [{ data: profile }, { data: entry }] = await Promise.all([
@@ -46,6 +47,7 @@ export default async function PlanPage({
       dayFinished={dayFinished}
       tomorrowPlanned={!!tomorrowEntry}
       isToday={isToday}
+      hasDateParam={hasDateParam}
     />
   )
 }

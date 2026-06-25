@@ -19,7 +19,7 @@ import AddTaskModal from '@/components/plan/AddTaskModal'
 import ReplanModal, { type ReplanResult } from '@/components/plan/ReplanModal'
 
 export default function PlanScreen({
-  entry, tasks: initialTasks, appointments, profile, dayFinished = false, tomorrowPlanned = false, isToday = true,
+  entry, tasks: initialTasks, appointments, profile, dayFinished = false, tomorrowPlanned = false, isToday = true, hasDateParam = false,
 }: {
   entry: DayEntry
   tasks: Task[]
@@ -28,6 +28,7 @@ export default function PlanScreen({
   dayFinished?: boolean
   tomorrowPlanned?: boolean
   isToday?: boolean
+  hasDateParam?: boolean
 }) {
   const toast = useToast()
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
@@ -187,7 +188,7 @@ export default function PlanScreen({
     return true
   }
 
-  if (dayJustFinished || (dayFinished && isToday)) {
+  if (dayJustFinished || (dayFinished && isToday && !hasDateParam)) {
     return (
       <main className="min-h-[70vh] flex flex-col items-center justify-center gap-8 px-4">
         <div className="text-center flex flex-col items-center gap-3">
