@@ -54,9 +54,15 @@ export default function PlanScreen({
 
   function getAppointmentsForBlock(blockIndex: number): Appointment[] {
     const b = blocks[blockIndex]
+    const isFirst = blockIndex === 0
+    const isLast = blockIndex === blocks.length - 1
     return appts.filter(a => {
       const [h] = a.time.split(':').map(Number)
-      return h >= b.start && h < b.end
+      // Termin pre prvog bloka → prvi blok. Posle poslednjeg → poslednji blok.
+      // Bez ovoga termini van opsega se broje ali ne prikazuju (phantom task u counteru).
+      const lower = isFirst ? -Infinity : b.start
+      const upper = isLast ? Infinity : b.end
+      return h >= lower && h < upper
     })
   }
 
