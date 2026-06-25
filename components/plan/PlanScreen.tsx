@@ -172,9 +172,9 @@ export default function PlanScreen({
       // DB greška nije fatalna — nastavljamo sa završetkom dana
     }
 
-    // Danas → početna (EodLanding "vrati se na početnu"); ne-danas → ostani na tom
-    // planu (koji sad zna finished_at). Pun reload da server pročita svež finished_at.
-    window.location.href = isToday ? '/' : `/plan?date=${entry.date_key}`
+    // Reload plana (ne `/`) da server pročita svež finished_at i ActionRail
+    // odmah prikaže "Isplaniraj sutra". EodLanding ostaje dostupan via "Na početnu".
+    window.location.href = `/plan?date=${entry.date_key}`
   }
 
   async function handleAddTask({ name, type, priority }: { name: string; type: TaskType; priority: Priority }): Promise<boolean> {
