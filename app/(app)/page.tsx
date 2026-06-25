@@ -56,11 +56,6 @@ export default async function SetupPage({
       supabase.from('day_entries').select('id').eq('user_id', user.id).eq('date_key', tomorrowKey()).maybeSingle(),
       supabase.from('day_entries').select('date_key').eq('user_id', user.id).not('finished_at', 'is', null).order('date_key', { ascending: false }).limit(60),
     ])
-    // Sutra je već isplanirano → idi direktno na sutrašnji plan.
-    if (tomorrowEntry) {
-      redirect(`/plan?date=${tomorrowKey()}`)
-    }
-
     const total = dayTasks?.length ?? 0
     const doneCount = (dayTasks ?? []).filter(t => t.done).length
     const transferredCount = ((transferred?.tasks ?? []) as Task[]).filter((t: Task) => !t.done).length
