@@ -24,20 +24,15 @@ export default function ActionRail({
         </Button>
       )}
       {dayFinished && isToday && (
-        <>
-          {tomorrowPlanned ? (
-            <Button size="lg" className="w-full" onClick={() => { window.location.href = '/plan?date=' + tomorrowKey() }}>
-              🌙 Pogledaj plan za sutra →
-            </Button>
-          ) : (
-            <Button size="lg" className="w-full" onClick={() => { window.location.href = '/?sutra=1' }}>
-              🌙 Isplaniraj sutra →
-            </Button>
-          )}
-          <Button size="lg" variant="ghost" className="w-full" onClick={() => { window.location.href = '/' }}>
-            Pregled završenog dana
+        tomorrowPlanned ? (
+          <Button size="lg" className="w-full" onClick={() => { window.location.href = '/plan?date=' + tomorrowKey() }}>
+            🌙 Pogledaj plan za sutra →
           </Button>
-        </>
+        ) : (
+          <Button size="lg" className="w-full" onClick={() => { window.location.href = '/?sutra=1' }}>
+            🌙 Isplaniraj sutra →
+          </Button>
+        )
       )}
       <div className="grid grid-cols-2 gap-2">
         <Button size="sm" variant="secondary" onClick={onAddTask}>

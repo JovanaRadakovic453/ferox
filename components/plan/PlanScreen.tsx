@@ -15,7 +15,6 @@ import { DEFAULTS } from '@/lib/config'
 import BlockCard from '@/components/plan/BlockCard'
 import WaterTracker from '@/components/plan/WaterTracker'
 import ActionRail from '@/components/plan/ActionRail'
-import TransferPicker from '@/components/plan/TransferPicker'
 import AddTaskModal from '@/components/plan/AddTaskModal'
 import ReplanModal, { type ReplanResult } from '@/components/plan/ReplanModal'
 
@@ -35,8 +34,6 @@ export default function PlanScreen({
   const [appts, setAppts] = useState<Appointment[]>(appointments)
   const [savingEod, setSavingEod] = useState(false)
   const [dayJustFinished, setDayJustFinished] = useState(false)
-  const [showTransferPicker, setShowTransferPicker] = useState(false)
-  const [selectedForTransfer, setSelectedForTransfer] = useState<Set<string>>(new Set())
   const [showReplan, setShowReplan] = useState(false)
   const [showAddTask, setShowAddTask] = useState(false)
   const [water, setWater] = useState(entry.water_intake ?? 0)
@@ -128,25 +125,11 @@ export default function PlanScreen({
 
   function startFinishDay() {
     const unfinished = tasks.filter(t => !t.done)
-    if (unfinished.length === 0) {
-      finishDay([])
-    } else {
-      setSelectedForTransfer(new Set(unfinished.map(t => t.name)))
-      setShowTransferPicker(true)
-    }
-  }
-
-  function toggleTransfer(name: string) {
-    setSelectedForTransfer(prev => {
-      const next = new Set(prev)
-      next.has(name) ? next.delete(name) : next.add(name)
-      return next
-    })
+    finishDay(unfinished)
   }
 
   async function finishDay(tasksToTransfer: Task[]) {
     setSavingEod(true)
-    setShowTransferPicker(false)
 
     try {
       const supabase = createClient()
@@ -204,19 +187,6 @@ export default function PlanScreen({
     return true
   }
 
-  if (showTransferPicker) {
-    return (
-      <TransferPicker
-        unfinished={tasks.filter(t => !t.done)}
-        selected={selectedForTransfer}
-        onToggle={toggleTransfer}
-        onConfirm={finishDay}
-        onBack={() => setShowTransferPicker(false)}
-        saving={savingEod}
-      />
-    )
-  }
-
   if (dayJustFinished || (dayFinished && isToday)) {
     return (
       <main className="min-h-[70vh] flex flex-col items-center justify-center gap-8 px-4">
@@ -228,9 +198,6 @@ export default function PlanScreen({
         <div className="flex flex-col gap-3 w-full max-w-xs">
           <Button size="lg" className="w-full" onClick={() => { window.location.href = tomorrowPlanned ? '/plan?date=' + addDays(entry.date_key, 1) : '/?sutra=1' }}>
             🌙 {tomorrowPlanned ? 'Pogledaj plan za sutra →' : 'Isplaniraj sutra →'}
-          </Button>
-          <Button size="lg" variant="secondary" className="w-full" onClick={() => { window.location.href = '/' }}>
-            Pregled današnjeg dana
           </Button>
         </div>
       </main>

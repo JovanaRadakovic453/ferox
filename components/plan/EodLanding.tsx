@@ -185,9 +185,6 @@ export default function EodLanding({
         }}>
           🌙 {(tomorrowPlanned || seeded) ? 'Pogledaj plan za sutra →' : 'Isplaniraj sutra →'}
         </Button>
-        <Button size="lg" variant="ghost" className="w-full" onClick={() => { window.location.href = '/plan?date=' + dateKey }}>
-          Pogledaj današnji plan
-        </Button>
       </div>
 
       <div className="flex justify-center pb-4">
