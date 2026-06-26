@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import HistoryView, { type HistoryDay } from '@/components/history/HistoryView'
+import { todayKey } from '@/lib/date'
 
 export default async function HistoryPage() {
   const supabase = await createClient()
@@ -34,5 +35,5 @@ export default async function HistoryPage() {
     return { ...e, done: c.done, total: c.total, pct: c.total ? Math.round((c.done / c.total) * 100) : 0 }
   })
 
-  return <HistoryView days={days} />
+  return <HistoryView days={days} todayKey={todayKey()} />
 }
