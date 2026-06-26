@@ -5,13 +5,22 @@ import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
 import Button from '@/components/ui/Button'
 import type { Routine, RoutineTask, TaskType, Priority } from '@/types/ferox'
-import { TASK_TYPE_LABELS } from '@/types/ferox'
+import { TASK_TYPE_LABELS, BLOCK_LABELS } from '@/types/ferox'
+
+const BLOCK_OPTIONS = [
+  { value: null, label: '⚡ Automatski' },
+  { value: 0, label: BLOCK_LABELS[0] },
+  { value: 1, label: BLOCK_LABELS[1] },
+  { value: 2, label: BLOCK_LABELS[2] },
+  { value: 3, label: BLOCK_LABELS[3] },
+]
 
 export default function RoutinesSection({ initialRoutines, userId }: { initialRoutines: Routine[]; userId: string }) {
   const toast = useToast()
   const [routines, setRoutines] = useState<Routine[]>(initialRoutines)
   const [creating, setCreating] = useState(false)
   const [routineName, setRoutineName] = useState('')
+  const [blockIndex, setBlockIndex] = useState<number | null>(null)
   const [draftTasks, setDraftTasks] = useState<RoutineTask[]>([])
   const [saving, setSaving] = useState(false)
 
@@ -30,6 +39,7 @@ export default function RoutinesSection({ initialRoutines, userId }: { initialRo
   function cancelCreate() {
     setCreating(false)
     setRoutineName('')
+    setBlockIndex(null)
     setDraftTasks([])
   }
 
@@ -44,7 +54,7 @@ export default function RoutinesSection({ initialRoutines, userId }: { initialRo
     const { data, error } = await supabase.from('routines').insert({
       user_id: userId,
       name: routineName.trim(),
-      tasks: validTasks,
+      tasks: validTasks.map(t => ({ ...t, block_index: blockIndex })),
     }).select('*').single()
     setSaving(false)
     if (error) { toast({ message: 'Nije sačuvano — pokušaj ponovo', variant: 'error' }); return }
@@ -104,7 +114,10 @@ export default function RoutinesSection({ initialRoutines, userId }: { initialRo
                 </span>
               ))}
             </div>
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{r.tasks.length} {r.tasks.length === 1 ? 'zadatak' : r.tasks.length < 5 ? 'zadatka' : 'zadataka'}</p>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              {r.tasks.length} {r.tasks.length === 1 ? 'zadatak' : r.tasks.length < 5 ? 'zadatka' : 'zadataka'}
+              {r.tasks[0]?.block_index != null ? ` · ${BLOCK_LABELS[r.tasks[0].block_index]}` : ' · Automatski'}
+            </p>
           </div>
         ))}
       </div>
@@ -119,6 +132,24 @@ export default function RoutinesSection({ initialRoutines, userId }: { initialRo
             placeholder="Naziv rutine (npr. Jutarnja rutina)"
             className="field h-11 px-3.5 text-sm"
           />
+          <div>
+            <label className="text-xs mb-1.5 block font-medium" style={{ color: 'var(--text-muted)' }}>Doba dana</label>
+            <div className="flex flex-wrap gap-2">
+              {BLOCK_OPTIONS.map(opt => (
+                <button
+                  key={String(opt.value)}
+                  type="button"
+                  onClick={() => setBlockIndex(opt.value)}
+                  className="text-xs px-3 py-1.5 rounded-[var(--r-md)] transition-colors"
+                  style={{
+                    background: blockIndex === opt.value ? 'var(--gold-tint)' : 'var(--surface1)',
+                    border: `1px solid ${blockIndex === opt.value ? 'var(--gold)' : 'var(--border)'}`,
+                    color: blockIndex === opt.value ? 'var(--gold)' : 'var(--text-muted)',
+                  }}
+                >{opt.label}</button>
+              ))}
+            </div>
+          </div>
 
           <div className="flex flex-col gap-2">
             {draftTasks.map((t, i) => (

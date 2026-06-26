@@ -110,8 +110,15 @@ export const TASK_TYPE_LABELS: Record<TaskType, string> = {
   meditation: '🧘 Meditacija',
 }
 
-export type RoutineTask = { name: string; type: TaskType; priority: Priority }
+export type RoutineTask = { name: string; type: TaskType; priority: Priority; block_index?: number | null }
 export type Routine = { id: string; user_id: string; name: string; tasks: RoutineTask[]; created_at: string }
+
+export const BLOCK_LABELS: Record<number, string> = {
+  0: '🌅 Jutro',
+  1: '🕙 Prepodne',
+  2: '☀️ Popodne',
+  3: '🌙 Veče',
+}
 
 export const PRIORITY_LABELS: Record<Priority, string> = {
   high: '🔴 Visok',
