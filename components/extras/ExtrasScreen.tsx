@@ -174,7 +174,7 @@ export default function ExtrasScreen({ initialPomodoro, profileId }: { initialPo
           </div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap justify-center gap-2">
           {[5, 10, 15, 20].map(m => (
             <button key={m} type="button" onClick={() => selectBreak(m)}
               className="text-xs px-3 py-2 rounded-[var(--r-md)] transition-colors"
@@ -184,6 +184,21 @@ export default function ExtrasScreen({ initialPomodoro, profileId }: { initialPo
                 color: breakMins === m ? 'var(--gold)' : 'var(--text-muted)',
               }}>{m} min</button>
           ))}
+          <div className="flex items-center gap-1.5">
+            <input
+              type="number"
+              min={1}
+              max={120}
+              placeholder="?"
+              className="w-14 text-xs px-2 py-2 rounded-[var(--r-md)] text-center tabular-nums"
+              style={{ background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--text)', outline: 'none' }}
+              onChange={e => {
+                const v = parseInt(e.target.value)
+                if (v >= 1 && v <= 120) selectBreak(v)
+              }}
+            />
+            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>min</span>
+          </div>
         </div>
 
         <div className="flex gap-3 w-full max-w-xs">
