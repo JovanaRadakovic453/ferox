@@ -276,7 +276,7 @@ export default function PlanScreen({
             <Button size="sm" onClick={() => setShowAddTask(true)}>➕ Dodaj zadatak</Button>
           </div>
         ) : (
-          <div className="flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:gap-4 lg:items-start">
+          <div className="flex flex-col gap-4">
             {planBlocks.map((block, i) => (
               <BlockCard key={block.label} block={block} appointments={getAppointmentsForBlock(i)} onToggle={toggleTask} onToggleAppt={toggleAppointment} />
             ))}
