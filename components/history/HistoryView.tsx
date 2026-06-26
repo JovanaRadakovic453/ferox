@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
-import { DEFAULTS } from '@/lib/config'
 
 export type HistoryDay = {
   id: string
@@ -15,28 +14,8 @@ export type HistoryDay = {
   pct: number
 }
 
-function Strip({ days }: { days: HistoryDay[] }) {
-  return (
-    <div className="flex items-end justify-between gap-3 h-28 lg:h-36">
-      {days.map(d => (
-        <div key={d.id} className="flex-1 flex flex-col items-center gap-1.5 min-w-0 h-full">
-          <div className="w-5 flex-1 flex flex-col justify-end" style={{ background: 'var(--surface2)', borderRadius: '4px' }}>
-            <div
-              className="w-full transition-all duration-700"
-              style={{ height: `${Math.max(3, d.pct)}%`, backgroundImage: 'linear-gradient(180deg, var(--gold-light), var(--gold))', borderRadius: '4px 4px 0 0' }}
-            />
-          </div>
-          <span className="text-[0.55rem] tabular-nums shrink-0" style={{ color: 'var(--text-muted)' }}>{d.pct}%</span>
-        </div>
-      ))}
-    </div>
-  )
-}
 
 export default function HistoryView({ days }: { days: HistoryDay[] }) {
-  const strip7 = [...days].slice(0, DEFAULTS.historyDaysMobile).reverse()
-  const strip14 = [...days].slice(0, DEFAULTS.historyDaysDesktop).reverse()
-
   return (
     <main className="flex flex-col gap-6 lg:gap-7 pb-2">
       <header className="pt-2">
@@ -57,14 +36,6 @@ export default function HistoryView({ days }: { days: HistoryDay[] }) {
         </div>
       ) : (
         <>
-          {strip7.length > 1 && (
-            <div className="card p-5 lg:p-6">
-              <p className="section-label mb-3">Realizacija po danu</p>
-              <div className="lg:hidden"><Strip days={strip7} /></div>
-              <div className="hidden lg:block"><Strip days={strip14} /></div>
-            </div>
-          )}
-
           <div className="flex flex-col gap-2.5 lg:grid lg:grid-cols-2 xl:grid-cols-3 lg:gap-3">
             {days.map(d => (
               <Link
