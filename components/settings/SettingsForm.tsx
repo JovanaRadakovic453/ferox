@@ -199,8 +199,17 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
           <span className="text-sm">Zvuk</span>
           <input type="checkbox" checked={soundEnabled} onChange={e => setSoundEnabled(e.target.checked)} className="w-5 h-5 accent-[var(--gold)]" />
         </label>
-        <div className="flex flex-col items-center gap-4 py-1">
-          <p className="text-xs font-medium self-start" style={{ color: 'var(--text-muted)' }}>Pomodoro</p>
+        <div className="rounded-[var(--r-md)] px-3.5 py-3 text-xs" style={{ background: 'var(--surface2)', color: 'var(--text-muted)' }}>
+          🔔 Podsetnici (push notifikacije) — uskoro
+        </div>
+      </section>
+      </div>
+
+      {/* Dodatne opcije */}
+      <section className="card p-5 flex flex-col gap-4">
+        <p className="section-label">Dodatne opcije</p>
+        <div className="flex flex-col items-center gap-4 py-2">
+          <p className="text-xs font-medium self-start" style={{ color: 'var(--text-muted)' }}>🍅 Pomodoro — trajanje fokus sesije</p>
           <div className="relative w-32 h-32">
             <svg width="128" height="128" viewBox="0 0 128 128">
               <circle cx="64" cy="64" r="54" fill="none" stroke="var(--surface2)" strokeWidth="10" />
@@ -250,11 +259,7 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
             >+</button>
           </div>
         </div>
-        <div className="rounded-[var(--r-md)] px-3.5 py-3 text-xs" style={{ background: 'var(--surface2)', color: 'var(--text-muted)' }}>
-          🔔 Podsetnici (push notifikacije) — uskoro
-        </div>
       </section>
-      </div>
 
       <div className="lg:flex lg:justify-center">
         <Button size="lg" className="w-full lg:w-auto lg:px-20" onClick={save} loading={saving}>Sačuvaj izmene</Button>
