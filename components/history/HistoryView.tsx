@@ -17,10 +17,10 @@ export type HistoryDay = {
 
 function Strip({ days }: { days: HistoryDay[] }) {
   return (
-    <div className="flex items-end justify-between gap-2 h-28 lg:h-36">
+    <div className="flex items-end justify-between gap-3 h-28 lg:h-36">
       {days.map(d => (
         <div key={d.id} className="flex-1 flex flex-col items-center gap-1.5 min-w-0 h-full">
-          <div className="w-full flex-1 flex flex-col justify-end" style={{ background: 'var(--surface2)', borderRadius: '4px' }}>
+          <div className="w-5 flex-1 flex flex-col justify-end" style={{ background: 'var(--surface2)', borderRadius: '4px' }}>
             <div
               className="w-full transition-all duration-700"
               style={{ height: `${Math.max(3, d.pct)}%`, backgroundImage: 'linear-gradient(180deg, var(--gold-light), var(--gold))', borderRadius: '4px 4px 0 0' }}
