@@ -25,7 +25,12 @@ const RHYTHMS: { value: Rhythm; label: string }[] = [
   { value: 'mixed', label: '🌊 Mešovito' },
 ]
 const WEEKDAYS = ['Ned', 'Pon', 'Uto', 'Sre', 'Čet', 'Pet', 'Sub']
-const HABITS = ['Planiranje', 'Vežbanje', 'Čitanje', 'Meditacija', 'Učenje', 'Kreativni rad', 'Pauza', 'Šetnja']
+const HABITS_BY_REASON: Record<Reason, string[]> = {
+  work:     ['Administracija', 'Sastanak', 'Kreativni rad', 'Istraživački rad', 'Komunikacija', 'Lagano', 'Planiranje', 'Pauza', 'Sport'],
+  school:   ['Učenje', 'Ponavljanje', 'Pisanje', 'Komunikacija', 'Kreativni rad', 'Lagano', 'Planiranje', 'Čitanje', 'Pauza', 'Sport'],
+  personal: ['Meditacija', 'Sport', 'Čitanje', 'Planiranje', 'Kreativni rad', 'Šetnja', 'Pisanje', 'Učenje', 'Rad na sebi'],
+  all:      ['Planiranje', 'Kreativni rad', 'Čitanje', 'Meditacija', 'Sport', 'Šetnja', 'Učenje', 'Pisanje', 'Pauza', 'Dnevnik', 'Komunikacija', 'Lagano'],
+}
 
 function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
@@ -168,13 +173,13 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
         <div>
           <label className="text-xs mb-1.5 block font-medium" style={{ color: 'var(--text-muted)' }}>🌅 Jutarnje</label>
           <div className="flex flex-wrap gap-2">
-            {HABITS.map(h => <Chip key={h} active={morning.includes(h)} onClick={() => toggle(morning, h, setMorning)}>{h}</Chip>)}
+            {HABITS_BY_REASON[reason].map(h => <Chip key={h} active={morning.includes(h)} onClick={() => toggle(morning, h, setMorning)}>{h}</Chip>)}
           </div>
         </div>
         <div>
           <label className="text-xs mb-1.5 block font-medium" style={{ color: 'var(--text-muted)' }}>🌙 Večernje</label>
           <div className="flex flex-wrap gap-2">
-            {HABITS.map(h => <Chip key={h} active={evening.includes(h)} onClick={() => toggle(evening, h, setEvening)}>{h}</Chip>)}
+            {HABITS_BY_REASON[reason].map(h => <Chip key={h} active={evening.includes(h)} onClick={() => toggle(evening, h, setEvening)}>{h}</Chip>)}
           </div>
         </div>
       </section>
