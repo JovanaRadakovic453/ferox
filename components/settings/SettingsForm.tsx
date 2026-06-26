@@ -199,8 +199,56 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
           <span className="text-sm">Zvuk</span>
           <input type="checkbox" checked={soundEnabled} onChange={e => setSoundEnabled(e.target.checked)} className="w-5 h-5 accent-[var(--gold)]" />
         </label>
-        <div className="grid grid-cols-[1fr_auto] items-end gap-3">
-          <Input id="pomo" label="Pomodoro (min)" type="number" value={String(pomodoro)} onChange={e => setPomodoro(Number(e.target.value) || DEFAULTS.pomodoroMinutes)} />
+        <div className="flex flex-col items-center gap-4 py-1">
+          <p className="text-xs font-medium self-start" style={{ color: 'var(--text-muted)' }}>Pomodoro</p>
+          <div className="relative w-32 h-32">
+            <svg width="128" height="128" viewBox="0 0 128 128">
+              <circle cx="64" cy="64" r="54" fill="none" stroke="var(--surface2)" strokeWidth="10" />
+              <circle
+                cx="64" cy="64" r="54"
+                fill="none"
+                stroke="var(--gold)"
+                strokeWidth="10"
+                strokeLinecap="round"
+                strokeDasharray={`${(pomodoro / 90) * 339.3} 339.3`}
+                transform="rotate(-90 64 64)"
+                style={{ transition: 'stroke-dasharray 0.25s ease' }}
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5">
+              <span className="display text-4xl leading-none tabular-nums" style={{ color: 'var(--text)' }}>{pomodoro}</span>
+              <span className="text-[0.65rem] font-semibold tracking-widest uppercase" style={{ color: 'var(--text-muted)' }}>min</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setPomodoro(Math.max(DEFAULTS.pomodoroMin, pomodoro - 5))}
+              className="w-10 h-10 rounded-full text-lg font-bold flex items-center justify-center transition-colors"
+              style={{ background: 'var(--surface2)', color: 'var(--text-muted)' }}
+            >−</button>
+            <div className="flex gap-1.5">
+              {[15, 25, 45, 60].map(p => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setPomodoro(p)}
+                  className="text-xs px-2.5 py-1.5 rounded-[var(--r-md)] transition-colors"
+                  style={{
+                    background: pomodoro === p ? 'var(--gold-tint)' : 'var(--surface2)',
+                    border: `1px solid ${pomodoro === p ? 'var(--gold)' : 'var(--border)'}`,
+                    color: pomodoro === p ? 'var(--gold)' : 'var(--text-muted)',
+                  }}
+                >{p}</button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => setPomodoro(Math.min(DEFAULTS.pomodoroMax, pomodoro + 5))}
+              className="w-10 h-10 rounded-full text-lg font-bold flex items-center justify-center transition-colors"
+              style={{ background: 'var(--surface2)', color: 'var(--text-muted)' }}
+            >+</button>
+          </div>
         </div>
         <div className="rounded-[var(--r-md)] px-3.5 py-3 text-xs" style={{ background: 'var(--surface2)', color: 'var(--text-muted)' }}>
           🔔 Podsetnici (push notifikacije) — uskoro
