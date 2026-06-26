@@ -13,7 +13,6 @@ import { useToast } from '@/components/ui/Toast'
 import { assignTasksToBlocks } from '@/lib/plan'
 import { DEFAULTS } from '@/lib/config'
 import BlockCard from '@/components/plan/BlockCard'
-import WaterTracker from '@/components/plan/WaterTracker'
 import ActionRail from '@/components/plan/ActionRail'
 import AddTaskModal from '@/components/plan/AddTaskModal'
 import ReplanModal, { type ReplanResult } from '@/components/plan/ReplanModal'
@@ -37,16 +36,6 @@ export default function PlanScreen({
   const [dayJustFinished, setDayJustFinished] = useState(false)
   const [showReplan, setShowReplan] = useState(false)
   const [showAddTask, setShowAddTask] = useState(false)
-  const [water, setWater] = useState(entry.water_intake ?? 0)
-  const waterGoal = entry.water_goal ?? DEFAULTS.waterGoalMl
-
-  async function addWater(ml: number) {
-    const next = Math.max(0, water + ml)
-    setWater(next)
-    const supabase = createClient()
-    const { error } = await supabase.from('day_entries').update({ water_intake: next }).eq('id', entry.id!)
-    if (error) { setWater(water); toast({ message: 'Nije sačuvano', variant: 'error' }) }
-  }
 
   const blocks = calcBlocks(profile.start_time ?? '08:00', profile.sleep_time ?? '23:00', profile.rhythm)
   const planBlocks = assignTasksToBlocks(tasks, blocks, entry.energy_level, profile.rhythm)
@@ -260,8 +249,6 @@ export default function PlanScreen({
           </span>
         </div>
 
-        {/* Voda (samo danas) */}
-        {isToday && <WaterTracker water={water} goal={waterGoal} onAdd={addWater} />}
       </div>
 
       {/* Telo — blokovi (glavna kolona) + akcije (rail na desktopu) */}
