@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { calcBlocks } from '@/lib/energy'
 import { addDays } from '@/lib/date'
@@ -16,6 +16,8 @@ import BlockCard from '@/components/plan/BlockCard'
 import ActionRail from '@/components/plan/ActionRail'
 import AddTaskModal from '@/components/plan/AddTaskModal'
 import ReplanModal, { type ReplanResult } from '@/components/plan/ReplanModal'
+import RoutineModal from '@/components/plan/RoutineModal'
+import type { Routine } from '@/types/ferox'
 
 export default function PlanScreen({
   entry, tasks: initialTasks, appointments, profile, dayFinished = false, tomorrowPlanned = false, isToday = true, hasDateParam = false,
@@ -36,6 +38,8 @@ export default function PlanScreen({
   const [dayJustFinished, setDayJustFinished] = useState(false)
   const [showReplan, setShowReplan] = useState(false)
   const [showAddTask, setShowAddTask] = useState(false)
+  const [showRoutines, setShowRoutines] = useState(false)
+  const [routines, setRoutines] = useState<Routine[]>([])
 
   const blocks = calcBlocks(profile.start_time ?? '08:00', profile.sleep_time ?? '23:00', profile.rhythm)
   const planBlocks = assignTasksToBlocks(tasks, blocks, entry.energy_level, profile.rhythm)
@@ -111,6 +115,25 @@ export default function PlanScreen({
       setTasks(prevTasks)
       toast({ message: 'Replan nije sačuvan — pokušaj ponovo', variant: 'error' })
     }
+  }
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.from('routines').select('*').eq('user_id', entry.user_id!).order('created_at')
+      .then(({ data }) => { if (data) setRoutines(data as Routine[]) })
+  }, [entry.user_id])
+
+  async function applyRoutine(routine: Routine) {
+    if (!routine.tasks.length) return
+    const supabase = createClient()
+    const inserts = routine.tasks.map((t, i) => ({
+      entry_id: entry.id, user_id: entry.user_id, name: t.name,
+      done: false, priority: t.priority, type: t.type, note: '', position: tasks.length + i,
+    }))
+    const { data, error } = await supabase.from('tasks').insert(inserts).select('id, name, type, priority, note, done, position')
+    if (error) { toast({ message: 'Rutina nije primenjena — pokušaj ponovo', variant: 'error' }); return }
+    setTasks(prev => [...prev, ...(data ?? []).map(t => ({ ...t, done: false as const }))])
+    toast({ message: `Rutina "${routine.name}" primenjena ✓`, variant: 'success' })
   }
 
   function startFinishDay() {
@@ -280,6 +303,7 @@ export default function PlanScreen({
           onFinishDay={startFinishDay}
           onAddTask={() => setShowAddTask(true)}
           onReplan={() => setShowReplan(true)}
+          onRoutine={() => setShowRoutines(true)}
         />
       </div>
 
@@ -296,6 +320,13 @@ export default function PlanScreen({
         tasks={tasks}
         energy={entry.energy}
         onApply={applyReplan}
+      />
+
+      <RoutineModal
+        open={showRoutines}
+        onClose={() => setShowRoutines(false)}
+        routines={routines}
+        onApply={applyRoutine}
       />
     </main>
   )

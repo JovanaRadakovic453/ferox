@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
 import Button from '@/components/ui/Button'
 import { DEFAULTS } from '@/lib/config'
+import RoutinesSection from '@/components/extras/RoutinesSection'
+import type { Routine } from '@/types/ferox'
 
 function playDone() {
   try {
@@ -27,7 +29,7 @@ function fmt(s: number) {
   return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
 }
 
-export default function ExtrasScreen({ initialPomodoro, profileId }: { initialPomodoro: number; profileId: string }) {
+export default function ExtrasScreen({ initialPomodoro, profileId, initialRoutines }: { initialPomodoro: number; profileId: string; initialRoutines: Routine[] }) {
   const toast = useToast()
 
   // — Pomodoro —
@@ -92,7 +94,7 @@ export default function ExtrasScreen({ initialPomodoro, profileId }: { initialPo
       <header className="pt-2">
         <div className="hidden lg:block mb-2"><span className="section-label">Fokus alati</span></div>
         <h1 className="display foil text-3xl lg:text-5xl">Alati</h1>
-        <p className="text-sm mt-1.5" style={{ color: 'var(--text-muted)' }}>Podesi fokus sesiju i odmore.</p>
+        <p className="text-sm mt-1.5" style={{ color: 'var(--text-muted)' }}>Podesi fokus sesiju, odmore i rutine.</p>
       </header>
 
       {/* Pomodoro */}
@@ -218,6 +220,7 @@ export default function ExtrasScreen({ initialPomodoro, profileId }: { initialPo
           >Resetuj</button>
         </div>
       </section>
+      <RoutinesSection initialRoutines={initialRoutines} userId={profileId} />
     </main>
   )
 }
