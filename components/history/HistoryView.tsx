@@ -20,10 +20,10 @@ function Strip({ days }: { days: HistoryDay[] }) {
     <div className="flex items-end justify-between gap-2 h-28 lg:h-36">
       {days.map(d => (
         <div key={d.id} className="flex-1 flex flex-col items-center gap-1.5 min-w-0 h-full">
-          <div className="w-full flex-1 flex flex-col justify-end rounded-sm overflow-hidden" style={{ background: 'var(--surface2)' }}>
+          <div className="w-full flex-1 flex flex-col justify-end" style={{ background: 'var(--surface2)', borderRadius: '4px' }}>
             <div
-              className="w-full transition-all duration-500"
-              style={{ height: `${Math.max(3, d.pct)}%`, backgroundImage: 'linear-gradient(180deg, var(--gold-light), var(--gold))' }}
+              className="w-full transition-all duration-700"
+              style={{ height: `${Math.max(3, d.pct)}%`, backgroundImage: 'linear-gradient(180deg, var(--gold-light), var(--gold))', borderRadius: '4px 4px 0 0' }}
             />
           </div>
           <span className="text-[0.55rem] tabular-nums shrink-0" style={{ color: 'var(--text-muted)' }}>{d.pct}%</span>
