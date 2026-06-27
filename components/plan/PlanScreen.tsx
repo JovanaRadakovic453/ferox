@@ -114,6 +114,14 @@ export default function PlanScreen({
     if (!appt) return
     const newDone = !appt.done
     setAppts(prev => prev.map(a => a.id === apptId ? { ...a, done: newDone } : a))
+
+    if (newDone && profile.micro_feedback !== false) {
+      if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(15)
+      const totalCount = tasks.length + appts.length
+      const doneNow = tasks.filter(t => t.done).length + appts.filter(a => (a.id === apptId ? true : a.done)).length
+      fireConfetti(totalCount > 0 && doneNow === totalCount)
+    }
+
     const supabase = createClient()
     const { error } = await supabase.from('appointments').update({ done: newDone }).eq('id', apptId)
     if (error) {
