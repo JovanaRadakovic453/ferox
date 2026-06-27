@@ -20,7 +20,6 @@ import { DEFAULTS } from '@/lib/config'
 import BlockCard from '@/components/plan/BlockCard'
 import ActionRail from '@/components/plan/ActionRail'
 import AddTaskModal from '@/components/plan/AddTaskModal'
-import ReplanModal, { type ReplanResult } from '@/components/plan/ReplanModal'
 import RoutineModal from '@/components/plan/RoutineModal'
 import ReminderBanner from '@/components/plan/ReminderBanner'
 import { AnimatePresence } from 'framer-motion'
@@ -43,7 +42,6 @@ export default function PlanScreen({
   const [appts, setAppts] = useState<Appointment[]>(appointments)
   const [savingEod, setSavingEod] = useState(false)
   const [dayJustFinished, setDayJustFinished] = useState(false)
-  const [showReplan, setShowReplan] = useState(false)
   const [showAddTask, setShowAddTask] = useState(false)
   const [showRoutines, setShowRoutines] = useState(false)
   const [routines, setRoutines] = useState<Routine[]>([])
@@ -227,21 +225,6 @@ export default function PlanScreen({
     if (error) {
       setAppts(prev => prev.map(a => a.id === apptId ? { ...a, done: !newDone } : a))
       toast({ message: 'Nije sačuvano — proveri internet', variant: 'error', action: { label: 'Pokušaj', onClick: () => toggleAppointment(apptId) } })
-    }
-  }
-
-  // "Otpiši" zadatke (iz replana) označavamo kao gotove. Jedan batch update po ID-u.
-  async function applyReplan(result: ReplanResult) {
-    const obrisi = new Set(result.obrisi)
-    const idsToComplete = tasks.filter(t => !t.done && obrisi.has(t.name) && t.id).map(t => t.id!)
-    if (idsToComplete.length === 0) return
-    const prevTasks = tasks
-    setTasks(prev => prev.map(t => idsToComplete.includes(t.id!) ? { ...t, done: true } : t))
-    const supabase = createClient()
-    const { error } = await supabase.from('tasks').update({ done: true }).in('id', idsToComplete)
-    if (error) {
-      setTasks(prevTasks)
-      toast({ message: 'Replan nije sačuvan — pokušaj ponovo', variant: 'error' })
     }
   }
 
@@ -451,7 +434,6 @@ export default function PlanScreen({
           savingEod={savingEod}
           onFinishDay={startFinishDay}
           onAddTask={() => setShowAddTask(true)}
-          onReplan={() => setShowReplan(true)}
           onRoutine={() => setShowRoutines(true)}
         />
       </div>
@@ -461,14 +443,6 @@ export default function PlanScreen({
         onClose={() => setShowAddTask(false)}
         onAddTask={handleAddTask}
         onAddAppointment={handleAddAppointment}
-      />
-
-      <ReplanModal
-        open={showReplan}
-        onClose={() => setShowReplan(false)}
-        tasks={tasks}
-        energy={entry.energy}
-        onApply={applyReplan}
       />
 
       <RoutineModal
