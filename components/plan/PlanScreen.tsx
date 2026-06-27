@@ -420,7 +420,7 @@ export default function PlanScreen({
                 <AppointmentItem key={a.id ?? a.name + a.time} appt={a} onToggle={() => a.id && toggleAppointment(a.id)} />
               ))}
               <div className="divide-y" style={{ borderColor: 'var(--hairline)' }}>
-                {tasks.map(task => (
+                {[...tasks].sort((a, b) => ({ high: 0, medium: 1, low: 2 }[a.priority] ?? 1) - ({ high: 0, medium: 1, low: 2 }[b.priority] ?? 1)).map(task => (
                   <TaskItem key={task.id ?? task.name} task={task} onToggle={() => task.id && toggleTask(task.id)} onDelete={() => task.id && deleteTask(task.id)} />
                 ))}
               </div>
