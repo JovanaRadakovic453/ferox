@@ -1,8 +1,8 @@
 'use client'
 
 import type { Aggregates, Forecast, Bar } from '@/lib/insights'
-import { ENERGY_LABELS, TASK_TYPE_LABELS } from '@/types/ferox'
-import type { TaskType, EnergyLevel } from '@/types/ferox'
+import { TASK_TYPE_LABELS } from '@/types/ferox'
+import type { TaskType } from '@/types/ferox'
 import { DEFAULTS } from '@/lib/config'
 
 function BarRow({ label, rate }: { label: string; rate: number }) {
@@ -46,23 +46,9 @@ export default function InsightsView({ agg, forecast }: { agg: Aggregates; forec
         </p>
       </header>
 
-      {/* Prognoza + ukupna realizacija */}
-      <div className="grid gap-5 lg:grid-cols-2 lg:items-stretch">
-        {forecast && (
-          <div className="card p-5 lg:p-7 flex flex-col justify-center" style={{ backgroundImage: 'linear-gradient(180deg, var(--gold-tint), transparent 60%)' }}>
-            <p className="section-label mb-2">Prognoza za sutra</p>
-            <p className="text-lg lg:text-2xl leading-snug" style={{ color: 'var(--text)' }}>
-              Verovatno ćeš biti <span className="font-semibold" style={{ color: 'var(--gold)' }}>{ENERGY_LABELS[forecast.level as EnergyLevel]}</span>
-            </p>
-            <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>
-              {forecast.note} Pouzdanost: {forecast.confidence}.
-            </p>
-          </div>
-        )}
-        <div className={`card p-5 lg:p-7 flex items-center justify-between ${forecast ? '' : 'lg:col-span-2'}`}>
-          <p className="section-label">Ukupna realizacija</p>
-          <p className="display text-3xl lg:text-5xl" style={{ color: 'var(--gold)' }}>{agg.overallCompletion}%</p>
-        </div>
+      <div className="card p-5 lg:p-7 flex items-center justify-between">
+        <p className="section-label">Ukupna realizacija</p>
+        <p className="display text-3xl lg:text-5xl" style={{ color: 'var(--gold)' }}>{agg.overallCompletion}%</p>
       </div>
 
       {agg.sleepInsight && (
@@ -73,8 +59,7 @@ export default function InsightsView({ agg, forecast }: { agg: Aggregates; forec
       )}
 
       {/* Grafici */}
-      <div className="grid gap-5 lg:grid-cols-3 lg:items-start">
-        <ChartCard title="Realizacija po energiji" bars={agg.byEnergy} />
+      <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
         <ChartCard title="Realizacija po danu u nedelji" bars={agg.byWeekday} />
         <ChartCard title="Realizacija po tipu zadatka" bars={typeBars} />
       </div>
