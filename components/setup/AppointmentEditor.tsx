@@ -61,12 +61,13 @@ export default function AppointmentEditor({
                   max={999}
                   value={reminderInput.value}
                   onChange={e => setReminderInput(r => ({ ...r, value: Math.max(0, Number(e.target.value)) }))}
-                  className="field h-11 px-2 text-sm text-center"
+                  className="field h-11 px-2 text-sm text-center flex-1 min-w-0 w-0"
                 />
                 <select
                   value={reminderInput.unit}
                   onChange={e => setReminderInput(r => ({ ...r, unit: e.target.value as 'min' | 'sat' }))}
-                  className="field field-select h-11 px-2 text-sm shrink-0 w-auto"
+                  className="field field-select h-11 px-2 text-sm shrink-0"
+                  style={{ width: '5rem' }}
                 >
                   <option value="min">min</option>
                   <option value="sat">sat</option>
