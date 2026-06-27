@@ -18,7 +18,8 @@ export async function GET() {
 
   await supabase.from('tasks').delete().eq('entry_id', entry.id)
   await supabase.from('appointments').delete().eq('user_id', user.id).eq('date_key', todayKey())
-  await supabase.from('day_entries').update({ finished_at: null }).eq('id', entry.id)
+  await supabase.from('transferred_tasks').delete().eq('user_id', user.id).eq('for_date', todayKey())
+  await supabase.from('day_entries').delete().eq('id', entry.id)
 
-  return NextResponse.json({ ok: true, message: 'Resetovano ✓' })
+  return NextResponse.redirect(new URL('/', process.env.NEXT_PUBLIC_APP_URL ?? 'https://ferox-phi.vercel.app'))
 }
