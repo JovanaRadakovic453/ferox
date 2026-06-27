@@ -325,7 +325,14 @@ export default function PlanScreen({
       toast({ message: 'Termin nije dodat — pokušaj ponovo', variant: 'error' })
       return false
     }
-    setAppts(prev => [...prev, { id: data?.id, name, time, reminder: DEFAULTS.reminderMinutes, done: false }])
+    // Ako je vreme podsetnika već prošlo u momentu dodavanja → tiho označi kao prikazano
+    if (data?.id && reminder > 0) {
+      const [h, m] = time.split(':').map(Number)
+      const apptTime = new Date(); apptTime.setHours(h, m, 0, 0)
+      const reminderTime = new Date(apptTime.getTime() - reminder * 60_000)
+      if (new Date() >= reminderTime) markShown(data.id)
+    }
+    setAppts(prev => [...prev, { id: data?.id, name, time, reminder, done: false }])
     return true
   }
 
