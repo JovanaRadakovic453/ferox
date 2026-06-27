@@ -131,7 +131,7 @@ export default function PlanScreen({
       done: false, priority: t.priority, type: t.type, note: '', position: tasks.length + i,
       block_index: t.block_index ?? null,
     }))
-    const { data, error } = await supabase.from('tasks').insert(inserts).select('id, name, type, priority, note, done, position')
+    const { data, error } = await supabase.from('tasks').insert(inserts).select('id, name, type, priority, note, done, position, block_index')
     if (error) { toast({ message: 'Rutina nije primenjena — pokušaj ponovo', variant: 'error' }); return }
     setTasks(prev => [...prev, ...(data ?? []).map(t => ({ ...t, done: false as const }))])
     toast({ message: `Rutina "${routine.name}" primenjena ✓`, variant: 'success' })
