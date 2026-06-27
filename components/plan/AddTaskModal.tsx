@@ -5,6 +5,7 @@ import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
 import { TASK_TYPE_LABELS } from '@/types/ferox'
 import type { TaskType, Priority } from '@/types/ferox'
+import { DEFAULTS } from '@/lib/config'
 
 // Dodavanje zadatka ili termina. Forma drži sopstveno stanje; roditelj radi
 // DB upis preko onAddTask/onAddAppointment (vraćaju true na uspeh).
@@ -14,27 +15,31 @@ export default function AddTaskModal({
   open: boolean
   onClose: () => void
   onAddTask: (t: { name: string; type: TaskType; priority: Priority }) => Promise<boolean>
-  onAddAppointment: (a: { name: string; time: string }) => Promise<boolean>
+  onAddAppointment: (a: { name: string; time: string; reminder: number }) => Promise<boolean>
 }) {
   const [name, setName] = useState('')
   const [type, setType] = useState<TaskType>('light')
   const [priority, setPriority] = useState<Priority>('medium')
   const [isAppt, setIsAppt] = useState(false)
   const [time, setTime] = useState('09:00')
+  const [reminderValue, setReminderValue] = useState(DEFAULTS.reminderMinutes)
+  const [reminderUnit, setReminderUnit] = useState<'min' | 'sat'>('min')
   const [submitting, setSubmitting] = useState(false)
 
   // Reset forme svaki put kad se modal otvori (čista forma pri svakom otvaranju).
   useEffect(() => {
     if (open) {
-      setName(''); setType('light'); setPriority('medium'); setIsAppt(false); setTime('09:00'); setSubmitting(false)
+      setName(''); setType('light'); setPriority('medium'); setIsAppt(false); setTime('09:00')
+      setReminderValue(DEFAULTS.reminderMinutes); setReminderUnit('min'); setSubmitting(false)
     }
   }, [open])
 
   async function submit() {
     if (!name.trim()) return
     setSubmitting(true)
+    const reminder = reminderUnit === 'sat' ? reminderValue * 60 : reminderValue
     const ok = isAppt
-      ? await onAddAppointment({ name: name.trim(), time })
+      ? await onAddAppointment({ name: name.trim(), time, reminder })
       : await onAddTask({ name: name.trim(), type, priority })
     setSubmitting(false)
     if (ok) onClose()
@@ -74,9 +79,29 @@ export default function AddTaskModal({
       </button>
 
       {isAppt ? (
-        <div>
-          <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Vreme termina</label>
-          <input type="time" value={time} onChange={e => setTime(e.target.value)} className="field h-12 px-3.5 text-sm" />
+        <div className="flex flex-col gap-3">
+          <div>
+            <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Vreme termina</label>
+            <input type="time" value={time} onChange={e => setTime(e.target.value)} className="field h-12 px-3.5 text-sm" />
+          </div>
+          <div>
+            <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Podsetnik pre</label>
+            <div className="flex gap-1.5">
+              <input
+                type="number" min={0} max={999} value={reminderValue}
+                onChange={e => setReminderValue(Math.max(0, Number(e.target.value)))}
+                className="field h-12 px-2 text-sm text-center flex-1"
+              />
+              <select
+                value={reminderUnit}
+                onChange={e => setReminderUnit(e.target.value as 'min' | 'sat')}
+                className="field field-select h-12 px-2 text-sm shrink-0"
+              >
+                <option value="min">min</option>
+                <option value="sat">sat</option>
+              </select>
+            </div>
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3">

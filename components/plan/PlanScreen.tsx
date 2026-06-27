@@ -283,10 +283,10 @@ export default function PlanScreen({
     return true
   }
 
-  async function handleAddAppointment({ name, time }: { name: string; time: string }): Promise<boolean> {
+  async function handleAddAppointment({ name, time, reminder }: { name: string; time: string; reminder: number }): Promise<boolean> {
     const supabase = createClient()
     const { data, error } = await supabase.from('appointments').insert({
-      user_id: entry.user_id, date_key: entry.date_key, name, time, reminder: DEFAULTS.reminderMinutes, done: false,
+      user_id: entry.user_id, date_key: entry.date_key, name, time, reminder, done: false,
     }).select('id').single()
     if (error) {
       toast({ message: 'Termin nije dodat — pokušaj ponovo', variant: 'error' })
