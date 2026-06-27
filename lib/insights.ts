@@ -29,7 +29,7 @@ export interface Forecast {
 }
 
 const WEEKDAYS = ['Ned', 'Pon', 'Uto', 'Sre', 'Čet', 'Pet', 'Sub']
-const ENERGY_SHORT: Record<number, string> = { 1: '🔥 (visoka energija)', 2: '😊 (dobra energija)', 3: '😐 (prosečna energija)', 4: '🥱 (niska energija)', 5: '🪫 (bez energije)' }
+const ENERGY_SHORT: Record<number, string> = { 1: '🔥 (visoka)', 2: '😊 (dobra)', 3: '😐 (prosečna)', 4: '🥱 (niska)', 5: '🪫 (bez energije)' }
 
 function rate(done: number, total: number): number {
   return total > 0 ? Math.round((done / total) * 100) : 0
