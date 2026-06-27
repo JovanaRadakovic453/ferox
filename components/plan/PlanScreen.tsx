@@ -80,7 +80,15 @@ export default function PlanScreen({
         confetti({ particleCount: 80, spread: 100, origin: { x: 0.5, y: 0.5 }, colors: [gold, cream, white], scalar: 1.2 })
       }, 200)
     } else {
-      confetti({ particleCount: 30, spread: 55, origin: { x: 0.5, y: 0.6 }, colors: [gold, cream, white], scalar: 0.9 })
+      // Mali pljusak rasut po celom ekranu — 3 nasumične tačke
+      const colors = [gold, cream, white]
+      ;[
+        { x: Math.random() * 0.4 + 0.1, y: Math.random() * 0.4 + 0.1 },
+        { x: Math.random() * 0.4 + 0.5, y: Math.random() * 0.4 + 0.1 },
+        { x: Math.random() * 0.6 + 0.2, y: Math.random() * 0.3 + 0.5 },
+      ].forEach(origin => {
+        confetti({ particleCount: 10, spread: 60, origin, colors, scalar: 0.85, gravity: 1.2 })
+      })
     }
   }, [])
 
