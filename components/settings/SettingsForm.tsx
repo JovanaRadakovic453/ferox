@@ -24,12 +24,6 @@ const RHYTHMS: { value: Rhythm; label: string }[] = [
   { value: 'mixed', label: '🌊 Mešovito' },
 ]
 const WEEKDAYS = ['Ned', 'Pon', 'Uto', 'Sre', 'Čet', 'Pet', 'Sub']
-const HABITS_BY_REASON: Record<Reason, string[]> = {
-  work:     ['Administracija', 'Sastanak', 'Kreativni rad', 'Istraživački rad', 'Komunikacija', 'Lagano', 'Planiranje', 'Pauza', 'Sport'],
-  school:   ['Učenje', 'Ponavljanje', 'Pisanje', 'Komunikacija', 'Kreativni rad', 'Lagano', 'Planiranje', 'Čitanje', 'Pauza', 'Sport'],
-  personal: ['Meditacija', 'Sport', 'Čitanje', 'Planiranje', 'Kreativni rad', 'Šetnja', 'Pisanje', 'Učenje', 'Rad na sebi'],
-  all:      ['Planiranje', 'Kreativni rad', 'Čitanje', 'Meditacija', 'Sport', 'Šetnja', 'Učenje', 'Pisanje', 'Pauza', 'Dnevnik', 'Komunikacija', 'Lagano'],
-}
 
 function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
@@ -58,8 +52,6 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
   const [sleepTime, setSleepTime] = useState(profile.sleep_time ?? '23:00')
   const [startTime, setStartTime] = useState(profile.start_time ?? '08:00')
   const [restDays, setRestDays] = useState<number[]>(profile.rest_days ?? [0, 6])
-  const [morning, setMorning] = useState<string[]>(profile.morning_tasks ?? [])
-  const [evening, setEvening] = useState<string[]>(profile.evening_tasks ?? [])
   const [microFeedback, setMicroFeedback] = useState(profile.micro_feedback ?? true)
   const [soundEnabled, setSoundEnabled] = useState(profile.sound_enabled ?? false)
   const [saving, setSaving] = useState(false)
@@ -83,8 +75,6 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
       sleep_time: sleepTime,
       start_time: startTime,
       rest_days: restDays,
-      morning_tasks: morning,
-      evening_tasks: evening,
       micro_feedback: microFeedback,
       sound_enabled: soundEnabled,
       updated_at: new Date().toISOString(),
@@ -160,23 +150,6 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
           <label className="text-xs mb-1.5 block font-medium" style={{ color: 'var(--text-muted)' }}>Slobodni dani (ne lome streak)</label>
           <div className="flex flex-wrap gap-2">
             {WEEKDAYS.map((d, i) => <Chip key={i} active={restDays.includes(i)} onClick={() => toggle(restDays, i, setRestDays)}>{d}</Chip>)}
-          </div>
-        </div>
-      </section>
-
-      {/* Navike */}
-      <section className="card p-5 flex flex-col gap-4">
-        <p className="section-label">Navike</p>
-        <div>
-          <label className="text-xs mb-1.5 block font-medium" style={{ color: 'var(--text-muted)' }}>🌅 Jutarnje</label>
-          <div className="flex flex-wrap gap-2">
-            {HABITS_BY_REASON[reason].map(h => <Chip key={h} active={morning.includes(h)} onClick={() => toggle(morning, h, setMorning)}>{h}</Chip>)}
-          </div>
-        </div>
-        <div>
-          <label className="text-xs mb-1.5 block font-medium" style={{ color: 'var(--text-muted)' }}>🌙 Večernje</label>
-          <div className="flex flex-wrap gap-2">
-            {HABITS_BY_REASON[reason].map(h => <Chip key={h} active={evening.includes(h)} onClick={() => toggle(evening, h, setEvening)}>{h}</Chip>)}
           </div>
         </div>
       </section>

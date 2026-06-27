@@ -3,7 +3,6 @@ import { redirect } from 'next/navigation'
 import SetupScreen from '@/components/setup/SetupScreen'
 import EodLanding from '@/components/plan/EodLanding'
 import { todayKey, tomorrowKey } from '@/lib/date'
-import { energyLevelFromLabel } from '@/lib/energy'
 import { computeStreak } from '@/lib/streak'
 import type { UserProfile, Task, Appointment } from '@/types/ferox'
 
@@ -84,11 +83,9 @@ export default async function SetupPage({
   // Inace ucitaj prenesene zadatke iz prethodnog dana
   let initialTasks: Task[] = []
   let initialAppointments: Appointment[] = []
-  let initialEnergy: number | null = null
   let showTransferBanner = false
 
   if (entry) {
-    initialEnergy = energyLevelFromLabel(entry.energy)
     const [{ data: existingTasks }, { data: existingAppts }] = await Promise.all([
       supabase
         .from('tasks')
@@ -123,7 +120,6 @@ export default async function SetupPage({
       targetDate={targetDate}
       transferredTasks={initialTasks}
       initialAppointments={initialAppointments}
-      initialEnergy={initialEnergy}
       showTransferBanner={showTransferBanner}
     />
   )

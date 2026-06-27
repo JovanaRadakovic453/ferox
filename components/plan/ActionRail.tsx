@@ -45,9 +45,6 @@ export default function ActionRail({
         )}
         {isToday ? (
           <>
-            <Button size="sm" variant="secondary" className="w-full" onClick={() => { window.location.href = '/?edit=1' }}>
-              ✏️ Uredi plan
-            </Button>
             {tomorrowPlanned ? (
               <Button size="sm" variant="secondary" className="w-full" onClick={() => { window.location.href = '/plan?date=' + tomorrowKey() }}>
                 🌙 Pogledaj sutra

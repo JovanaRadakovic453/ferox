@@ -3,12 +3,13 @@ import TaskItem from '@/components/plan/TaskItem'
 import AppointmentItem from '@/components/plan/AppointmentItem'
 
 export default function BlockCard({
-  block, appointments, onToggle, onToggleAppt,
+  block, appointments, onToggle, onToggleAppt, onDeleteTask,
 }: {
   block: PlanBlock
   appointments: Appointment[]
   onToggle: (taskId: string) => void
   onToggleAppt: (apptId: string) => void
+  onDeleteTask: (taskId: string) => void
 }) {
   const doneTasks = block.tasks.filter(t => t.done).length
   const doneAppts = appointments.filter(a => a.done).length
@@ -61,7 +62,7 @@ export default function BlockCard({
         ))}
         <div className="divide-y" style={{ borderColor: 'var(--hairline)' }}>
           {block.tasks.map(task => (
-            <TaskItem key={task.id ?? task.name} task={task} onToggle={() => task.id && onToggle(task.id)} />
+            <TaskItem key={task.id ?? task.name} task={task} onToggle={() => task.id && onToggle(task.id)} onDelete={() => task.id && onDeleteTask(task.id)} />
           ))}
         </div>
       </div>

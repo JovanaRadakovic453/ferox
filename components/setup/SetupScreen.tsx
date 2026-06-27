@@ -3,45 +3,30 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useChrome } from '@/components/nav/AppChrome'
-import { calcSleepHours, todayKey, formatDate } from '@/lib/utils'
-import { addDays } from '@/lib/date'
+import { todayKey, formatDate } from '@/lib/utils'
 import { energyLabel } from '@/lib/energy'
-import { isHeavy, capacity } from '@/lib/plan'
 import type { Task, TaskType, Priority, Appointment, UserProfile } from '@/types/ferox'
 import Link from 'next/link'
 import Button from '@/components/ui/Button'
 import TransferSuggestions from '@/components/setup/TransferSuggestions'
-import SleepCard from '@/components/setup/SleepCard'
-import EnergySelector from '@/components/setup/EnergySelector'
 import BrainDumpCard from '@/components/setup/BrainDumpCard'
 import TaskEditor from '@/components/setup/TaskEditor'
 import AppointmentEditor from '@/components/setup/AppointmentEditor'
 import PreviewRail from '@/components/setup/PreviewRail'
 
-export default function SetupScreen({ profile, targetDate, transferredTasks = [], initialAppointments = [], initialEnergy = null, showTransferBanner = false }: { profile: UserProfile; targetDate?: string; transferredTasks?: Task[]; initialAppointments?: Appointment[]; initialEnergy?: number | null; showTransferBanner?: boolean }) {
-  // Pri ponovnom otvaranju plana (edit) vraćamo izabranu energiju da dugme
-  // "Napravi plan" ne ostane bezrazložno disabled.
-  const [energy, setEnergy] = useState<number | null>(initialEnergy)
-  const [wakeTime, setWakeTime] = useState(profile.start_time ?? '08:00')
-  const [sleepTime, setSleepTime] = useState(profile.last_sleep_time ?? profile.sleep_time ?? '23:00')
-  // showTransferBanner=true → tasks su iz transferred_tasks (opt-in), ne pre-učitavaj ih automatski
-  // showTransferBanner=false → tasks su iz postojećeg day_entry (edit mode), pre-učitaj ih
+export default function SetupScreen({ profile, targetDate, transferredTasks = [], initialAppointments = [], showTransferBanner = false }: { profile: UserProfile; targetDate?: string; transferredTasks?: Task[]; initialAppointments?: Appointment[]; showTransferBanner?: boolean }) {
   const [tasks, setTasks] = useState<Task[]>(showTransferBanner ? [] : transferredTasks)
   const [suggestedTransfers, setSuggestedTransfers] = useState<Task[]>(showTransferBanner ? transferredTasks : [])
   const [appointments, setAppointments] = useState<Appointment[]>(showTransferBanner ? [] : initialAppointments)
   const [loading, setLoading] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [resetting, setResetting] = useState(false)
-  const [overloadDismissed, setOverloadDismissed] = useState(false)
   const [brainDumpLoading, setBrainDumpLoading] = useState(false)
   const isSutraMode = targetDate !== undefined && targetDate !== todayKey()
-  const sleepHours = calcSleepHours(sleepTime, wakeTime)
 
-  // SetupScreen ima svoj sticky CTA na dnu — sakrij globalni TabBar dok je otvoren.
   const { setHidden } = useChrome()
   useEffect(() => { setHidden(true); return () => setHidden(false) }, [setHidden])
 
-  // --- Task / appointment / transfer mutacije (lokalni nacrt; DB upis tek na submit) ---
   function addTask(draft: { name: string; note: string; priority: Priority; type: TaskType }) {
     setTasks(prev => [...prev, { ...draft, done: false }])
   }
@@ -85,7 +70,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
   }
 
   async function handleSubmit() {
-    if (!energy || (tasks.length + appointments.length) === 0) return
+    if ((tasks.length + appointments.length) === 0) return
     setLoading(true)
     setSubmitError(null)
 
@@ -97,11 +82,8 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           dateKey,
-          energy: energyLabel(energy),
-          energyLevel: energy, // canonical 1=best (picker level sent directly)
-          sleepHours,
-          sleepTime,
-          wakeTime,
+          energy: energyLabel(3),
+          energyLevel: 3,
           tasks,
           appointments,
         }),
@@ -115,9 +97,6 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
         return
       }
 
-      // Idi na plan TAČNO onog datuma koji je upravo snimljen — nikad "naslepo"
-      // na danas. Inače bi plan za sutra otvorio prazan današnji plan i bacio
-      // korisnika na praznu početnu.
       const isToday = dateKey === todayKey()
       window.location.href = isToday ? '/plan' : `/plan?date=${dateKey}`
     } catch (err) {
@@ -126,39 +105,15 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
     }
   }
 
-  // Overload guard — previše teških zadataka za izabranu energiju.
-  const heavyCount = tasks.filter(isHeavy).length
-  const energyCapacity = energy ? capacity(energy) : Infinity
-  const overBy = energy ? Math.max(0, heavyCount - energyCapacity) : 0
-
-  async function deferHeavy() {
-    if (overBy <= 0) return
-    const toDefer = tasks.filter(isHeavy).slice(-overBy)
-    setTasks(prev => prev.filter(t => !toDefer.includes(t)))
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-    const nextKey = addDays(targetDate ?? todayKey(), 1)
-    const { data: existing } = await supabase.from('transferred_tasks')
-      .select('tasks').eq('user_id', user.id).eq('for_date', nextKey).maybeSingle()
-    const prevTasks = (existing?.tasks ?? []) as Task[]
-    await supabase.from('transferred_tasks').upsert({
-      user_id: user.id,
-      for_date: nextKey,
-      tasks: [...prevTasks, ...toDefer.map(t => ({ name: t.name, priority: t.priority, type: t.type, note: t.note ?? '', done: false }))],
-    }, { onConflict: 'user_id,for_date' })
-  }
-
   const totalItems = tasks.length + appointments.length
-  const canSubmit = energy !== null && totalItems > 0 && !brainDumpLoading
+  const canSubmit = totalItems > 0 && !brainDumpLoading
 
-  // Pozdrav prema dobu dana (klijentski; samo za UI ton).
   const hour = new Date().getHours()
   const dayPart = hour < 5 ? 'Dobro veče' : hour < 12 ? 'Dobro jutro' : hour < 18 ? 'Dobar dan' : 'Dobro veče'
   const heroTitle = isSutraMode ? 'Planiramo sutra' : dayPart
   const heroSub = isSutraMode
     ? 'Pripremi sutrašnji dan na miru — zakaži ga dok je sveže. 🌙'
-    : 'Oblikujmo dan prema energiji koju zaista imaš.'
+    : 'Dodaj zadatke i zakazane termine za danas.'
   const taskWord = tasks.length === 1 ? 'zadatak' : 'zadataka'
   const totalWord = totalItems === 1 ? 'zadatak' : totalItems < 5 ? 'zadatka' : 'zadataka'
 
@@ -170,7 +125,6 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
             ← Danas
           </Link>
         )}
-        {/* Hero */}
         <header className="flex flex-col gap-5 pt-2 animate-fade-slide">
           <div className="flex items-center justify-between lg:hidden">
             <span className="display foil text-2xl tracking-[0.06em]">Ferox</span>
@@ -205,33 +159,11 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
               />
             )}
 
-            <SleepCard
-              sleepTime={sleepTime}
-              wakeTime={wakeTime}
-              sleepHours={sleepHours}
-              onSleepChange={setSleepTime}
-              onWakeChange={setWakeTime}
-            />
-
-            <EnergySelector energy={energy} onSelect={setEnergy} />
-
             <BrainDumpCard onExtracted={onBrainDumpExtracted} onLoadingChange={setBrainDumpLoading} />
 
             <TaskEditor tasks={tasks} onAdd={addTask} onRemove={i => setTasks(prev => prev.filter((_, idx) => idx !== i))} />
 
             <AppointmentEditor appointments={appointments} onAdd={addAppointment} onRemove={i => setAppointments(prev => prev.filter((_, idx) => idx !== i))} />
-
-            {energy !== null && overBy > 0 && !overloadDismissed && (
-              <div className="rounded-[var(--r-md)] px-4 py-3.5 flex flex-col gap-3" style={{ background: 'var(--gold-tint)', border: '1px solid color-mix(in srgb, var(--gold) 30%, transparent)' }}>
-                <p className="text-sm" style={{ color: 'var(--text)' }}>
-                  Danas si na <span className="font-semibold" style={{ color: 'var(--gold)' }}>{energyLabel(energy)}</span> — imaš {heavyCount} {heavyCount === 1 ? 'težak zadatak' : 'teža/težih zadataka'}, a realno je do {energyCapacity}. Da {overBy} {overBy === 1 ? 'najteži prebacimo' : 'najteža prebacimo'} za sutra?
-                </p>
-                <div className="flex gap-2">
-                  <Button size="sm" variant="secondary" onClick={deferHeavy}>Prebaci {overBy} za sutra</Button>
-                  <Button size="sm" variant="ghost" onClick={() => setOverloadDismissed(true)}>Ipak ostavi</Button>
-                </div>
-              </div>
-            )}
 
             {submitError && (
               <div className="rounded-[var(--r-md)] px-4 py-3 text-sm" style={{
@@ -253,19 +185,13 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
             </button>
           </div>
 
-          {/* Pregled (rail na desktopu) — živi sažetak + CTA */}
           <PreviewRail
             isSutraMode={isSutraMode}
-            energy={energy}
             taskCount={tasks.length}
             taskWord={taskWord}
             apptCount={appointments.length}
             totalItems={totalItems}
             totalWord={totalWord}
-            sleepHours={sleepHours}
-            heavyCount={heavyCount}
-            energyCapacity={energyCapacity}
-            overBy={overBy}
             canSubmit={canSubmit}
             loading={loading}
             onSubmit={handleSubmit}
@@ -273,7 +199,6 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
         </div>
       </main>
 
-      {/* Sticky frosted CTA (mobilni/tablet) — uvek nadohvat palca */}
       <div className="lg:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[540px] z-40">
         <div className="glass px-5 min-[540px]:px-9 pt-3.5 pb-safe" style={{ borderTop: '1px solid var(--hairline)' }}>
           <Button size="lg" className="w-full" disabled={!canSubmit} loading={loading} onClick={handleSubmit}>
@@ -281,7 +206,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
           </Button>
           {!canSubmit && !loading && (
             <p className="text-center text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
-              {!energy ? '⚡ Izaberi nivo energije' : '📋 Dodaj bar jedan zadatak ili termin'}
+              📋 Dodaj bar jedan zadatak ili termin
             </p>
           )}
         </div>

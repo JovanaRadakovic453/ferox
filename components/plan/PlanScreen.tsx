@@ -209,6 +209,18 @@ export default function PlanScreen({
     }
   }
 
+  async function deleteTask(taskId: string) {
+    const task = tasks.find(t => t.id === taskId)
+    if (!task) return
+    setTasks(prev => prev.filter(t => t.id !== taskId))
+    const supabase = createClient()
+    const { error } = await supabase.from('tasks').delete().eq('id', taskId)
+    if (error) {
+      setTasks(prev => [...prev, task])
+      toast({ message: 'Brisanje nije uspelo — pokušaj ponovo', variant: 'error' })
+    }
+  }
+
   async function toggleAppointment(apptId: string) {
     const appt = appts.find(a => a.id === apptId)
     if (!appt) return
@@ -422,7 +434,7 @@ export default function PlanScreen({
         ) : (
           <div className="flex flex-col gap-5">
             {planBlocks.map((block, i) => (
-              <BlockCard key={block.label} block={block} appointments={getAppointmentsForBlock(i)} onToggle={toggleTask} onToggleAppt={toggleAppointment} />
+              <BlockCard key={block.label} block={block} appointments={getAppointmentsForBlock(i)} onToggle={toggleTask} onToggleAppt={toggleAppointment} onDeleteTask={deleteTask} />
             ))}
           </div>
         )}
