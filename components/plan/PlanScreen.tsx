@@ -1,8 +1,11 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import confetti from 'canvas-confetti'
+
+// Van komponente — preživljava navigaciju unutar istog tab-a
+let _audioCtx: AudioContext | null = null
 import { createClient } from '@/lib/supabase/client'
 import { calcBlocks } from '@/lib/energy'
 import { addDays } from '@/lib/date'
@@ -45,8 +48,24 @@ export default function PlanScreen({
   const [showRoutines, setShowRoutines] = useState(false)
   const [routines, setRoutines] = useState<Routine[]>([])
   const [activeReminder, setActiveReminder] = useState<{ name: string; time: string; minutesBefore: number } | null>(null)
-  const audioCtxRef = useRef<AudioContext | null>(null)
-  const shownRemindersRef = useRef<Set<string>>(new Set())
+
+  const REMINDER_KEY = `ferox-shown-reminders-${entry.date_key}`
+
+  function wasShown(id: string): boolean {
+    try {
+      const stored: string[] = JSON.parse(sessionStorage.getItem(REMINDER_KEY) ?? '[]')
+      return stored.includes(id)
+    } catch { return false }
+  }
+
+  function markShown(id: string) {
+    try {
+      const stored: string[] = JSON.parse(sessionStorage.getItem(REMINDER_KEY) ?? '[]')
+      if (!stored.includes(id)) {
+        sessionStorage.setItem(REMINDER_KEY, JSON.stringify([...stored, id]))
+      }
+    } catch {}
+  }
 
   const blocks = calcBlocks(profile.start_time ?? '08:00', profile.sleep_time ?? '23:00', profile.rhythm)
   const planBlocks = assignTasksToBlocks(tasks, blocks, entry.energy_level, profile.rhythm)
@@ -98,26 +117,24 @@ export default function PlanScreen({
     }
   }, [])
 
-  // Otključava AudioContext na prvom kliku — browser zahteva user gesture pre puštanja zvuka
+  // Otključava _audioCtx na svakom kliku — preživljava navigaciju jer je van komponente
   useEffect(() => {
-    const unlock = () => {
-      if (!audioCtxRef.current) {
-        audioCtxRef.current = new AudioContext()
-      } else if (audioCtxRef.current.state === 'suspended') {
-        audioCtxRef.current.resume()
+    const ensureAudio = () => {
+      if (!_audioCtx) {
+        try { _audioCtx = new AudioContext() } catch { return }
       }
-      document.removeEventListener('click', unlock)
+      if (_audioCtx.state === 'suspended') { _audioCtx.resume() }
     }
-    document.addEventListener('click', unlock)
-    return () => document.removeEventListener('click', unlock)
+    document.addEventListener('click', ensureAudio)
+    return () => document.removeEventListener('click', ensureAudio)
   }, [])
 
   async function playReminder() {
     try {
-      const ctx = audioCtxRef.current
-      if (!ctx) return
-      if (ctx.state !== 'running') await ctx.resume()
+      if (!_audioCtx) return
+      if (_audioCtx.state !== 'running') await _audioCtx.resume()
       ;[660, 880].forEach((freq, i) => {
+        const ctx = _audioCtx!
         const osc = ctx.createOscillator()
         const gain = ctx.createGain()
         osc.connect(gain); gain.connect(ctx.destination)
@@ -141,7 +158,7 @@ export default function PlanScreen({
       const now = new Date()
       for (const appt of appts) {
         if (!appt.id || !appt.reminder || appt.reminder <= 0) continue
-        if (shownRemindersRef.current.has(appt.id)) continue
+        if (wasShown(appt.id)) continue
 
         const [h, m] = appt.time.split(':').map(Number)
         const apptTime = new Date(); apptTime.setHours(h, m, 0, 0)
@@ -149,7 +166,7 @@ export default function PlanScreen({
 
         // Prikaži ako: vreme podsetnika prošlo, ALI termin još nije počeo
         if (now >= reminderTime && now < apptTime) {
-          shownRemindersRef.current.add(appt.id)
+          markShown(appt.id)
           void playReminder()
           setActiveReminder({ name: appt.name, time: appt.time, minutesBefore: appt.reminder })
           if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
