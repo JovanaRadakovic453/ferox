@@ -9,20 +9,8 @@ import Input from '@/components/ui/Input'
 import Modal from '@/components/ui/Modal'
 import ThemeToggle from '@/components/ui/ThemeToggle'
 import LogoutButton from '@/components/LogoutButton'
-import type { UserProfile, Reason, Rhythm } from '@/types/ferox'
+import type { UserProfile } from '@/types/ferox'
 
-const REASONS: { value: Reason; label: string }[] = [
-  { value: 'work', label: '💼 Posao' },
-  { value: 'school', label: '🎓 Škola' },
-  { value: 'personal', label: '🌱 Lično' },
-  { value: 'all', label: '✨ Sve' },
-]
-const RHYTHMS: { value: Rhythm; label: string }[] = [
-  { value: 'morning', label: '🌅 Jutarnji' },
-  { value: 'midday', label: '☀️ Podnevni' },
-  { value: 'evening', label: '🌙 Večernji' },
-  { value: 'mixed', label: '🌊 Mešovito' },
-]
 const WEEKDAYS = ['Ned', 'Pon', 'Uto', 'Sre', 'Čet', 'Pet', 'Sub']
 
 function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
@@ -47,8 +35,6 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
   const toast = useToast()
 
   const [name, setName] = useState(profile.name ?? '')
-  const [reason, setReason] = useState<Reason>(profile.reason ?? 'all')
-  const [rhythm, setRhythm] = useState<Rhythm>(profile.rhythm ?? 'mixed')
   const [sleepTime, setSleepTime] = useState(profile.sleep_time ?? '23:00')
   const [startTime, setStartTime] = useState(profile.start_time ?? '08:00')
   const [restDays, setRestDays] = useState<number[]>(profile.rest_days ?? [0, 6])
@@ -70,8 +56,6 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
     const supabase = createClient()
     const { error } = await supabase.from('profiles').update({
       name: name.trim(),
-      reason,
-      rhythm,
       sleep_time: sleepTime,
       start_time: startTime,
       rest_days: restDays,
@@ -125,18 +109,6 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
       <section className="card p-5 flex flex-col gap-4">
         <p className="section-label">Profil</p>
         <Input id="name" label="Ime" value={name} onChange={e => setName(e.target.value)} />
-        <div>
-          <label className="text-xs mb-1.5 block font-medium" style={{ color: 'var(--text-muted)' }}>Zašto koristiš Ferox</label>
-          <div className="flex flex-wrap gap-2">
-            {REASONS.map(r => <Chip key={r.value} active={reason === r.value} onClick={() => setReason(r.value)}>{r.label}</Chip>)}
-          </div>
-        </div>
-        <div>
-          <label className="text-xs mb-1.5 block font-medium" style={{ color: 'var(--text-muted)' }}>Kad si najproduktivniji/a</label>
-          <div className="flex flex-wrap gap-2">
-            {RHYTHMS.map(r => <Chip key={r.value} active={rhythm === r.value} onClick={() => setRhythm(r.value)}>{r.label}</Chip>)}
-          </div>
-        </div>
       </section>
 
       {/* Ritam dana */}
