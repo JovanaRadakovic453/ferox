@@ -7,7 +7,6 @@ import confetti from 'canvas-confetti'
 // Van komponente — preživljava navigaciju unutar istog tab-a
 let _audioCtx: AudioContext | null = null
 import { createClient } from '@/lib/supabase/client'
-import { calcBlocks } from '@/lib/energy'
 import { addDays } from '@/lib/date'
 import { formatDate } from '@/lib/utils'
 import type { Task, Appointment, DayEntry, UserProfile, TaskType, Priority } from '@/types/ferox'
@@ -15,9 +14,9 @@ import Button from '@/components/ui/Button'
 import { useCountUp } from '@/lib/useCountUp'
 import DayProgress from '@/components/plan/DayProgress'
 import { useToast } from '@/components/ui/Toast'
-import { assignTasksToBlocks } from '@/lib/plan'
 import { DEFAULTS } from '@/lib/config'
-import BlockCard from '@/components/plan/BlockCard'
+import TaskItem from '@/components/plan/TaskItem'
+import AppointmentItem from '@/components/plan/AppointmentItem'
 import ActionRail from '@/components/plan/ActionRail'
 import AddTaskModal from '@/components/plan/AddTaskModal'
 import RoutineModal from '@/components/plan/RoutineModal'
@@ -63,23 +62,6 @@ export default function PlanScreen({
         sessionStorage.setItem(REMINDER_KEY, JSON.stringify([...stored, id]))
       }
     } catch {}
-  }
-
-  const blocks = calcBlocks(profile.start_time ?? '08:00', profile.sleep_time ?? '23:00', profile.rhythm)
-  const planBlocks = assignTasksToBlocks(tasks, blocks, entry.energy_level, profile.rhythm)
-
-  function getAppointmentsForBlock(blockIndex: number): Appointment[] {
-    const b = blocks[blockIndex]
-    const isFirst = blockIndex === 0
-    const isLast = blockIndex === blocks.length - 1
-    return appts.filter(a => {
-      const [h] = a.time.split(':').map(Number)
-      // Termin pre prvog bloka → prvi blok. Posle poslednjeg → poslednji blok.
-      // Bez ovoga termini van opsega se broje ali ne prikazuju (phantom task u counteru).
-      const lower = isFirst ? -Infinity : b.start
-      const upper = isLast ? Infinity : b.end
-      return h >= lower && h < upper
-    })
   }
 
   const doneTasks = tasks.filter(t => t.done).length
@@ -413,7 +395,7 @@ export default function PlanScreen({
       {/* Status traka — progres + voda (jedan red na desktopu) */}
       <div className="flex items-center gap-4 px-1">
         <div className="flex-1">
-          <DayProgress blocks={planBlocks} />
+          <DayProgress done={done} total={total} />
         </div>
         <span className="text-xs font-semibold tabular-nums shrink-0" style={{ color: 'var(--text-muted)' }}>
           {total > 0 ? Math.round((done / total) * 100) : 0}%
@@ -432,10 +414,17 @@ export default function PlanScreen({
             <Button size="sm" onClick={() => setShowAddTask(true)}>➕ Dodaj zadatak</Button>
           </div>
         ) : (
-          <div className="flex flex-col gap-5">
-            {planBlocks.map((block, i) => (
-              <BlockCard key={block.label} block={block} appointments={getAppointmentsForBlock(i)} onToggle={toggleTask} onToggleAppt={toggleAppointment} onDeleteTask={deleteTask} />
-            ))}
+          <div className="card overflow-hidden">
+            <div className="pl-6 pr-5">
+              {appts.map(a => (
+                <AppointmentItem key={a.id ?? a.name + a.time} appt={a} onToggle={() => a.id && toggleAppointment(a.id)} />
+              ))}
+              <div className="divide-y" style={{ borderColor: 'var(--hairline)' }}>
+                {tasks.map(task => (
+                  <TaskItem key={task.id ?? task.name} task={task} onToggle={() => task.id && toggleTask(task.id)} onDelete={() => task.id && deleteTask(task.id)} />
+                ))}
+              </div>
+            </div>
           </div>
         )}
 
