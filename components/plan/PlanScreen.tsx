@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import confetti from 'canvas-confetti'
 import { createClient } from '@/lib/supabase/client'
 import { calcBlocks } from '@/lib/energy'
 import { addDays } from '@/lib/date'
@@ -65,6 +66,24 @@ export default function PlanScreen({
   const allDone = done === total && total > 0
   const doneDisplay = useCountUp(done)
 
+  const fireConfetti = useCallback((isLast: boolean) => {
+    if (typeof window === 'undefined') return
+    const gold = '#C9A84C'
+    const cream = '#F5ECD7'
+    const white = '#FFFFFF'
+    if (isLast) {
+      // Grand finale — dupli top pucanj
+      const shared = { particleCount: 120, spread: 80, colors: [gold, cream, white, '#E8D5A3', '#B8963C'] }
+      confetti({ ...shared, origin: { x: 0.3, y: 0.6 }, angle: 60 })
+      confetti({ ...shared, origin: { x: 0.7, y: 0.6 }, angle: 120 })
+      setTimeout(() => {
+        confetti({ particleCount: 80, spread: 100, origin: { x: 0.5, y: 0.5 }, colors: [gold, cream, white], scalar: 1.2 })
+      }, 200)
+    } else {
+      confetti({ particleCount: 30, spread: 55, origin: { x: 0.5, y: 0.6 }, colors: [gold, cream, white], scalar: 0.9 })
+    }
+  }, [])
+
   // Optimistički toggle PO ID-u (ne po imenu — dva ista naziva se više ne sudaraju).
   // Na grešku vraćamo stanje i nudimo retry preko toasta.
   async function toggleTask(taskId: string) {
@@ -73,12 +92,13 @@ export default function PlanScreen({
     const newDone = !task.done
     setTasks(prev => prev.map(t => t.id === taskId ? { ...t, done: newDone } : t))
 
-    // Mikro-feedback: vibracija na završetak + proslava kad je sve gotovo.
     if (newDone && profile.micro_feedback !== false) {
       if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(15)
       const totalCount = tasks.length + appts.length
       const doneNow = tasks.filter(t => (t.id === taskId ? true : t.done)).length + appts.filter(a => a.done).length
-      if (totalCount > 0 && doneNow === totalCount) toast({ message: 'Sve gotovo za danas! 🎉', variant: 'success' })
+      const isLast = totalCount > 0 && doneNow === totalCount
+      fireConfetti(isLast)
+      if (isLast) toast({ message: 'Sve gotovo za danas! 🎉', variant: 'success' })
     }
 
     const supabase = createClient()
