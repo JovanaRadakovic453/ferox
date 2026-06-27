@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import confetti from 'canvas-confetti'
 import { createClient } from '@/lib/supabase/client'
 import { calcBlocks } from '@/lib/energy'
@@ -256,6 +257,11 @@ export default function PlanScreen({
 
   return (
     <main className="flex flex-col gap-5 lg:gap-7 pb-2">
+      {!isToday && (
+        <Link href="/history" className="flex items-center gap-1.5 text-sm font-medium -mb-1" style={{ color: 'var(--text-muted)' }}>
+          ← Istorija
+        </Link>
+      )}
       {/* Header */}
       <header className="flex items-end justify-between gap-4 pt-1">
         <div className="min-w-0">
