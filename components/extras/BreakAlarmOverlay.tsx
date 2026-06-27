@@ -1,13 +1,16 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { t, resetTimer } from '@/lib/breakTimer'
 
 export default function BreakAlarmOverlay() {
   const [alarming, setAlarming] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
     const id = setInterval(() => setAlarming(t.alarming), 500)
     return () => clearInterval(id)
   }, [])
@@ -17,7 +20,9 @@ export default function BreakAlarmOverlay() {
     setAlarming(false)
   }
 
-  return (
+  if (!mounted) return null
+
+  return createPortal(
     <AnimatePresence>
       {alarming && (
         <motion.div
@@ -26,8 +31,17 @@ export default function BreakAlarmOverlay() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-[200] flex items-center justify-center px-6"
-          style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '0 1.5rem',
+            background: 'rgba(0,0,0,0.55)',
+            backdropFilter: 'blur(4px)',
+          }}
         >
           <motion.div
             key="alarm-card"
@@ -53,6 +67,7 @@ export default function BreakAlarmOverlay() {
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   )
 }
