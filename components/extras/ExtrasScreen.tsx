@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
 import Button from '@/components/ui/Button'
@@ -8,19 +8,59 @@ import { DEFAULTS } from '@/lib/config'
 import RoutinesSection from '@/components/extras/RoutinesSection'
 import type { Routine } from '@/types/ferox'
 
-function playDone() {
+// Timer state van React komponente — preživljava navigaciju unutar iste sesije
+let _breakMins = 10
+let _breakSecs = 10 * 60
+let _running = false
+let _alarming = false
+let _tickId: ReturnType<typeof setInterval> | null = null
+let _alarmId: ReturnType<typeof setInterval> | null = null
+let _audioCtx: AudioContext | null = null
+
+function ensureAudioCtx() {
+  if (!_audioCtx) {
+    try { _audioCtx = new AudioContext() } catch { return }
+  }
+  if (_audioCtx.state === 'suspended') _audioCtx.resume()
+}
+
+function playBeep() {
   try {
-    const ctx = new AudioContext()
-    const osc = ctx.createOscillator()
-    const gain = ctx.createGain()
-    osc.connect(gain)
-    gain.connect(ctx.destination)
-    osc.frequency.value = 880
-    gain.gain.setValueAtTime(0.4, ctx.currentTime)
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8)
-    osc.start(ctx.currentTime)
-    osc.stop(ctx.currentTime + 0.8)
+    if (!_audioCtx || _audioCtx.state !== 'running') return
+    ;[660, 880, 660].forEach((freq, i) => {
+      const ctx = _audioCtx!
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.connect(gain); gain.connect(ctx.destination)
+      osc.frequency.value = freq
+      gain.gain.setValueAtTime(0.35, ctx.currentTime + i * 0.22)
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.22 + 0.45)
+      osc.start(ctx.currentTime + i * 0.22)
+      osc.stop(ctx.currentTime + i * 0.22 + 0.45)
+    })
   } catch {}
+}
+
+function startAlarm() {
+  _alarming = true
+  playBeep()
+  _alarmId = setInterval(playBeep, 2500)
+}
+
+function stopAlarm() {
+  _alarming = false
+  if (_alarmId) { clearInterval(_alarmId); _alarmId = null }
+}
+
+function tick() {
+  if (_breakSecs <= 1) {
+    _breakSecs = 0
+    _running = false
+    if (_tickId) { clearInterval(_tickId); _tickId = null }
+    startAlarm()
+  } else {
+    _breakSecs--
+  }
 }
 
 function fmt(s: number) {
@@ -48,41 +88,56 @@ export default function ExtrasScreen({ initialPomodoro, profileId, initialRoutin
     else toast({ message: 'Sačuvano ✓', variant: 'success' })
   }
 
-  // — Tajmer odmora —
-  const [breakMins, setBreakMins] = useState(10)
-  const [secondsLeft, setSecondsLeft] = useState(10 * 60)
-  const [running, setRunning] = useState(false)
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  // — Tajmer odmora — React state je samo za prikaz, pravo stanje je u module-level vars
+  const [breakMins, setBreakMinsState] = useState(_breakMins)
+  const [secondsLeft, setSecondsLeft] = useState(_breakSecs)
+  const [running, setRunning] = useState(_running)
+  const [alarming, setAlarming] = useState(_alarming)
 
   useEffect(() => {
-    if (running) {
-      intervalRef.current = setInterval(() => {
-        setSecondsLeft(s => {
-          if (s <= 1) {
-            clearInterval(intervalRef.current!)
-            setRunning(false)
-            playDone()
-            toast({ message: 'Pauza je gotova! ☕', variant: 'success' })
-            return 0
-          }
-          return s - 1
-        })
-      }, 1000)
-    } else {
-      if (intervalRef.current) clearInterval(intervalRef.current)
+    // Otključaj AudioContext na prvi klik (browser zahteva user gesture)
+    const ensureAudio = () => ensureAudioCtx()
+    document.addEventListener('click', ensureAudio)
+
+    // Display interval — čita module-level state i ažurira UI svakih 500ms
+    const displayId = setInterval(() => {
+      setSecondsLeft(_breakSecs)
+      setRunning(_running)
+      setAlarming(_alarming)
+    }, 500)
+
+    return () => {
+      document.removeEventListener('click', ensureAudio)
+      clearInterval(displayId)
+      // _tickId i _alarmId ostaju — nastavljaju da rade kad korisnik navigira dalje
     }
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
-  }, [running])
+  }, [])
+
+  function handleStartPause() {
+    if (_alarming) return
+    if (!_running && _breakSecs > 0) {
+      _running = true
+      setRunning(true)
+      if (!_tickId) _tickId = setInterval(tick, 1000)
+    } else {
+      _running = false
+      setRunning(false)
+      if (_tickId) { clearInterval(_tickId); _tickId = null }
+    }
+  }
 
   function selectBreak(mins: number) {
-    setRunning(false)
-    setBreakMins(mins)
-    setSecondsLeft(mins * 60)
+    _running = false; _breakMins = mins; _breakSecs = mins * 60
+    stopAlarm()
+    if (_tickId) { clearInterval(_tickId); _tickId = null }
+    setRunning(false); setBreakMinsState(mins); setSecondsLeft(mins * 60); setAlarming(false)
   }
 
   function reset() {
-    setRunning(false)
-    setSecondsLeft(breakMins * 60)
+    _running = false; _breakSecs = _breakMins * 60
+    stopAlarm()
+    if (_tickId) { clearInterval(_tickId); _tickId = null }
+    setRunning(false); setSecondsLeft(_breakMins * 60); setAlarming(false)
   }
 
   const totalSecs = breakMins * 60
@@ -112,7 +167,7 @@ export default function ExtrasScreen({ initialPomodoro, profileId, initialRoutin
             <circle
               cx="80" cy="80" r="68"
               fill="none"
-              stroke={secondsLeft === 0 ? 'var(--gold)' : running ? '#60a5fa' : 'var(--gold)'}
+              stroke={alarming ? 'var(--gold)' : secondsLeft === 0 ? 'var(--gold)' : running ? '#60a5fa' : 'var(--gold)'}
               strokeWidth="12"
               strokeLinecap="round"
               strokeDasharray={`${progress * circumference} ${circumference}`}
@@ -121,9 +176,14 @@ export default function ExtrasScreen({ initialPomodoro, profileId, initialRoutin
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
-            <span className="display text-4xl leading-none tabular-nums" style={{ color: 'var(--text)' }}>{fmt(secondsLeft)}</span>
+            <span
+              className={`display text-4xl leading-none tabular-nums${alarming ? ' animate-pulse' : ''}`}
+              style={{ color: alarming ? 'var(--gold)' : 'var(--text)' }}
+            >
+              {fmt(secondsLeft)}
+            </span>
             <span className="text-[0.65rem] font-semibold tracking-widest uppercase" style={{ color: 'var(--text-muted)' }}>
-              {secondsLeft === 0 ? 'gotovo' : running ? 'odmor' : 'spreman'}
+              {alarming ? 'alarm!' : secondsLeft === 0 ? 'gotovo' : running ? 'odmor' : 'spreman'}
             </span>
           </div>
         </div>
@@ -156,9 +216,16 @@ export default function ExtrasScreen({ initialPomodoro, profileId, initialRoutin
         </div>
 
         <div className="flex gap-3 w-full max-w-xs">
-          <Button size="lg" className="flex-1" onClick={() => setRunning(r => !r)} disabled={secondsLeft === 0}>
-            {running ? 'Pauziraj' : 'Kreni'}
-          </Button>
+          {alarming ? (
+            <Button size="lg" className="flex-1" onClick={reset}
+              style={{ background: 'var(--gold)', color: 'white' }}>
+              ⏹ Zaustavi alarm
+            </Button>
+          ) : (
+            <Button size="lg" className="flex-1" onClick={handleStartPause} disabled={secondsLeft === 0}>
+              {running ? 'Pauziraj' : 'Kreni'}
+            </Button>
+          )}
           <button type="button" onClick={reset} className="px-4 rounded-[var(--r-md)] text-sm font-medium transition-colors"
             style={{ background: 'var(--surface2)', color: 'var(--text-muted)' }}>Resetuj</button>
         </div>
