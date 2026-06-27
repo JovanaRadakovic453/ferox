@@ -87,7 +87,7 @@ export default function PlanScreen({
         { x: Math.random() * 0.4 + 0.5, y: Math.random() * 0.4 + 0.1 },
         { x: Math.random() * 0.6 + 0.2, y: Math.random() * 0.3 + 0.5 },
       ].forEach(origin => {
-        confetti({ particleCount: 10, spread: 60, origin, colors, scalar: 0.85, gravity: 1.2 })
+        confetti({ particleCount: 25, spread: 70, origin, colors, scalar: 0.9, gravity: 1.1 })
       })
     }
   }, [])
