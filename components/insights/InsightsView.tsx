@@ -1,12 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import type { Aggregates, Forecast, Bar } from '@/lib/insights'
 import { ENERGY_LABELS, TASK_TYPE_LABELS } from '@/types/ferox'
 import type { TaskType, EnergyLevel } from '@/types/ferox'
 import { DEFAULTS } from '@/lib/config'
-
-type AiInsight = { title: string; body: string; type?: string }
 
 function BarRow({ label, rate }: { label: string; rate: number }) {
   return (
@@ -33,38 +30,6 @@ function ChartCard({ title, bars }: { title: string; bars: Bar[] }) {
 }
 
 export default function InsightsView({ agg, forecast }: { agg: Aggregates; forecast: Forecast | null }) {
-  const [ai, setAi] = useState<AiInsight[] | null>(null)
-  const [aiLoading, setAiLoading] = useState(true)
-
-  useEffect(() => {
-    const key = 'ferox_insights_' + agg.dayCount + '_' + agg.overallCompletion
-    const cached = sessionStorage.getItem(key)
-    if (cached) {
-      try {
-        setAi(JSON.parse(cached))
-        setAiLoading(false)
-        return
-      } catch {
-        sessionStorage.removeItem(key) // pokvaren keš — ignoriši i ponovo dohvati
-      }
-    }
-    let cancelled = false
-    fetch('/api/ai/insights', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ aggregates: agg }),
-    })
-      .then(r => (r.ok ? r.json() : null))
-      .then(d => {
-        if (cancelled) return
-        const insights = d?.insights ?? []
-        setAi(insights)
-        sessionStorage.setItem(key, JSON.stringify(insights))
-      })
-      .catch(() => { if (!cancelled) setAi([]) })
-      .finally(() => { if (!cancelled) setAiLoading(false) })
-    return () => { cancelled = true }
-  }, [agg])
 
   const typeBars = agg.byType.slice(0, DEFAULTS.insightsTopTaskTypes).map(b => ({
     ...b,
@@ -98,25 +63,6 @@ export default function InsightsView({ agg, forecast }: { agg: Aggregates; forec
           <p className="section-label">Ukupna realizacija</p>
           <p className="display text-3xl lg:text-5xl" style={{ color: 'var(--gold)' }}>{agg.overallCompletion}%</p>
         </div>
-      </div>
-
-      {/* AI Pattern Coach */}
-      <div className="card p-5 lg:p-6 flex flex-col gap-3">
-        <p className="section-label">Pattern coach</p>
-        {aiLoading ? (
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Tražim obrasce u tvojim danima…</p>
-        ) : ai && ai.length > 0 ? (
-          <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:gap-3">
-            {ai.map((ins, i) => (
-              <div key={i} className="rounded-[var(--r-md)] p-3.5" style={{ background: 'var(--surface2)' }}>
-                <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{ins.title}</p>
-                <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>{ins.body}</p>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Nastavi da planiraš — uskoro ću prepoznati tvoje obrasce.</p>
-        )}
       </div>
 
       {agg.sleepInsight && (

@@ -3,7 +3,6 @@
 import { createContext, useContext, useState, type ReactNode } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import CoachSheet from '@/components/chat/CoachSheet'
 import InstallBanner from '@/components/nav/InstallBanner'
 import ThemeToggle from '@/components/ui/ThemeToggle'
 import BreakAlarmOverlay from '@/components/extras/BreakAlarmOverlay'
@@ -25,7 +24,6 @@ const TABS = [
 
 export default function AppChrome({ children }: { children: ReactNode }) {
   const [hidden, setHidden] = useState(false)
-  const [coachOpen, setCoachOpen] = useState(false)
   const pathname = usePathname() ?? '/'
   const onOnboarding = pathname.startsWith('/onboarding')
   const showMobileNav = !hidden && !onOnboarding
@@ -42,7 +40,7 @@ export default function AppChrome({ children }: { children: ReactNode }) {
   return (
     <ChromeCtx.Provider value={{ setHidden }}>
       <div className="app-shell">
-        <Sidebar pathname={pathname} onCoach={() => setCoachOpen(true)} />
+        <Sidebar pathname={pathname} />
 
         <div className="app-viewport">
           <div className="app-content">
@@ -52,28 +50,17 @@ export default function AppChrome({ children }: { children: ReactNode }) {
           </div>
         </div>
 
-        {showMobileNav && (
-          <button
-            onClick={() => setCoachOpen(true)}
-            aria-label="Ferox coach"
-            className="lg:hidden fixed right-4 bottom-24 z-40 w-12 h-12 rounded-full grid place-items-center text-xl active:scale-95 transition-transform"
-            style={{ backgroundImage: 'linear-gradient(135deg, var(--gold), var(--gold-deep))', color: '#fff', boxShadow: 'var(--sh-gold)' }}
-          >
-            💬
-          </button>
-        )}
         {showMobileNav && <MobileNav pathname={pathname} />}
         {showMobileNav && <InstallBanner />}
       </div>
 
-      <CoachSheet open={coachOpen} onClose={() => setCoachOpen(false)} />
       <BreakAlarmOverlay />
     </ChromeCtx.Provider>
   )
 }
 
 /* ── Desktop left rail ─────────────────────────────────────────── */
-function Sidebar({ pathname, onCoach }: { pathname: string; onCoach: () => void }) {
+function Sidebar({ pathname }: { pathname: string }) {
   return (
     <aside className="app-sidebar">
       <Link href="/" aria-label="Ferox — početna" className="flex items-center gap-2.5 px-2 mb-7">
@@ -98,12 +85,6 @@ function Sidebar({ pathname, onCoach }: { pathname: string; onCoach: () => void 
           )
         })}
       </nav>
-
-      <button onClick={onCoach} className="nav-item mt-1 text-left">
-        <span className="nav-ico" aria-hidden>💬</span>
-        Coach
-        <span className="ml-auto text-[0.6rem] font-semibold tracking-wide px-1.5 py-0.5 rounded-full" style={{ background: 'var(--gold-tint)', color: 'var(--gold)' }}>AI</span>
-      </button>
 
       <div className="flex-1" />
 
