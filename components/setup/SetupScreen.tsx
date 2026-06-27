@@ -18,7 +18,7 @@ import TaskEditor from '@/components/setup/TaskEditor'
 import AppointmentEditor from '@/components/setup/AppointmentEditor'
 import PreviewRail from '@/components/setup/PreviewRail'
 
-export default function SetupScreen({ profile, targetDate, transferredTasks = [], initialEnergy = null, showTransferBanner = false }: { profile: UserProfile; targetDate?: string; transferredTasks?: Task[]; initialEnergy?: number | null; showTransferBanner?: boolean }) {
+export default function SetupScreen({ profile, targetDate, transferredTasks = [], initialAppointments = [], initialEnergy = null, showTransferBanner = false }: { profile: UserProfile; targetDate?: string; transferredTasks?: Task[]; initialAppointments?: Appointment[]; initialEnergy?: number | null; showTransferBanner?: boolean }) {
   // Pri ponovnom otvaranju plana (edit) vraćamo izabranu energiju da dugme
   // "Napravi plan" ne ostane bezrazložno disabled.
   const [energy, setEnergy] = useState<number | null>(initialEnergy)
@@ -28,7 +28,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
   // showTransferBanner=false → tasks su iz postojećeg day_entry (edit mode), pre-učitaj ih
   const [tasks, setTasks] = useState<Task[]>(showTransferBanner ? [] : transferredTasks)
   const [suggestedTransfers, setSuggestedTransfers] = useState<Task[]>(showTransferBanner ? transferredTasks : [])
-  const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [appointments, setAppointments] = useState<Appointment[]>(showTransferBanner ? [] : initialAppointments)
   const [loading, setLoading] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [resetting, setResetting] = useState(false)

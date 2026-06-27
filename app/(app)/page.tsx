@@ -5,7 +5,7 @@ import EodLanding from '@/components/plan/EodLanding'
 import { todayKey, tomorrowKey } from '@/lib/date'
 import { energyLevelFromLabel } from '@/lib/energy'
 import { computeStreak } from '@/lib/streak'
-import type { UserProfile, Task } from '@/types/ferox'
+import type { UserProfile, Task, Appointment } from '@/types/ferox'
 
 export default async function SetupPage({
   searchParams,
@@ -83,18 +83,28 @@ export default async function SetupPage({
   // Ako vec postoji plan za targetDate, ucitaj te zadatke i izabranu energiju
   // Inace ucitaj prenesene zadatke iz prethodnog dana
   let initialTasks: Task[] = []
+  let initialAppointments: Appointment[] = []
   let initialEnergy: number | null = null
   let showTransferBanner = false
 
   if (entry) {
     initialEnergy = energyLevelFromLabel(entry.energy)
-    const { data: existingTasks } = await supabase
-      .from('tasks')
-      .select('name, note, priority, type, done, position')
-      .eq('entry_id', entry.id)
-      .eq('user_id', user.id)
-      .order('position')
+    const [{ data: existingTasks }, { data: existingAppts }] = await Promise.all([
+      supabase
+        .from('tasks')
+        .select('name, note, priority, type, done, position')
+        .eq('entry_id', entry.id)
+        .eq('user_id', user.id)
+        .order('position'),
+      supabase
+        .from('appointments')
+        .select('id, name, time, reminder, done')
+        .eq('user_id', user.id)
+        .eq('date_key', targetDate)
+        .order('time'),
+    ])
     initialTasks = (existingTasks ?? []) as Task[]
+    initialAppointments = (existingAppts ?? []) as Appointment[]
   } else {
     const { data: transferred } = await supabase
       .from('transferred_tasks')
@@ -112,6 +122,7 @@ export default async function SetupPage({
       profile={profile as UserProfile}
       targetDate={targetDate}
       transferredTasks={initialTasks}
+      initialAppointments={initialAppointments}
       initialEnergy={initialEnergy}
       showTransferBanner={showTransferBanner}
     />
