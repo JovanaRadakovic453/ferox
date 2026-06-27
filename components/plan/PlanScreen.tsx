@@ -46,6 +46,7 @@ export default function PlanScreen({
   const [routines, setRoutines] = useState<Routine[]>([])
   const [activeReminder, setActiveReminder] = useState<{ name: string; time: string; minutesBefore: number } | null>(null)
   const audioCtxRef = useRef<AudioContext | null>(null)
+  const shownRemindersRef = useRef<Set<string>>(new Set())
 
   const blocks = calcBlocks(profile.start_time ?? '08:00', profile.sleep_time ?? '23:00', profile.rhythm)
   const planBlocks = assignTasksToBlocks(tasks, blocks, entry.energy_level, profile.rhythm)
@@ -111,10 +112,11 @@ export default function PlanScreen({
     return () => document.removeEventListener('click', unlock)
   }, [])
 
-  function playReminder() {
+  async function playReminder() {
     try {
       const ctx = audioCtxRef.current
-      if (!ctx || ctx.state === 'suspended') return
+      if (!ctx) return
+      if (ctx.state !== 'running') await ctx.resume()
       ;[660, 880].forEach((freq, i) => {
         const osc = ctx.createOscillator()
         const gain = ctx.createGain()
@@ -128,47 +130,41 @@ export default function PlanScreen({
     } catch {}
   }
 
-  // Tražimo dozvolu za browser notifikacije jednom na mount (samo za danas)
+  // Proverava svake 30s da li je vreme za podsetnik; pamti koji su već prikazani
   useEffect(() => {
     if (!isToday) return
-    const hasReminders = appts.some(a => a.reminder > 0)
-    if (hasReminders && typeof Notification !== 'undefined' && Notification.permission === 'default') {
-      Notification.requestPermission()
-    }
-  }, [isToday]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Zakazujemo setTimeout za svaki podsetnik; propuštene (< 30 min) prikazujemo odmah
-  useEffect(() => {
-    if (!isToday) return
-    const now = new Date()
-    const timers: ReturnType<typeof setTimeout>[] = []
+    const checkReminders = () => {
+      if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+        Notification.requestPermission()
+      }
+      const now = new Date()
+      for (const appt of appts) {
+        if (!appt.id || !appt.reminder || appt.reminder <= 0) continue
+        if (shownRemindersRef.current.has(appt.id)) continue
 
-    for (const appt of appts) {
-      if (!appt.reminder || appt.reminder <= 0) continue
-      const [h, m] = appt.time.split(':').map(Number)
-      const apptTime = new Date(); apptTime.setHours(h, m, 0, 0)
-      const reminderTime = new Date(apptTime.getTime() - appt.reminder * 60_000)
-      const delay = reminderTime.getTime() - now.getTime()
+        const [h, m] = appt.time.split(':').map(Number)
+        const apptTime = new Date(); apptTime.setHours(h, m, 0, 0)
+        const reminderTime = new Date(apptTime.getTime() - appt.reminder * 60_000)
 
-      const fire = () => {
-        playReminder()
-        setActiveReminder({ name: appt.name, time: appt.time, minutesBefore: appt.reminder })
-        if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-          new Notification(`📅 ${appt.name}`, {
-            body: `Počinje za ${appt.reminder} min · ${appt.time}h`,
-            icon: '/icon.svg',
-          })
+        // Prikaži ako: vreme podsetnika prošlo, ALI termin još nije počeo
+        if (now >= reminderTime && now < apptTime) {
+          shownRemindersRef.current.add(appt.id)
+          void playReminder()
+          setActiveReminder({ name: appt.name, time: appt.time, minutesBefore: appt.reminder })
+          if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+            new Notification(`📅 ${appt.name}`, {
+              body: `Počinje za ${appt.reminder} min · ${appt.time}h`,
+              icon: '/icon.svg',
+            })
+          }
         }
       }
-
-      if (delay <= 0 && delay > -30 * 60_000) {
-        fire() // propušten pre < 30 min — prikaži odmah
-      } else if (delay > 0) {
-        timers.push(setTimeout(fire, delay))
-      }
     }
 
-    return () => timers.forEach(clearTimeout)
+    checkReminders()
+    const interval = setInterval(checkReminders, 30_000)
+    return () => clearInterval(interval)
   }, [appts, isToday])
 
   // Optimistički toggle PO ID-u (ne po imenu — dva ista naziva se više ne sudaraju).
