@@ -6,6 +6,7 @@ import Link from 'next/link'
 import CoachSheet from '@/components/chat/CoachSheet'
 import InstallBanner from '@/components/nav/InstallBanner'
 import ThemeToggle from '@/components/ui/ThemeToggle'
+import BreakAlarmOverlay from '@/components/extras/BreakAlarmOverlay'
 
 // Chrome visibility. Pages with their own full-width bottom CTA (e.g. SetupScreen)
 // call setHidden(true) on mount to avoid a double bar. This hides ONLY the mobile
@@ -66,6 +67,7 @@ export default function AppChrome({ children }: { children: ReactNode }) {
       </div>
 
       <CoachSheet open={coachOpen} onClose={() => setCoachOpen(false)} />
+      <BreakAlarmOverlay />
     </ChromeCtx.Provider>
   )
 }

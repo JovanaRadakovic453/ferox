@@ -7,61 +7,14 @@ import Button from '@/components/ui/Button'
 import { DEFAULTS } from '@/lib/config'
 import RoutinesSection from '@/components/extras/RoutinesSection'
 import type { Routine } from '@/types/ferox'
-
-// Timer state van React komponente — preživljava navigaciju unutar iste sesije
-let _breakMins = 10
-let _breakSecs = 10 * 60
-let _running = false
-let _alarming = false
-let _tickId: ReturnType<typeof setInterval> | null = null
-let _alarmId: ReturnType<typeof setInterval> | null = null
-let _audioCtx: AudioContext | null = null
-
-function ensureAudioCtx() {
-  if (!_audioCtx) {
-    try { _audioCtx = new AudioContext() } catch { return }
-  }
-  if (_audioCtx.state === 'suspended') _audioCtx.resume()
-}
-
-function playBeep() {
-  try {
-    if (!_audioCtx || _audioCtx.state !== 'running') return
-    ;[660, 880, 660].forEach((freq, i) => {
-      const ctx = _audioCtx!
-      const osc = ctx.createOscillator()
-      const gain = ctx.createGain()
-      osc.connect(gain); gain.connect(ctx.destination)
-      osc.frequency.value = freq
-      gain.gain.setValueAtTime(0.35, ctx.currentTime + i * 0.22)
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.22 + 0.45)
-      osc.start(ctx.currentTime + i * 0.22)
-      osc.stop(ctx.currentTime + i * 0.22 + 0.45)
-    })
-  } catch {}
-}
-
-function startAlarm() {
-  _alarming = true
-  playBeep()
-  _alarmId = setInterval(playBeep, 2500)
-}
-
-function stopAlarm() {
-  _alarming = false
-  if (_alarmId) { clearInterval(_alarmId); _alarmId = null }
-}
-
-function tick() {
-  if (_breakSecs <= 1) {
-    _breakSecs = 0
-    _running = false
-    if (_tickId) { clearInterval(_tickId); _tickId = null }
-    startAlarm()
-  } else {
-    _breakSecs--
-  }
-}
+import {
+  t,
+  ensureAudioCtx,
+  startTimer,
+  pauseTimer,
+  selectBreak,
+  resetTimer,
+} from '@/lib/breakTimer'
 
 function fmt(s: number) {
   const m = Math.floor(s / 60)
@@ -88,56 +41,49 @@ export default function ExtrasScreen({ initialPomodoro, profileId, initialRoutin
     else toast({ message: 'Sačuvano ✓', variant: 'success' })
   }
 
-  // — Tajmer odmora — React state je samo za prikaz, pravo stanje je u module-level vars
-  const [breakMins, setBreakMinsState] = useState(_breakMins)
-  const [secondsLeft, setSecondsLeft] = useState(_breakSecs)
-  const [running, setRunning] = useState(_running)
-  const [alarming, setAlarming] = useState(_alarming)
+  // — Tajmer odmora — React state je samo za prikaz; pravo stanje je u lib/breakTimer.ts
+  const [breakMins, setBreakMinsState] = useState(t.breakMins)
+  const [secondsLeft, setSecondsLeft] = useState(t.breakSecs)
+  const [running, setRunning] = useState(t.running)
+  const [alarming, setAlarming] = useState(t.alarming)
 
   useEffect(() => {
-    // Otključaj AudioContext na prvi klik (browser zahteva user gesture)
     const ensureAudio = () => ensureAudioCtx()
     document.addEventListener('click', ensureAudio)
 
-    // Display interval — čita module-level state i ažurira UI svakih 500ms
+    // Display interval — čita shared state i ažurira UI svakih 500ms
     const displayId = setInterval(() => {
-      setSecondsLeft(_breakSecs)
-      setRunning(_running)
-      setAlarming(_alarming)
+      setSecondsLeft(t.breakSecs)
+      setRunning(t.running)
+      setAlarming(t.alarming)
+      setBreakMinsState(t.breakMins)
     }, 500)
 
     return () => {
       document.removeEventListener('click', ensureAudio)
       clearInterval(displayId)
-      // _tickId i _alarmId ostaju — nastavljaju da rade kad korisnik navigira dalje
+      // t.tickId i t.alarmId ostaju — nastavljaju kad korisnik navigira dalje
     }
   }, [])
 
   function handleStartPause() {
-    if (_alarming) return
-    if (!_running && _breakSecs > 0) {
-      _running = true
-      setRunning(true)
-      if (!_tickId) _tickId = setInterval(tick, 1000)
-    } else {
-      _running = false
+    if (t.running) {
+      pauseTimer()
       setRunning(false)
-      if (_tickId) { clearInterval(_tickId); _tickId = null }
+    } else {
+      startTimer()
+      setRunning(true)
     }
   }
 
-  function selectBreak(mins: number) {
-    _running = false; _breakMins = mins; _breakSecs = mins * 60
-    stopAlarm()
-    if (_tickId) { clearInterval(_tickId); _tickId = null }
+  function handleSelectBreak(mins: number) {
+    selectBreak(mins)
     setRunning(false); setBreakMinsState(mins); setSecondsLeft(mins * 60); setAlarming(false)
   }
 
-  function reset() {
-    _running = false; _breakSecs = _breakMins * 60
-    stopAlarm()
-    if (_tickId) { clearInterval(_tickId); _tickId = null }
-    setRunning(false); setSecondsLeft(_breakMins * 60); setAlarming(false)
+  function handleReset() {
+    resetTimer()
+    setRunning(false); setSecondsLeft(t.breakSecs); setAlarming(false)
   }
 
   const totalSecs = breakMins * 60
@@ -167,7 +113,7 @@ export default function ExtrasScreen({ initialPomodoro, profileId, initialRoutin
             <circle
               cx="80" cy="80" r="68"
               fill="none"
-              stroke={alarming ? 'var(--gold)' : secondsLeft === 0 ? 'var(--gold)' : running ? '#60a5fa' : 'var(--gold)'}
+              stroke={alarming || secondsLeft === 0 ? 'var(--gold)' : running ? '#60a5fa' : 'var(--gold)'}
               strokeWidth="12"
               strokeLinecap="round"
               strokeDasharray={`${progress * circumference} ${circumference}`}
@@ -190,7 +136,7 @@ export default function ExtrasScreen({ initialPomodoro, profileId, initialRoutin
 
         <div className="flex flex-wrap justify-center gap-2">
           {[5, 10, 15, 20].map(m => (
-            <button key={m} type="button" onClick={() => selectBreak(m)}
+            <button key={m} type="button" onClick={() => handleSelectBreak(m)}
               className="text-xs px-3 py-2 rounded-[var(--r-md)] transition-colors"
               style={{
                 background: breakMins === m ? 'var(--gold-tint)' : 'var(--surface2)',
@@ -208,7 +154,7 @@ export default function ExtrasScreen({ initialPomodoro, profileId, initialRoutin
               style={{ background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--text)', outline: 'none' }}
               onChange={e => {
                 const v = parseInt(e.target.value)
-                if (v >= 1 && v <= 120) selectBreak(v)
+                if (v >= 1 && v <= 120) handleSelectBreak(v)
               }}
             />
             <span className="text-xs" style={{ color: 'var(--text-muted)' }}>min</span>
@@ -217,7 +163,7 @@ export default function ExtrasScreen({ initialPomodoro, profileId, initialRoutin
 
         <div className="flex gap-3 w-full max-w-xs">
           {alarming ? (
-            <Button size="lg" className="flex-1" onClick={reset}
+            <Button size="lg" className="flex-1" onClick={handleReset}
               style={{ background: 'var(--gold)', color: 'white' }}>
               ⏹ Zaustavi alarm
             </Button>
@@ -226,7 +172,7 @@ export default function ExtrasScreen({ initialPomodoro, profileId, initialRoutin
               {running ? 'Pauziraj' : 'Kreni'}
             </Button>
           )}
-          <button type="button" onClick={reset} className="px-4 rounded-[var(--r-md)] text-sm font-medium transition-colors"
+          <button type="button" onClick={handleReset} className="px-4 rounded-[var(--r-md)] text-sm font-medium transition-colors"
             style={{ background: 'var(--surface2)', color: 'var(--text-muted)' }}>Resetuj</button>
         </div>
       </section>
