@@ -155,15 +155,17 @@ export default function PlanScreen({
       }
       const now = new Date()
       for (const appt of appts) {
-        if (!appt.id || !appt.reminder || appt.reminder <= 0) continue
+        if (!appt.id || appt.reminder < 0) continue
         if (wasShown(appt.id)) continue
 
         const [h, m] = appt.time.split(':').map(Number)
         const apptTime = new Date(); apptTime.setHours(h, m, 0, 0)
-        const reminderTime = new Date(apptTime.getTime() - appt.reminder * 60_000)
+        const reminderTime = new Date(apptTime.getTime() - (appt.reminder || 0) * 60_000)
+        // Dajemo 15 min grace posle početka termina — da baner okine i ako korisnica
+        // kasni da otvori plan ili je vreme podsetnika upravo prošlo.
+        const graceEnd = new Date(apptTime.getTime() + 15 * 60_000)
 
-        // Prikaži ako: vreme podsetnika prošlo, ALI termin još nije počeo
-        if (now >= reminderTime && now < apptTime) {
+        if (now >= reminderTime && now < graceEnd) {
           markShown(appt.id)
           void playReminder()
           setActiveReminder({ name: appt.name, time: appt.time, minutesBefore: appt.reminder })
