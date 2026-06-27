@@ -414,16 +414,13 @@ export default function PlanScreen({
       )}
 
       {/* Status traka — progres + voda (jedan red na desktopu) */}
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-stretch lg:gap-6">
-        <div className="card p-5 lg:p-6 flex items-center gap-3 lg:flex-1">
-          <div className="flex-1">
-            <DayProgress blocks={planBlocks} />
-          </div>
-          <span className="text-sm font-semibold tabular-nums shrink-0" style={{ color: 'var(--text-muted)' }}>
-            {total > 0 ? Math.round((done / total) * 100) : 0}%
-          </span>
+      <div className="flex items-center gap-4 px-1">
+        <div className="flex-1">
+          <DayProgress blocks={planBlocks} />
         </div>
-
+        <span className="text-xs font-semibold tabular-nums shrink-0" style={{ color: 'var(--text-muted)' }}>
+          {total > 0 ? Math.round((done / total) * 100) : 0}%
+        </span>
       </div>
 
       {/* Telo — blokovi (glavna kolona) + akcije (rail na desktopu) */}

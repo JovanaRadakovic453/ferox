@@ -35,35 +35,35 @@ export default function ActionRail({
           </Button>
         )
       )}
-      <div className="grid grid-cols-2 gap-2">
-        <Button size="sm" variant="secondary" onClick={onAddTask}>
+      <div className="flex flex-col gap-2">
+        <Button size="sm" variant="secondary" className="w-full" onClick={onAddTask}>
           ➕ Dodaj zadatak
         </Button>
-        <Button size="sm" variant="secondary" onClick={onReplan}>
+        <Button size="sm" variant="secondary" className="w-full" onClick={onReplan}>
           🔥 Dan se raspao
         </Button>
         {!dayFinished && (
-          <Button size="sm" variant="secondary" className="col-span-2" onClick={onRoutine}>
+          <Button size="sm" variant="secondary" className="w-full" onClick={onRoutine}>
             📋 Primeni rutinu
           </Button>
         )}
         {isToday ? (
           <>
-            <Button size="sm" variant="secondary" onClick={() => { window.location.href = '/?edit=1' }}>
+            <Button size="sm" variant="secondary" className="w-full" onClick={() => { window.location.href = '/?edit=1' }}>
               ✏️ Uredi plan
             </Button>
             {tomorrowPlanned ? (
-              <Button size="sm" variant="secondary" onClick={() => { window.location.href = '/plan?date=' + tomorrowKey() }}>
+              <Button size="sm" variant="secondary" className="w-full" onClick={() => { window.location.href = '/plan?date=' + tomorrowKey() }}>
                 🌙 Pogledaj sutra
               </Button>
             ) : (
-              <Button size="sm" variant="secondary" onClick={() => { window.location.href = '/?sutra=1' }}>
+              <Button size="sm" variant="secondary" className="w-full" onClick={() => { window.location.href = '/?sutra=1' }}>
                 🌙 Planiraj sutra
               </Button>
             )}
           </>
         ) : (
-          <Button size="sm" variant="secondary" className="col-span-2" onClick={() => { window.location.href = '/plan' }}>
+          <Button size="sm" variant="secondary" className="w-full" onClick={() => { window.location.href = '/plan' }}>
             ← Nazad na današnji plan
           </Button>
         )}
