@@ -8,7 +8,7 @@ export default function AppointmentItem({ appt, onToggle }: { appt: Appointment;
       role="checkbox"
       aria-checked={appt.done}
       aria-label={`${appt.time} ${appt.name} (termin)${appt.done ? ', završeno' : ''}`}
-      className="flex items-center gap-3 w-full text-left py-2.5 border-b transition-transform active:scale-[0.995]"
+      className="flex items-center gap-3 w-full text-left py-4 border-b transition-transform active:scale-[0.995]"
       style={{ borderColor: 'var(--hairline)' }}
     >
       <span aria-hidden><Checkbox checked={appt.done} /></span>

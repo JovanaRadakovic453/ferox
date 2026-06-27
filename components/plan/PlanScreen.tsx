@@ -354,7 +354,7 @@ export default function PlanScreen({
   }
 
   return (
-    <main className="flex flex-col gap-5 lg:gap-7 pb-2">
+    <main className="flex flex-col gap-7 lg:gap-9 pb-2">
       {!isToday && (
         <Link href="/history" className="flex items-center gap-1.5 text-sm font-medium -mb-1" style={{ color: 'var(--text-muted)' }}>
           ← Istorija
@@ -383,7 +383,7 @@ export default function PlanScreen({
               🌙 {formatDate(entry.date_key)}
             </p>
           )}
-          <div className="flex flex-wrap items-center gap-1.5 mt-2.5">
+          <div className="flex flex-wrap items-center gap-2 mt-4">
             <span className="text-xs px-2.5 py-1 rounded-full" style={{ background: 'var(--surface2)', color: 'var(--text-muted)' }}>
               {entry.energy}
             </span>
@@ -414,8 +414,8 @@ export default function PlanScreen({
       )}
 
       {/* Status traka — progres + voda (jedan red na desktopu) */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch lg:gap-5">
-        <div className="card p-4 lg:p-5 flex items-center gap-3 lg:flex-1">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-stretch lg:gap-6">
+        <div className="card p-5 lg:p-6 flex items-center gap-3 lg:flex-1">
           <div className="flex-1">
             <DayProgress blocks={planBlocks} />
           </div>
@@ -427,7 +427,7 @@ export default function PlanScreen({
       </div>
 
       {/* Telo — blokovi (glavna kolona) + akcije (rail na desktopu) */}
-      <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_var(--rail-w)] lg:gap-7 lg:items-start">
+      <div className="flex flex-col gap-7 lg:grid lg:grid-cols-[minmax(0,1fr)_var(--rail-w)] lg:gap-9 lg:items-start">
         {/* Blokovi */}
         {total === 0 ? (
           <div className="card p-8 text-center flex flex-col items-center gap-3">
@@ -438,7 +438,7 @@ export default function PlanScreen({
             <Button size="sm" onClick={() => setShowAddTask(true)}>➕ Dodaj zadatak</Button>
           </div>
         ) : (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-5">
             {planBlocks.map((block, i) => (
               <BlockCard key={block.label} block={block} appointments={getAppointmentsForBlock(i)} onToggle={toggleTask} onToggleAppt={toggleAppointment} />
             ))}

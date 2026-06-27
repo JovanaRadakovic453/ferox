@@ -9,12 +9,12 @@ export default function TaskItem({ task, onToggle }: { task: Task; onToggle: () 
       role="checkbox"
       aria-checked={task.done}
       aria-label={`${task.name} — ${PRIORITY_LABELS[task.priority]}${task.done ? ', završeno' : ''}`}
-      className="flex items-start gap-3 w-full text-left py-2.5 transition-transform active:scale-[0.995]"
+      className="flex items-start gap-3 w-full text-left py-4 transition-transform active:scale-[0.995]"
     >
       <span className="mt-0.5" aria-hidden><Checkbox checked={task.done} /></span>
       <div className="flex-1 min-w-0">
         <p
-          className="text-sm font-medium transition-all duration-200"
+          className="text-[0.925rem] font-medium transition-all duration-200"
           style={{
             color: task.done ? 'var(--text-muted)' : 'var(--text)',
             textDecoration: task.done ? 'line-through' : 'none',
