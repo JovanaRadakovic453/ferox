@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import confetti from 'canvas-confetti'
 import { createClient } from '@/lib/supabase/client'
@@ -45,6 +45,7 @@ export default function PlanScreen({
   const [showRoutines, setShowRoutines] = useState(false)
   const [routines, setRoutines] = useState<Routine[]>([])
   const [activeReminder, setActiveReminder] = useState<{ name: string; time: string; minutesBefore: number } | null>(null)
+  const audioCtxRef = useRef<AudioContext | null>(null)
 
   const blocks = calcBlocks(profile.start_time ?? '08:00', profile.sleep_time ?? '23:00', profile.rhythm)
   const planBlocks = assignTasksToBlocks(tasks, blocks, entry.energy_level, profile.rhythm)
@@ -96,9 +97,24 @@ export default function PlanScreen({
     }
   }, [])
 
+  // Otključava AudioContext na prvom kliku — browser zahteva user gesture pre puštanja zvuka
+  useEffect(() => {
+    const unlock = () => {
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new AudioContext()
+      } else if (audioCtxRef.current.state === 'suspended') {
+        audioCtxRef.current.resume()
+      }
+      document.removeEventListener('click', unlock)
+    }
+    document.addEventListener('click', unlock)
+    return () => document.removeEventListener('click', unlock)
+  }, [])
+
   function playReminder() {
     try {
-      const ctx = new AudioContext()
+      const ctx = audioCtxRef.current
+      if (!ctx || ctx.state === 'suspended') return
       ;[660, 880].forEach((freq, i) => {
         const osc = ctx.createOscillator()
         const gain = ctx.createGain()
@@ -121,7 +137,7 @@ export default function PlanScreen({
     }
   }, [isToday]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Zakazujemo setTimeout za svaki podsetnik koji još nije prošao
+  // Zakazujemo setTimeout za svaki podsetnik; propuštene (< 30 min) prikazujemo odmah
   useEffect(() => {
     if (!isToday) return
     const now = new Date()
@@ -133,19 +149,23 @@ export default function PlanScreen({
       const apptTime = new Date(); apptTime.setHours(h, m, 0, 0)
       const reminderTime = new Date(apptTime.getTime() - appt.reminder * 60_000)
       const delay = reminderTime.getTime() - now.getTime()
-      if (delay <= 0) continue
 
-      const t = setTimeout(() => {
+      const fire = () => {
         playReminder()
         setActiveReminder({ name: appt.name, time: appt.time, minutesBefore: appt.reminder })
         if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
           new Notification(`📅 ${appt.name}`, {
             body: `Počinje za ${appt.reminder} min · ${appt.time}h`,
-            icon: '/icons/icon-192.png',
+            icon: '/icon.svg',
           })
         }
-      }, delay)
-      timers.push(t)
+      }
+
+      if (delay <= 0 && delay > -30 * 60_000) {
+        fire() // propušten pre < 30 min — prikaži odmah
+      } else if (delay > 0) {
+        timers.push(setTimeout(fire, delay))
+      }
     }
 
     return () => timers.forEach(clearTimeout)

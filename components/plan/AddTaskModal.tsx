@@ -86,16 +86,16 @@ export default function AddTaskModal({
           </div>
           <div>
             <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Podsetnik pre</label>
-            <div className="flex gap-1.5">
+            <div className="grid grid-cols-[1fr_auto] gap-1.5">
               <input
                 type="number" min={0} max={999} value={reminderValue}
                 onChange={e => setReminderValue(Math.max(0, Number(e.target.value)))}
-                className="field h-12 px-2 text-sm text-center flex-1"
+                className="field h-12 px-3 text-sm text-center"
               />
               <select
                 value={reminderUnit}
                 onChange={e => setReminderUnit(e.target.value as 'min' | 'sat')}
-                className="field field-select h-12 px-2 text-sm shrink-0"
+                className="field field-select h-12 px-3 text-sm w-20"
               >
                 <option value="min">min</option>
                 <option value="sat">sat</option>
