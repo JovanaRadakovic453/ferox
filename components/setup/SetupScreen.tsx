@@ -8,6 +8,7 @@ import { addDays } from '@/lib/date'
 import { energyLabel } from '@/lib/energy'
 import { isHeavy, capacity } from '@/lib/plan'
 import type { Task, TaskType, Priority, Appointment, UserProfile } from '@/types/ferox'
+import Link from 'next/link'
 import Button from '@/components/ui/Button'
 import TransferSuggestions from '@/components/setup/TransferSuggestions'
 import SleepCard from '@/components/setup/SleepCard'
@@ -164,6 +165,11 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
   return (
     <>
       <main className="flex flex-col gap-7 pb-44 lg:pb-12">
+        {targetDate && targetDate !== todayKey() && (
+          <Link href="/plan" className="flex items-center gap-1.5 text-sm font-medium -mb-3" style={{ color: 'var(--text-muted)' }}>
+            ← Danas
+          </Link>
+        )}
         {/* Hero */}
         <header className="flex flex-col gap-5 pt-2 animate-fade-slide">
           <div className="flex items-center justify-between lg:hidden">
