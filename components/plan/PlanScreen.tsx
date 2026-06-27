@@ -19,6 +19,8 @@ import ActionRail from '@/components/plan/ActionRail'
 import AddTaskModal from '@/components/plan/AddTaskModal'
 import ReplanModal, { type ReplanResult } from '@/components/plan/ReplanModal'
 import RoutineModal from '@/components/plan/RoutineModal'
+import ReminderBanner from '@/components/plan/ReminderBanner'
+import { AnimatePresence } from 'framer-motion'
 import type { Routine } from '@/types/ferox'
 
 export default function PlanScreen({
@@ -42,6 +44,7 @@ export default function PlanScreen({
   const [showAddTask, setShowAddTask] = useState(false)
   const [showRoutines, setShowRoutines] = useState(false)
   const [routines, setRoutines] = useState<Routine[]>([])
+  const [activeReminder, setActiveReminder] = useState<{ name: string; time: string; minutesBefore: number } | null>(null)
 
   const blocks = calcBlocks(profile.start_time ?? '08:00', profile.sleep_time ?? '23:00', profile.rhythm)
   const planBlocks = assignTasksToBlocks(tasks, blocks, entry.energy_level, profile.rhythm)
@@ -92,6 +95,61 @@ export default function PlanScreen({
       })
     }
   }, [])
+
+  function playReminder() {
+    try {
+      const ctx = new AudioContext()
+      ;[660, 880].forEach((freq, i) => {
+        const osc = ctx.createOscillator()
+        const gain = ctx.createGain()
+        osc.connect(gain); gain.connect(ctx.destination)
+        osc.frequency.value = freq
+        gain.gain.setValueAtTime(0.35, ctx.currentTime + i * 0.25)
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.25 + 0.6)
+        osc.start(ctx.currentTime + i * 0.25)
+        osc.stop(ctx.currentTime + i * 0.25 + 0.6)
+      })
+    } catch {}
+  }
+
+  // Tražimo dozvolu za browser notifikacije jednom na mount (samo za danas)
+  useEffect(() => {
+    if (!isToday) return
+    const hasReminders = appts.some(a => a.reminder > 0)
+    if (hasReminders && typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      Notification.requestPermission()
+    }
+  }, [isToday]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Zakazujemo setTimeout za svaki podsetnik koji još nije prošao
+  useEffect(() => {
+    if (!isToday) return
+    const now = new Date()
+    const timers: ReturnType<typeof setTimeout>[] = []
+
+    for (const appt of appts) {
+      if (!appt.reminder || appt.reminder <= 0) continue
+      const [h, m] = appt.time.split(':').map(Number)
+      const apptTime = new Date(); apptTime.setHours(h, m, 0, 0)
+      const reminderTime = new Date(apptTime.getTime() - appt.reminder * 60_000)
+      const delay = reminderTime.getTime() - now.getTime()
+      if (delay <= 0) continue
+
+      const t = setTimeout(() => {
+        playReminder()
+        setActiveReminder({ name: appt.name, time: appt.time, minutesBefore: appt.reminder })
+        if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+          new Notification(`📅 ${appt.name}`, {
+            body: `Počinje za ${appt.reminder} min · ${appt.time}h`,
+            icon: '/icons/icon-192.png',
+          })
+        }
+      }, delay)
+      timers.push(t)
+    }
+
+    return () => timers.forEach(clearTimeout)
+  }, [appts, isToday])
 
   // Optimistički toggle PO ID-u (ne po imenu — dva ista naziva se više ne sudaraju).
   // Na grešku vraćamo stanje i nudimo retry preko toasta.
@@ -262,6 +320,17 @@ export default function PlanScreen({
           ← Istorija
         </Link>
       )}
+      <AnimatePresence>
+        {activeReminder && (
+          <ReminderBanner
+            key="reminder"
+            name={activeReminder.name}
+            time={activeReminder.time}
+            minutesBefore={activeReminder.minutesBefore}
+            onClose={() => setActiveReminder(null)}
+          />
+        )}
+      </AnimatePresence>
       {/* Header */}
       <header className="flex items-end justify-between gap-4 pt-1">
         <div className="min-w-0">
