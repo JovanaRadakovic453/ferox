@@ -194,8 +194,8 @@ export default function DayPanel({
         </section>
       )}
 
-      {/* Future: scheduled tasks */}
-      {isFuture && (
+      {/* Future + today: scheduled tasks */}
+      {(isFuture || isToday) && (
         <section>
           <div className="section-label mb-2">Zakazani zadaci</div>
           {sortedScheduled.length === 0 && (
