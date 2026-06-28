@@ -22,7 +22,7 @@ const TABS = [
   { href: '/settings', label: 'Podešavanja', icon: '⚙️', match: (p: string) => p.startsWith('/settings') },
 ]
 
-export default function AppChrome({ children }: { children: ReactNode }) {
+export default function AppChrome({ children, streak = 0 }: { children: ReactNode; streak?: number }) {
   const [hidden, setHidden] = useState(false)
   const pathname = usePathname() ?? '/'
   const onOnboarding = pathname.startsWith('/onboarding')
@@ -40,7 +40,7 @@ export default function AppChrome({ children }: { children: ReactNode }) {
   return (
     <ChromeCtx.Provider value={{ setHidden }}>
       <div className="app-shell">
-        <Sidebar pathname={pathname} />
+        <Sidebar pathname={pathname} streak={streak} />
 
         <div className="app-viewport">
           <div className="app-content">
@@ -60,7 +60,7 @@ export default function AppChrome({ children }: { children: ReactNode }) {
 }
 
 /* ── Desktop left rail ─────────────────────────────────────────── */
-function Sidebar({ pathname }: { pathname: string }) {
+function Sidebar({ pathname, streak }: { pathname: string; streak: number }) {
   return (
     <aside className="app-sidebar">
       <Link href="/" aria-label="Ferox — početna" className="flex items-center gap-2.5 px-2 mb-7">
@@ -87,6 +87,14 @@ function Sidebar({ pathname }: { pathname: string }) {
       </nav>
 
       <div className="flex-1" />
+
+      {streak > 0 && (
+        <div className="px-2 mb-3">
+          <span className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-[var(--r-md)] w-full" style={{ background: 'var(--gold-tint)', color: 'var(--gold)' }}>
+            🔥 <span>{streak} {streak === 1 ? 'dan' : 'dana'} zaredom</span>
+          </span>
+        </div>
+      )}
 
       <div className="px-1">
         <ThemeToggle compact />
