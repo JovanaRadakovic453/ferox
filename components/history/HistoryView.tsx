@@ -6,8 +6,6 @@ import { formatDate } from '@/lib/utils'
 export type HistoryDay = {
   id: string
   date_key: string
-  energy: string | null
-  sleep_hours: number | null
   finished_at: string | null
   done: number
   total: number
@@ -80,8 +78,6 @@ export default function HistoryView({ days, todayKey }: { days: HistoryDay[]; to
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{formatDate(d.date_key)}</p>
                       <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                        {d.energy && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--surface2)', color: 'var(--text-muted)' }}>{d.energy}</span>}
-                        {d.sleep_hours != null && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--surface2)', color: 'var(--text-muted)' }}>😴 {d.sleep_hours}h</span>}
                         {d.finished_at && <span className="text-xs" style={{ color: 'var(--gold)' }}>✓ završen</span>}
                       </div>
                       <div className="mt-2 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--surface2)' }}>

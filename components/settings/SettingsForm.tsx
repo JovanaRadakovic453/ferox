@@ -35,8 +35,6 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
   const toast = useToast()
 
   const [name, setName] = useState(profile.name ?? '')
-  const [sleepTime, setSleepTime] = useState(profile.sleep_time ?? '23:00')
-  const [startTime, setStartTime] = useState(profile.start_time ?? '08:00')
   const [restDays, setRestDays] = useState<number[]>(profile.rest_days ?? [0, 6])
   const [microFeedback, setMicroFeedback] = useState(profile.micro_feedback ?? true)
   const [soundEnabled, setSoundEnabled] = useState(profile.sound_enabled ?? false)
@@ -56,8 +54,6 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
     const supabase = createClient()
     const { error } = await supabase.from('profiles').update({
       name: name.trim(),
-      sleep_time: sleepTime,
-      start_time: startTime,
       rest_days: restDays,
       micro_feedback: microFeedback,
       sound_enabled: soundEnabled,
@@ -111,15 +107,11 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
         <Input id="name" label="Ime" value={name} onChange={e => setName(e.target.value)} />
       </section>
 
-      {/* Ritam dana */}
+      {/* Slobodni dani */}
       <section className="card p-5 flex flex-col gap-4">
-        <p className="section-label">Ritam dana</p>
-        <div className="grid grid-cols-2 gap-3">
-          <Input id="start" label="☀️ Buđenje" type="time" value={startTime} onChange={e => setStartTime(e.target.value)} />
-          <Input id="sleep" label="🌙 Spavanje" type="time" value={sleepTime} onChange={e => setSleepTime(e.target.value)} />
-        </div>
+        <p className="section-label">Slobodni dani</p>
         <div>
-          <label className="text-xs mb-1.5 block font-medium" style={{ color: 'var(--text-muted)' }}>Slobodni dani (ne lome streak)</label>
+          <label className="text-xs mb-1.5 block font-medium" style={{ color: 'var(--text-muted)' }}>Ne lome streak</label>
           <div className="flex flex-wrap gap-2">
             {WEEKDAYS.map((d, i) => <Chip key={i} active={restDays.includes(i)} onClick={() => toggle(restDays, i, setRestDays)}>{d}</Chip>)}
           </div>

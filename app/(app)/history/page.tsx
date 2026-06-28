@@ -10,7 +10,7 @@ export default async function HistoryPage() {
 
   const { data: entries } = await supabase
     .from('day_entries')
-    .select('id, date_key, energy, sleep_hours, finished_at')
+    .select('id, date_key, finished_at')
     .eq('user_id', user.id)
     .order('date_key', { ascending: false })
     .limit(30)

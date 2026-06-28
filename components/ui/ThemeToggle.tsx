@@ -6,7 +6,6 @@ import { useEffect, useState } from 'react'
 const OPTIONS: { value: string; label: string }[] = [
   { value: 'light', label: '☀️ Svetla' },
   { value: 'dark', label: '🌙 Tamna' },
-  { value: 'system', label: '⚙️ Sistemska' },
 ]
 
 export default function ThemeToggle({ onChange, compact }: { onChange?: (v: string) => void; compact?: boolean }) {
