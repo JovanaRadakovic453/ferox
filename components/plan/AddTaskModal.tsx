@@ -13,10 +13,11 @@ export default function AddTaskModal({
 }: {
   open: boolean
   onClose: () => void
-  onAddTask: (t: { name: string; type: TaskType; priority: Priority }) => Promise<boolean>
+  onAddTask: (t: { name: string; type: TaskType; priority: Priority; note: string }) => Promise<boolean>
   onAddAppointment: (a: { name: string; time: string; reminder: number }) => Promise<boolean>
 }) {
   const [name, setName] = useState('')
+  const [note, setNote] = useState('')
   const [type, setType] = useState<TaskType>('light')
   const [priority, setPriority] = useState<Priority>('medium')
   const [isAppt, setIsAppt] = useState(false)
@@ -28,7 +29,7 @@ export default function AddTaskModal({
   // Reset forme svaki put kad se modal otvori (čista forma pri svakom otvaranju).
   useEffect(() => {
     if (open) {
-      setName(''); setType('light'); setPriority('medium'); setIsAppt(false); setTime('09:00')
+      setName(''); setNote(''); setType('light'); setPriority('medium'); setIsAppt(false); setTime('09:00')
       setReminderValue(DEFAULTS.reminderMinutes); setReminderUnit('min'); setSubmitting(false)
     }
   }, [open])
@@ -39,7 +40,7 @@ export default function AddTaskModal({
     const reminder = reminderUnit === 'sat' ? reminderValue * 60 : reminderValue
     const ok = isAppt
       ? await onAddAppointment({ name: name.trim(), time, reminder })
-      : await onAddTask({ name: name.trim(), type, priority })
+      : await onAddTask({ name: name.trim(), type, priority, note: note.trim() })
     setSubmitting(false)
     if (ok) onClose()
   }
@@ -61,6 +62,15 @@ export default function AddTaskModal({
         placeholder={isAppt ? 'Naziv termina...' : 'Naziv zadatka...'}
         className="field h-12 px-3.5 text-sm"
       />
+
+      {!isAppt && (
+        <input
+          value={note}
+          onChange={e => setNote(e.target.value)}
+          placeholder="Beleška (opciono)"
+          className="field h-11 px-3.5 text-sm"
+        />
+      )}
 
       <button
         onClick={() => setIsAppt(p => !p)}

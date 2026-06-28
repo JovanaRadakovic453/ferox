@@ -281,17 +281,17 @@ export default function PlanScreen({
     setDayJustFinished(true)
   }
 
-  async function handleAddTask({ name, type, priority }: { name: string; type: TaskType; priority: Priority }): Promise<boolean> {
+  async function handleAddTask({ name, type, priority, note }: { name: string; type: TaskType; priority: Priority; note: string }): Promise<boolean> {
     // .select('id') da novi zadatak odmah nosi id (za pouzdan toggle po ID-u).
     const supabase = createClient()
     const { data, error } = await supabase.from('tasks').insert({
-      entry_id: entry.id, user_id: entry.user_id, name, done: false, priority, type, note: '', position: tasks.length,
+      entry_id: entry.id, user_id: entry.user_id, name, done: false, priority, type, note, position: tasks.length,
     }).select('id').single()
     if (error) {
       toast({ message: 'Zadatak nije dodat — pokušaj ponovo', variant: 'error' })
       return false
     }
-    setTasks(prev => [...prev, { id: data?.id, name, priority, type, note: '', done: false }])
+    setTasks(prev => [...prev, { id: data?.id, name, priority, type, note, done: false }])
     return true
   }
 
