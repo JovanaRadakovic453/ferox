@@ -38,7 +38,7 @@ function Divider() {
 }
 
 export default function PlanScreen({
-  entry, tasks: initialTasks, appointments, profile, dayFinished = false, tomorrowPlanned = false, isToday = true, hasDateParam = false, streak = 0, tomorrowScheduledCount = 0,
+  entry, tasks: initialTasks, appointments, profile, dayFinished = false, tomorrowPlanned = false, isToday = true, hasDateParam = false, streak = 0, tomorrowScheduledCount = 0, overdueDeadlineCount = 0,
 }: {
   entry: DayEntry
   tasks: Task[]
@@ -50,6 +50,7 @@ export default function PlanScreen({
   hasDateParam?: boolean
   streak?: number
   tomorrowScheduledCount?: number
+  overdueDeadlineCount?: number
 }) {
   const toast = useToast()
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
@@ -437,6 +438,16 @@ export default function PlanScreen({
           <span className="text-xl shrink-0">📅</span>
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
             Sutra imaš <span style={{ color: 'var(--text)', fontWeight: 600 }}>{tomorrowScheduledCount} zakazan{tomorrowScheduledCount === 1 ? '' : 'a'} zadatak{tomorrowScheduledCount === 1 ? '' : 'a'}</span> iz kalendara
+          </p>
+        </div>
+      )}
+
+      {/* Upozorenje: zakazani zadaci sa isteklim ili današnjim rokom */}
+      {isToday && overdueDeadlineCount > 0 && !dayFinished && (
+        <div className="rounded-[var(--r-md)] px-4 py-3 flex items-center gap-3" style={{ background: 'color-mix(in srgb, #ef4444 8%, transparent)', border: '1px solid color-mix(in srgb, #ef4444 20%, transparent)' }}>
+          <span className="text-xl shrink-0">⚠️</span>
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+            <span style={{ color: '#ef4444', fontWeight: 600 }}>{overdueDeadlineCount} zakazan{overdueDeadlineCount === 1 ? '' : 'a'} zadatak{overdueDeadlineCount === 1 ? '' : 'a'}</span> ima rok koji danas ističe ili je već prošao
           </p>
         </div>
       )}

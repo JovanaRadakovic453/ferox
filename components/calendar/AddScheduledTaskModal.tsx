@@ -11,6 +11,7 @@ type ScheduledTask = {
   priority: string
   note: string
   remind_before_minutes: number | null
+  deadline_date: string | null
 }
 
 export default function AddScheduledTaskModal({
@@ -29,6 +30,8 @@ export default function AddScheduledTaskModal({
   const [reminderValue, setReminderValue] = useState(1)
   const [reminderUnit, setReminderUnit] = useState<'dana' | 'sati' | 'minuta'>('dana')
   const [reminderEnabled, setReminderEnabled] = useState(false)
+  const [deadlineEnabled, setDeadlineEnabled] = useState(false)
+  const [deadlineDate, setDeadlineDate] = useState(date)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -39,10 +42,12 @@ export default function AddScheduledTaskModal({
       setReminderValue(1)
       setReminderUnit('dana')
       setReminderEnabled(false)
+      setDeadlineEnabled(false)
+      setDeadlineDate(date)
       setSubmitting(false)
       setError(null)
     }
-  }, [open])
+  }, [open, date])
 
   const remind_before_minutes = reminderEnabled
     ? reminderUnit === 'dana'
@@ -66,6 +71,7 @@ export default function AddScheduledTaskModal({
           priority,
           for_date: date,
           remind_before_minutes,
+          deadline_date: deadlineEnabled ? deadlineDate : null,
           note: '',
         }),
       })
@@ -170,6 +176,43 @@ export default function AddScheduledTaskModal({
                 <option value="minuta">minut/a</option>
               </select>
             </div>
+          </div>
+        )}
+      </div>
+
+      {/* Rok (deadline) toggle + datum */}
+      <div>
+        <button
+          type="button"
+          onClick={() => setDeadlineEnabled(p => !p)}
+          className="flex items-center justify-between w-full px-3.5 py-3 rounded-[var(--r-md)] border text-sm transition-colors"
+          style={{
+            background: deadlineEnabled ? 'var(--gold-tint)' : 'var(--surface2)',
+            borderColor: deadlineEnabled ? 'var(--gold)' : 'var(--border)',
+          }}
+        >
+          <span style={{ color: 'var(--text)' }}>📅 Rok</span>
+          <div
+            className="w-10 h-5 rounded-full flex items-center px-0.5 transition-all"
+            style={{
+              background: deadlineEnabled ? 'var(--gold)' : 'var(--border)',
+              justifyContent: deadlineEnabled ? 'flex-end' : 'flex-start',
+            }}
+          >
+            <div className="w-4 h-4 rounded-full bg-white" />
+          </div>
+        </button>
+
+        {deadlineEnabled && (
+          <div className="mt-2">
+            <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Do kada?</label>
+            <input
+              type="date"
+              value={deadlineDate}
+              min={date}
+              onChange={e => setDeadlineDate(e.target.value)}
+              className="field h-11 px-3 text-sm w-full"
+            />
           </div>
         )}
       </div>

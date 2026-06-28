@@ -10,6 +10,7 @@ const createSchema = z.object({
   note: z.string().max(500).default(''),
   for_date: zStrictDate,
   remind_before_minutes: z.number().int().min(1).max(142560).nullable().default(null),
+  deadline_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().default(null),
 })
 
 export async function GET(request: NextRequest) {

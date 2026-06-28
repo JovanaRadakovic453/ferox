@@ -7,11 +7,33 @@ import AddScheduledTaskModal from './AddScheduledTaskModal'
 
 type Entry = { id: string; date_key: string; finished_at: string | null }
 type Appointment = { id: string; date_key: string; name: string; time: string; done: boolean }
-type ScheduledTask = { id: string; for_date: string; name: string; priority: string; note: string; remind_before_minutes: number | null }
+type ScheduledTask = { id: string; for_date: string; name: string; priority: string; note: string; remind_before_minutes: number | null; deadline_date: string | null }
 type LoadedTask = { id: string; name: string; priority: string; done: boolean; note: string }
 
 const PRIORITY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 }
 const PRIORITY_DOT: Record<string, string> = { high: '🔴', medium: '🟡', low: '🟢' }
+
+function formatDeadlineDate(dateKey: string, today: string): string {
+  const [todayYear] = today.split('-').map(Number)
+  const [dlYear] = dateKey.split('-').map(Number)
+  const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long' }
+  if (dlYear !== todayYear) opts.year = 'numeric'
+  return new Intl.DateTimeFormat('sr-Latn-RS', opts).format(new Date(`${dateKey}T12:00:00Z`))
+}
+
+function getDeadlineBadge(deadlineDate: string, today: string): { text: string; color: string } {
+  if (deadlineDate < today) {
+    return { text: `⚠ Rok: ${formatDeadlineDate(deadlineDate, today)}`, color: '#ef4444' }
+  }
+  if (deadlineDate === today) {
+    return { text: '🔔 Rok: danas', color: '#f97316' }
+  }
+  const diffMs = new Date(`${deadlineDate}T12:00:00Z`).getTime() - new Date(`${today}T12:00:00Z`).getTime()
+  const days = Math.round(diffMs / (1000 * 60 * 60 * 24))
+  if (days === 1) return { text: '🔔 Rok: sutra', color: '#f97316' }
+  if (days <= 7) return { text: `📅 Rok: ${formatDeadlineDate(deadlineDate, today)}`, color: '#f97316' }
+  return { text: `📅 Rok: ${formatDeadlineDate(deadlineDate, today)}`, color: 'var(--text-muted)' }
+}
 
 function formatDateLabel(dateKey: string): string {
   return new Intl.DateTimeFormat('sr-Latn-RS', {
@@ -183,34 +205,42 @@ export default function DayPanel({
           )}
           {sortedScheduled.length > 0 && (
             <div className="flex flex-col gap-1.5 mb-3">
-              {sortedScheduled.map(t => (
-                <div
-                  key={t.id}
-                  className="flex items-center gap-2 px-3 py-2 rounded-[var(--r-md)] group"
-                  style={{ background: 'var(--surface2)' }}
-                >
-                  <span className="text-xs shrink-0">{PRIORITY_DOT[t.priority] ?? '🟡'}</span>
-                  <span className="text-sm flex-1 min-w-0 truncate" style={{ color: 'var(--text)' }}>
-                    {t.name}
-                  </span>
-                  {t.remind_before_minutes != null && (
-                    <span className="text-[0.58rem] font-semibold shrink-0" style={{ color: 'var(--text-muted)' }}>
-                      🔔{t.remind_before_minutes >= 1440
-                        ? `${Math.round(t.remind_before_minutes / 1440)}d`
-                        : t.remind_before_minutes >= 60
-                        ? `${Math.round(t.remind_before_minutes / 60)}h`
-                        : `${t.remind_before_minutes}min`}
-                    </span>
-                  )}
-                  <button
-                    onClick={() => handleRemove(t.id)}
-                    disabled={removing === t.id}
-                    className="text-xs opacity-0 group-hover:opacity-40 hover:!opacity-100 transition-opacity shrink-0 disabled:opacity-30"
-                    style={{ color: 'var(--text-muted)' }}
-                    aria-label={`Obriši ${t.name}`}
-                  >✕</button>
-                </div>
-              ))}
+              {sortedScheduled.map(t => {
+                const dlBadge = t.deadline_date ? getDeadlineBadge(t.deadline_date, today) : null
+                return (
+                  <div
+                    key={t.id}
+                    className="flex items-start gap-2 px-3 py-2 rounded-[var(--r-md)] group"
+                    style={{ background: 'var(--surface2)' }}
+                  >
+                    <span className="text-xs shrink-0 mt-0.5">{PRIORITY_DOT[t.priority] ?? '🟡'}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm truncate" style={{ color: 'var(--text)' }}>{t.name}</div>
+                      {dlBadge && (
+                        <div className="text-[0.58rem] font-semibold mt-0.5" style={{ color: dlBadge.color }}>
+                          {dlBadge.text}
+                        </div>
+                      )}
+                    </div>
+                    {t.remind_before_minutes != null && (
+                      <span className="text-[0.58rem] font-semibold shrink-0 mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                        🔔{t.remind_before_minutes >= 1440
+                          ? `${Math.round(t.remind_before_minutes / 1440)}d`
+                          : t.remind_before_minutes >= 60
+                          ? `${Math.round(t.remind_before_minutes / 60)}h`
+                          : `${t.remind_before_minutes}min`}
+                      </span>
+                    )}
+                    <button
+                      onClick={() => handleRemove(t.id)}
+                      disabled={removing === t.id}
+                      className="text-xs opacity-0 group-hover:opacity-40 hover:!opacity-100 transition-opacity shrink-0 mt-0.5 disabled:opacity-30"
+                      style={{ color: 'var(--text-muted)' }}
+                      aria-label={`Obriši ${t.name}`}
+                    >✕</button>
+                  </div>
+                )
+              })}
             </div>
           )}
           <button

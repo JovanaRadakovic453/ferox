@@ -33,13 +33,16 @@ export default async function PlanPage({
   // finished_at je izvor istine da je dan završen (više se ne oslanjamo na cookie).
   const dayFinished = !!entry.finished_at
 
-  const [{ data: tasks }, { data: appointments }, { data: tomorrowEntry }, { data: finishedRows }, { data: tomorrowScheduled }] = await Promise.all([
+  const [{ data: tasks }, { data: appointments }, { data: tomorrowEntry }, { data: finishedRows }, { data: tomorrowScheduled }, { data: overdueDeadlines }] = await Promise.all([
     supabase.from('tasks').select('*').eq('entry_id', entry.id).order('position'),
     supabase.from('appointments').select('*').eq('user_id', user.id).eq('date_key', viewDate).order('time'),
     supabase.from('day_entries').select('id').eq('user_id', user.id).eq('date_key', tomorrowKey()).maybeSingle(),
     supabase.from('day_entries').select('date_key').eq('user_id', user.id).not('finished_at', 'is', null).order('date_key', { ascending: false }).limit(60),
     isToday
       ? supabase.from('scheduled_tasks').select('id, for_date, remind_before_minutes').eq('user_id', user.id).eq('done', false).not('remind_before_minutes', 'is', null).gt('for_date', today).lte('for_date', addDays(today, 99))
+      : Promise.resolve({ data: [] }),
+    isToday
+      ? supabase.from('scheduled_tasks').select('id').eq('user_id', user.id).eq('done', false).not('deadline_date', 'is', null).lte('deadline_date', today)
       : Promise.resolve({ data: [] }),
   ])
 
@@ -61,6 +64,7 @@ export default async function PlanPage({
           const days = Math.ceil(t.remind_before_minutes / 1440)
           return addDays(today, days) === t.for_date
         }).length}
+      overdueDeadlineCount={(overdueDeadlines ?? []).length}
     />
   )
 }
