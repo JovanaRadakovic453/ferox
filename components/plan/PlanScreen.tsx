@@ -24,6 +24,19 @@ import ReminderBanner from '@/components/plan/ReminderBanner'
 import { AnimatePresence } from 'framer-motion'
 import type { Routine } from '@/types/ferox'
 
+function Divider() {
+  return (
+    <div
+      aria-hidden
+      style={{
+        height: 1,
+        background: 'linear-gradient(90deg, transparent, var(--border) 20%, var(--border) 80%, transparent)',
+        opacity: 0.5,
+      }}
+    />
+  )
+}
+
 export default function PlanScreen({
   entry, tasks: initialTasks, appointments, profile, dayFinished = false, tomorrowPlanned = false, isToday = true, hasDateParam = false, streak = 0, tomorrowScheduledCount = 0,
 }: {
@@ -452,19 +465,26 @@ export default function PlanScreen({
         ) : (
           <div className="card overflow-hidden">
             <div className="pl-6 pr-5">
-              {[...appts].sort((a, b) => a.time.localeCompare(b.time)).map(a => (
-                <AppointmentItem key={a.id ?? a.name + a.time} appt={a} onToggle={() => a.id && toggleAppointment(a.id)} onDelete={() => a.id && deleteAppointment(a.id)} />
+              {[...appts].sort((a, b) => a.time.localeCompare(b.time)).map((a, idx, arr) => (
+                <div key={a.id ?? a.name + a.time}>
+                  <AppointmentItem appt={a} onToggle={() => a.id && toggleAppointment(a.id)} onDelete={() => a.id && deleteAppointment(a.id)} />
+                  {idx < arr.length - 1 && <Divider />}
+                </div>
               ))}
               {appts.length > 0 && tasks.length > 0 && (
                 <div className="py-2 text-[0.65rem] font-semibold tracking-[0.14em] uppercase" style={{ color: 'var(--text-muted)' }}>
                   Zadaci
                 </div>
               )}
-              <div className="divide-y" style={{ borderColor: 'var(--hairline)' }}>
-                {[...tasks].sort((a, b) => ({ high: 0, medium: 1, low: 2 }[a.priority] ?? 1) - ({ high: 0, medium: 1, low: 2 }[b.priority] ?? 1)).map(task => (
-                  <TaskItem key={task.id ?? task.name} task={task} onToggle={() => task.id && toggleTask(task.id)} onDelete={() => task.id && deleteTask(task.id)} />
-                ))}
-              </div>
+              {[...tasks]
+                .sort((a, b) => ({ high: 0, medium: 1, low: 2 }[a.priority] ?? 1) - ({ high: 0, medium: 1, low: 2 }[b.priority] ?? 1))
+                .map((task, idx, arr) => (
+                  <div key={task.id ?? task.name}>
+                    <TaskItem task={task} onToggle={() => task.id && toggleTask(task.id)} onDelete={() => task.id && deleteTask(task.id)} />
+                    {idx < arr.length - 1 && <Divider />}
+                  </div>
+                ))
+              }
             </div>
           </div>
         )}
