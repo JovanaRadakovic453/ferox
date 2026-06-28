@@ -88,11 +88,8 @@ function Sidebar({ pathname }: { pathname: string }) {
 
       <div className="flex-1" />
 
-      <div className="px-1 flex flex-col gap-3">
+      <div className="px-1">
         <ThemeToggle compact />
-        <p className="text-[0.68rem] leading-snug px-1" style={{ color: 'var(--text-muted)' }}>
-          Planiraj prema energiji,<br />ne prema satu.
-        </p>
       </div>
     </aside>
   )
