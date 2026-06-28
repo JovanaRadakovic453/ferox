@@ -25,7 +25,7 @@ import { AnimatePresence } from 'framer-motion'
 import type { Routine } from '@/types/ferox'
 
 export default function PlanScreen({
-  entry, tasks: initialTasks, appointments, profile, dayFinished = false, tomorrowPlanned = false, isToday = true, hasDateParam = false,
+  entry, tasks: initialTasks, appointments, profile, dayFinished = false, tomorrowPlanned = false, isToday = true, hasDateParam = false, streak = 0,
 }: {
   entry: DayEntry
   tasks: Task[]
@@ -35,6 +35,7 @@ export default function PlanScreen({
   tomorrowPlanned?: boolean
   isToday?: boolean
   hasDateParam?: boolean
+  streak?: number
 }) {
   const toast = useToast()
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
@@ -388,6 +389,11 @@ export default function PlanScreen({
             <p className="text-xs font-medium mt-0.5 lg:hidden" style={{ color: 'var(--gold)' }}>
               🌙 {formatDate(entry.date_key)}
             </p>
+          )}
+          {streak > 0 && (
+            <span className="inline-block text-xs font-semibold px-2.5 py-1 rounded-full mt-2" style={{ background: 'var(--gold-tint)', color: 'var(--gold)' }}>
+              🔥 {streak} {streak === 1 ? 'dan' : streak < 5 ? 'dana' : 'dana'} zaredom
+            </span>
           )}
         </div>
         <div className="text-right shrink-0 pl-3">

@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import PlanScreen from '@/components/plan/PlanScreen'
 import { todayKey, tomorrowKey, isValidDayKey } from '@/lib/date'
+import { computeStreak } from '@/lib/streak'
 import type { Task, Appointment, DayEntry, UserProfile } from '@/types/ferox'
 
 export default async function PlanPage({
@@ -32,11 +33,15 @@ export default async function PlanPage({
   // finished_at je izvor istine da je dan završen (više se ne oslanjamo na cookie).
   const dayFinished = !!entry.finished_at
 
-  const [{ data: tasks }, { data: appointments }, { data: tomorrowEntry }] = await Promise.all([
+  const [{ data: tasks }, { data: appointments }, { data: tomorrowEntry }, { data: finishedRows }] = await Promise.all([
     supabase.from('tasks').select('*').eq('entry_id', entry.id).order('position'),
     supabase.from('appointments').select('*').eq('user_id', user.id).eq('date_key', viewDate).order('time'),
     supabase.from('day_entries').select('id').eq('user_id', user.id).eq('date_key', tomorrowKey()).maybeSingle(),
+    supabase.from('day_entries').select('date_key').eq('user_id', user.id).not('finished_at', 'is', null).order('date_key', { ascending: false }).limit(60),
   ])
+
+  const finishedSet = new Set((finishedRows ?? []).map(r => r.date_key as string))
+  const streak = computeStreak(finishedSet, profile?.rest_days ?? [0, 6], today)
 
   return (
     <PlanScreen
@@ -48,6 +53,7 @@ export default async function PlanPage({
       tomorrowPlanned={!!tomorrowEntry}
       isToday={isToday}
       hasDateParam={hasDateParam}
+      streak={streak}
     />
   )
 }
