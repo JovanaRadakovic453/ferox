@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import PlanScreen from '@/components/plan/PlanScreen'
-import { todayKey, tomorrowKey, isValidDayKey } from '@/lib/date'
+import { todayKey, tomorrowKey, isValidDayKey, addDays } from '@/lib/date'
 import { computeStreak } from '@/lib/streak'
 import type { Task, Appointment, DayEntry, UserProfile } from '@/types/ferox'
 
@@ -39,7 +39,7 @@ export default async function PlanPage({
     supabase.from('day_entries').select('id').eq('user_id', user.id).eq('date_key', tomorrowKey()).maybeSingle(),
     supabase.from('day_entries').select('date_key').eq('user_id', user.id).not('finished_at', 'is', null).order('date_key', { ascending: false }).limit(60),
     isToday
-      ? supabase.from('scheduled_tasks').select('id').eq('user_id', user.id).eq('for_date', tomorrowKey()).eq('done', false).eq('remind_before', 'day_before')
+      ? supabase.from('scheduled_tasks').select('id, for_date, remind_before_hours').eq('user_id', user.id).eq('done', false).not('remind_before_hours', 'is', null).gt('for_date', today).lte('for_date', addDays(today, 99))
       : Promise.resolve({ data: [] }),
   ])
 
@@ -57,7 +57,10 @@ export default async function PlanPage({
       isToday={isToday}
       hasDateParam={hasDateParam}
       streak={streak}
-      tomorrowScheduledCount={(tomorrowScheduled ?? []).length}
+      tomorrowScheduledCount={(tomorrowScheduled ?? []).filter((t: { for_date: string; remind_before_hours: number }) => {
+          const days = Math.ceil(t.remind_before_hours / 24)
+          return addDays(today, days) === t.for_date
+        }).length}
     />
   )
 }

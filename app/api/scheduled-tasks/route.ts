@@ -9,7 +9,7 @@ const createSchema = z.object({
   priority: zPriority.default('medium'),
   note: z.string().max(500).default(''),
   for_date: zStrictDate,
-  remind_before: z.enum(['day_before', 'morning']).nullable().default(null),
+  remind_before_hours: z.number().int().min(1).max(9999).nullable().default(null),
 })
 
 export async function GET(request: NextRequest) {

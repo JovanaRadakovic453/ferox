@@ -52,7 +52,7 @@ export default async function CalendarPage({
       .order('date_key'),
     supabase
       .from('scheduled_tasks')
-      .select('id, for_date, name, priority, note, remind_before')
+      .select('id, for_date, name, priority, note, remind_before_hours')
       .eq('user_id', user.id)
       .gte('for_date', expandedFrom)
       .lte('for_date', expandedTo)
@@ -87,7 +87,7 @@ export default async function CalendarPage({
       entries={entryRows as { id: string; date_key: string; finished_at: string | null }[]}
       taskCountByDate={taskCountByDate}
       appointments={(appointments ?? []) as { id: string; date_key: string; name: string; time: string; done: boolean }[]}
-      scheduled={(scheduled ?? []) as { id: string; for_date: string; name: string; priority: string; note: string; remind_before: string | null }[]}
+      scheduled={(scheduled ?? []) as { id: string; for_date: string; name: string; priority: string; note: string; remind_before_hours: number | null }[]}
     />
   )
 }

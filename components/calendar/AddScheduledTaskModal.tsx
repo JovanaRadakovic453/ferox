@@ -10,7 +10,7 @@ type ScheduledTask = {
   name: string
   priority: string
   note: string
-  remind_before: string | null
+  remind_before_hours: number | null
 }
 
 export default function AddScheduledTaskModal({
@@ -26,7 +26,9 @@ export default function AddScheduledTaskModal({
 }) {
   const [name, setName] = useState('')
   const [priority, setPriority] = useState('medium')
-  const [remindBefore, setRemindBefore] = useState<string>('')
+  const [reminderValue, setReminderValue] = useState(1)
+  const [reminderUnit, setReminderUnit] = useState<'dana' | 'sati'>('dana')
+  const [reminderEnabled, setReminderEnabled] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -34,11 +36,17 @@ export default function AddScheduledTaskModal({
     if (open) {
       setName('')
       setPriority('medium')
-      setRemindBefore('')
+      setReminderValue(1)
+      setReminderUnit('dana')
+      setReminderEnabled(false)
       setSubmitting(false)
       setError(null)
     }
   }, [open])
+
+  const remind_before_hours = reminderEnabled
+    ? (reminderUnit === 'dana' ? reminderValue * 24 : reminderValue)
+    : null
 
   async function submit() {
     if (!name.trim()) return
@@ -53,7 +61,7 @@ export default function AddScheduledTaskModal({
           name: name.trim(),
           priority,
           for_date: date,
-          remind_before: remindBefore || null,
+          remind_before_hours,
           note: '',
         }),
       })
@@ -113,17 +121,52 @@ export default function AddScheduledTaskModal({
         </select>
       </div>
 
+      {/* Podsetnik toggle + unos */}
       <div>
-        <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Podsetnik</label>
-        <select
-          value={remindBefore}
-          onChange={e => setRemindBefore(e.target.value)}
-          className="field field-select h-11 px-2 text-sm"
+        <button
+          type="button"
+          onClick={() => setReminderEnabled(p => !p)}
+          className="flex items-center justify-between w-full px-3.5 py-3 rounded-[var(--r-md)] border text-sm transition-colors"
+          style={{
+            background: reminderEnabled ? 'var(--gold-tint)' : 'var(--surface2)',
+            borderColor: reminderEnabled ? 'var(--gold)' : 'var(--border)',
+          }}
         >
-          <option value="">Bez podsetnika</option>
-          <option value="day_before">🔔 Dan ranije</option>
-          <option value="morning">🌅 Ujutru tog dana</option>
-        </select>
+          <span style={{ color: 'var(--text)' }}>🔔 Podsetnik</span>
+          <div
+            className="w-10 h-5 rounded-full flex items-center px-0.5 transition-all"
+            style={{
+              background: reminderEnabled ? 'var(--gold)' : 'var(--border)',
+              justifyContent: reminderEnabled ? 'flex-end' : 'flex-start',
+            }}
+          >
+            <div className="w-4 h-4 rounded-full bg-white" />
+          </div>
+        </button>
+
+        {reminderEnabled && (
+          <div className="mt-2">
+            <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Koliko ranije?</label>
+            <div className="grid grid-cols-[1fr_auto] gap-1.5">
+              <input
+                type="number"
+                min={1}
+                max={999}
+                value={reminderValue}
+                onChange={e => setReminderValue(Math.max(1, Number(e.target.value)))}
+                className="field h-11 px-3 text-sm text-center"
+              />
+              <select
+                value={reminderUnit}
+                onChange={e => setReminderUnit(e.target.value as 'dana' | 'sati')}
+                className="field field-select h-11 px-3 text-sm w-24"
+              >
+                <option value="dana">dan/a</option>
+                <option value="sati">sat/i</option>
+              </select>
+            </div>
+          </div>
+        )}
       </div>
 
       {error && (
