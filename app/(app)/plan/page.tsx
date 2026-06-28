@@ -39,7 +39,7 @@ export default async function PlanPage({
     supabase.from('day_entries').select('id').eq('user_id', user.id).eq('date_key', tomorrowKey()).maybeSingle(),
     supabase.from('day_entries').select('date_key').eq('user_id', user.id).not('finished_at', 'is', null).order('date_key', { ascending: false }).limit(60),
     isToday
-      ? supabase.from('scheduled_tasks').select('id, for_date, remind_before_hours').eq('user_id', user.id).eq('done', false).not('remind_before_hours', 'is', null).gt('for_date', today).lte('for_date', addDays(today, 99))
+      ? supabase.from('scheduled_tasks').select('id, for_date, remind_before_minutes').eq('user_id', user.id).eq('done', false).not('remind_before_minutes', 'is', null).gt('for_date', today).lte('for_date', addDays(today, 99))
       : Promise.resolve({ data: [] }),
   ])
 
@@ -57,8 +57,8 @@ export default async function PlanPage({
       isToday={isToday}
       hasDateParam={hasDateParam}
       streak={streak}
-      tomorrowScheduledCount={(tomorrowScheduled ?? []).filter((t: { for_date: string; remind_before_hours: number }) => {
-          const days = Math.ceil(t.remind_before_hours / 24)
+      tomorrowScheduledCount={(tomorrowScheduled ?? []).filter((t: { for_date: string; remind_before_minutes: number }) => {
+          const days = Math.ceil(t.remind_before_minutes / 1440)
           return addDays(today, days) === t.for_date
         }).length}
     />

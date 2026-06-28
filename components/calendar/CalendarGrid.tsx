@@ -4,7 +4,7 @@ const DAY_NAMES = ['Pon', 'Uto', 'Sre', 'Čet', 'Pet', 'Sub', 'Ned']
 
 type Entry = { id: string; date_key: string; finished_at: string | null }
 type Appointment = { id: string; date_key: string; name: string; time: string; done: boolean }
-type ScheduledTask = { id: string; for_date: string; name: string; priority: string; note: string; remind_before_hours: number | null }
+type ScheduledTask = { id: string; for_date: string; name: string; priority: string; note: string; remind_before_minutes: number | null }
 
 function toDateKey(d: Date): string {
   const y = d.getUTCFullYear()

@@ -10,7 +10,7 @@ type ScheduledTask = {
   name: string
   priority: string
   note: string
-  remind_before_hours: number | null
+  remind_before_minutes: number | null
 }
 
 export default function AddScheduledTaskModal({
@@ -27,7 +27,7 @@ export default function AddScheduledTaskModal({
   const [name, setName] = useState('')
   const [priority, setPriority] = useState('medium')
   const [reminderValue, setReminderValue] = useState(1)
-  const [reminderUnit, setReminderUnit] = useState<'dana' | 'sati'>('dana')
+  const [reminderUnit, setReminderUnit] = useState<'dana' | 'sati' | 'minuta'>('dana')
   const [reminderEnabled, setReminderEnabled] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -44,8 +44,12 @@ export default function AddScheduledTaskModal({
     }
   }, [open])
 
-  const remind_before_hours = reminderEnabled
-    ? (reminderUnit === 'dana' ? reminderValue * 24 : reminderValue)
+  const remind_before_minutes = reminderEnabled
+    ? reminderUnit === 'dana'
+      ? reminderValue * 24 * 60
+      : reminderUnit === 'sati'
+      ? reminderValue * 60
+      : reminderValue
     : null
 
   async function submit() {
@@ -61,7 +65,7 @@ export default function AddScheduledTaskModal({
           name: name.trim(),
           priority,
           for_date: date,
-          remind_before_hours,
+          remind_before_minutes,
           note: '',
         }),
       })
@@ -158,11 +162,12 @@ export default function AddScheduledTaskModal({
               />
               <select
                 value={reminderUnit}
-                onChange={e => setReminderUnit(e.target.value as 'dana' | 'sati')}
-                className="field field-select h-11 px-3 text-sm w-24"
+                onChange={e => setReminderUnit(e.target.value as 'dana' | 'sati' | 'minuta')}
+                className="field field-select h-11 px-3 text-sm w-28"
               >
                 <option value="dana">dan/a</option>
                 <option value="sati">sat/i</option>
+                <option value="minuta">minut/a</option>
               </select>
             </div>
           </div>

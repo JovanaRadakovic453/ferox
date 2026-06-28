@@ -7,7 +7,7 @@ import AddScheduledTaskModal from './AddScheduledTaskModal'
 
 type Entry = { id: string; date_key: string; finished_at: string | null }
 type Appointment = { id: string; date_key: string; name: string; time: string; done: boolean }
-type ScheduledTask = { id: string; for_date: string; name: string; priority: string; note: string; remind_before_hours: number | null }
+type ScheduledTask = { id: string; for_date: string; name: string; priority: string; note: string; remind_before_minutes: number | null }
 type LoadedTask = { id: string; name: string; priority: string; done: boolean; note: string }
 
 const PRIORITY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 }
@@ -193,11 +193,13 @@ export default function DayPanel({
                   <span className="text-sm flex-1 min-w-0 truncate" style={{ color: 'var(--text)' }}>
                     {t.name}
                   </span>
-                  {t.remind_before_hours != null && (
+                  {t.remind_before_minutes != null && (
                     <span className="text-[0.58rem] font-semibold shrink-0" style={{ color: 'var(--text-muted)' }}>
-                      🔔{t.remind_before_hours >= 24
-                        ? `${Math.round(t.remind_before_hours / 24)}d`
-                        : `${t.remind_before_hours}h`}
+                      🔔{t.remind_before_minutes >= 1440
+                        ? `${Math.round(t.remind_before_minutes / 1440)}d`
+                        : t.remind_before_minutes >= 60
+                        ? `${Math.round(t.remind_before_minutes / 60)}h`
+                        : `${t.remind_before_minutes}min`}
                     </span>
                   )}
                   <button
