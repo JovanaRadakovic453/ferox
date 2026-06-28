@@ -362,16 +362,6 @@ export default function PlanScreen({
               🌙 {formatDate(entry.date_key)}
             </p>
           )}
-          <div className="flex flex-wrap items-center gap-2 mt-4">
-            <span className="text-xs px-2.5 py-1 rounded-full" style={{ background: 'var(--surface2)', color: 'var(--text-muted)' }}>
-              {entry.energy}
-            </span>
-            {entry.sleep_hours !== null && (
-              <span className="text-xs px-2.5 py-1 rounded-full" style={{ background: 'var(--surface2)', color: 'var(--text-muted)' }}>
-                😴 {entry.sleep_hours}h sna
-              </span>
-            )}
-          </div>
         </div>
         <div className="text-right shrink-0 pl-3">
           <p className="display text-5xl lg:text-6xl leading-none tabular-nums" style={{ color: 'var(--text)' }}>
