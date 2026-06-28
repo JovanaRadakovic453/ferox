@@ -1,4 +1,4 @@
-import { anthropic } from '@/lib/anthropic'
+import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import type { NextRequest } from 'next/server'
 import { apiOk, ERR } from '@/lib/api'
@@ -6,6 +6,8 @@ import { brainDumpSchema, aiBrainDumpResult, TASK_TYPES, PRIORITIES } from '@/li
 import { TASK_TYPE_GUIDE } from '@/lib/ai/prompts'
 import { AI, RATE_LIMITS } from '@/lib/config'
 import { checkRateLimit } from '@/lib/rateLimit'
+
+export const maxDuration = 60
 
 // Forced tool-use: the SDK guarantees valid JSON and enums can't be wrong.
 // Concrete times become appointments; everything else is a task.
@@ -46,6 +48,8 @@ const extractTool = {
 }
 
 export async function POST(request: NextRequest) {
+  if (!process.env.ANTHROPIC_API_KEY) return ERR.aiUnavailable('API ključ nije podešen')
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return ERR.unauthorized()
@@ -57,6 +61,8 @@ export async function POST(request: NextRequest) {
   const parsed = brainDumpSchema.safeParse(json)
   if (!parsed.success) return ERR.invalidInput(parsed.error.issues)
   const { text } = parsed.data
+
+  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
   let message
   try {

@@ -1,5 +1,7 @@
-import { anthropic } from '@/lib/anthropic'
+import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
+
+export const maxDuration = 60
 import type { NextRequest } from 'next/server'
 import { apiOk, ERR } from '@/lib/api'
 import { replanSchema, replanResultSchema } from '@/lib/validation'
@@ -19,6 +21,9 @@ export async function POST(request: NextRequest) {
   const parsed = replanSchema.safeParse(json)
   if (!parsed.success) return ERR.invalidInput(parsed.error.issues)
   const { situation, remainingTasks, energy } = parsed.data
+
+  if (!process.env.ANTHROPIC_API_KEY) return ERR.aiUnavailable()
+  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
   let message
   try {

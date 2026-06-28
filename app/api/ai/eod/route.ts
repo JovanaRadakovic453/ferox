@@ -1,5 +1,7 @@
-import { anthropic } from '@/lib/anthropic'
+import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
+
+export const maxDuration = 60
 import type { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { apiOk, ERR } from '@/lib/api'
@@ -33,6 +35,11 @@ export async function POST(request: NextRequest) {
 
   // Cached — don't pay for the model twice for the same finished day.
   if (entry.eod_recap) return apiOk({ recap: entry.eod_recap })
+
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return apiOk({ recap: 'Dan je završen. Svaki korak napred se računa. 🌙' })
+  }
+  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
   const { data: tasks } = await supabase.from('tasks')
     .select('type, done').eq('entry_id', entry.id)
