@@ -24,16 +24,10 @@ export default function ActionRail({
           {allDone ? '🎉 Završi dan' : '✅ Završi dan'}
         </Button>
       )}
-      {dayFinished && isToday && (
-        tomorrowPlanned ? (
-          <Button size="lg" className="w-full" onClick={() => { window.location.href = '/plan?date=' + tomorrowKey() }}>
-            🌙 Pogledaj plan za sutra →
-          </Button>
-        ) : (
-          <Button size="lg" className="w-full" onClick={() => { window.location.href = '/?sutra=1' }}>
-            🌙 Isplaniraj sutra →
-          </Button>
-        )
+      {dayFinished && isToday && tomorrowPlanned && (
+        <Button size="lg" className="w-full" onClick={() => { window.location.href = '/plan?date=' + tomorrowKey() }}>
+          🌙 Pogledaj plan za sutra →
+        </Button>
       )}
       <div className="flex flex-col gap-2">
         <Button size="sm" variant="secondary" className="w-full" onClick={onAddTask}>
@@ -44,19 +38,12 @@ export default function ActionRail({
             📋 Primeni rutinu
           </Button>
         )}
-        {isToday ? (
-          <>
-            {tomorrowPlanned ? (
-              <Button size="sm" variant="secondary" className="w-full" onClick={() => { window.location.href = '/plan?date=' + tomorrowKey() }}>
-                🌙 Pogledaj sutra
-              </Button>
-            ) : (
-              <Button size="sm" variant="secondary" className="w-full" onClick={() => { window.location.href = '/?sutra=1' }}>
-                🌙 Planiraj sutra
-              </Button>
-            )}
-          </>
-        ) : (
+        {isToday && tomorrowPlanned && (
+          <Button size="sm" variant="secondary" className="w-full" onClick={() => { window.location.href = '/plan?date=' + tomorrowKey() }}>
+            🌙 Pogledaj sutra
+          </Button>
+        )}
+        {!isToday && (
           <Button size="sm" variant="secondary" className="w-full" onClick={() => { window.location.href = '/plan' }}>
             ← Nazad na današnji plan
           </Button>

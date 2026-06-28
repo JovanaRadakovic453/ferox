@@ -352,11 +352,13 @@ export default function PlanScreen({
           <h1 className="display text-4xl" style={{ color: 'var(--gold)' }}>Dan završen</h1>
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Odmori se — sutra je novi dan.</p>
         </div>
-        <div className="flex flex-col gap-3 w-full max-w-xs">
-          <Button size="lg" className="w-full" onClick={() => { window.location.href = tomorrowPlanned ? '/plan?date=' + addDays(entry.date_key, 1) : '/?sutra=1' }}>
-            🌙 {tomorrowPlanned ? 'Pogledaj plan za sutra →' : 'Isplaniraj sutra →'}
-          </Button>
-        </div>
+        {tomorrowPlanned && (
+          <div className="flex flex-col gap-3 w-full max-w-xs">
+            <Button size="lg" className="w-full" onClick={() => { window.location.href = '/plan?date=' + addDays(entry.date_key, 1) }}>
+              🌙 Pogledaj plan za sutra →
+            </Button>
+          </div>
+        )}
       </main>
     )
   }
