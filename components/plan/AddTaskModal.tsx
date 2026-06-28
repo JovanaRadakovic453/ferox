@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
-import { TASK_TYPE_LABELS } from '@/types/ferox'
 import type { TaskType, Priority } from '@/types/ferox'
 import { DEFAULTS } from '@/lib/config'
 
@@ -104,23 +103,13 @@ export default function AddTaskModal({
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Tip</label>
-            <select value={type} onChange={e => setType(e.target.value as TaskType)} className="field field-select h-11 px-2 text-sm">
-              {Object.entries(TASK_TYPE_LABELS).map(([v, l]) => (
-                <option key={v} value={v}>{l}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Prioritet</label>
-            <select value={priority} onChange={e => setPriority(e.target.value as Priority)} className="field field-select h-11 px-2 text-sm">
-              <option value="high">🔴 Visok</option>
-              <option value="medium">🟡 Srednji</option>
-              <option value="low">🟢 Nizak</option>
-            </select>
-          </div>
+        <div>
+          <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Prioritet</label>
+          <select value={priority} onChange={e => setPriority(e.target.value as Priority)} className="field field-select h-11 px-2 text-sm">
+            <option value="high">🔴 Visok</option>
+            <option value="medium">🟡 Srednji</option>
+            <option value="low">🟢 Nizak</option>
+          </select>
         </div>
       )}
 
