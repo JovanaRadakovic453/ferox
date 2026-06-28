@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
       max_tokens: AI.maxTokens.brainDump,
       tools: [extractTool],
       tool_choice: { type: 'tool', name: 'extract_plan' },
-      system: [{ type: 'text', text: TASK_TYPE_GUIDE, cache_control: { type: 'ephemeral' } }],
+      system: TASK_TYPE_GUIDE,
       messages: [{
         role: 'user',
         content:
@@ -75,8 +75,9 @@ export async function POST(request: NextRequest) {
       }],
     })
   } catch (err) {
-    console.error('brain-dump', err)
-    return ERR.aiUnavailable()
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('brain-dump error:', msg)
+    return ERR.aiUnavailable(msg)
   }
 
   const block = message.content.find(c => c.type === 'tool_use')
