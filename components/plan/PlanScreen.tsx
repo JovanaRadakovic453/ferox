@@ -191,6 +191,21 @@ export default function PlanScreen({
     }
   }
 
+  async function resetDay() {
+    if (!window.confirm('Obrisati sve podatke za danas i početi ispočetka?')) return
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const dateKey = entry.date_key
+    if (entry.id) {
+      await supabase.from('tasks').delete().eq('user_id', user.id).eq('entry_id', entry.id)
+      await supabase.from('day_entries').delete().eq('user_id', user.id).eq('id', entry.id)
+    }
+    await supabase.from('appointments').delete().eq('user_id', user.id).eq('date_key', dateKey)
+    await supabase.from('transferred_tasks').delete().eq('user_id', user.id).eq('for_date', dateKey)
+    window.location.reload()
+  }
+
   async function deleteAppointment(apptId: string) {
     const appt = appts.find(a => a.id === apptId)
     if (!appt) return
@@ -440,6 +455,7 @@ export default function PlanScreen({
           onFinishDay={startFinishDay}
           onAddTask={() => setShowAddTask(true)}
           onRoutine={() => setShowRoutines(true)}
+          onResetDay={resetDay}
         />
       </div>
 

@@ -5,7 +5,7 @@ import { tomorrowKey } from '@/lib/date'
 // Akcije za plan (sticky rail na desktopu). Navigacija je name-bazirana
 // (window.location.href) da server pročita svež finished_at posle završetka dana.
 export default function ActionRail({
-  dayFinished, isToday, tomorrowPlanned, allDone, savingEod, onFinishDay, onAddTask, onRoutine,
+  dayFinished, isToday, tomorrowPlanned, allDone, savingEod, onFinishDay, onAddTask, onRoutine, onResetDay,
 }: {
   dayFinished: boolean
   isToday: boolean
@@ -15,6 +15,7 @@ export default function ActionRail({
   onFinishDay: () => void
   onAddTask: () => void
   onRoutine: () => void
+  onResetDay: () => void
 }) {
   return (
     <aside className="flex flex-col gap-3 rail-sticky">
@@ -64,6 +65,13 @@ export default function ActionRail({
       <div className="flex justify-center pt-2">
         <LogoutButton />
       </div>
+      <button
+        onClick={onResetDay}
+        className="w-full text-xs text-center py-2.5 opacity-45 hover:opacity-80 transition-opacity"
+        style={{ color: 'var(--text-muted)' }}
+      >
+        🗑️ Obriši sve za danas i počni iznova
+      </button>
     </aside>
   )
 }
