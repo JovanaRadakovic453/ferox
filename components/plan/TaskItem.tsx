@@ -1,5 +1,5 @@
 import Checkbox from '@/components/ui/Checkbox'
-import { TASK_TYPE_LABELS, PRIORITY_LABELS } from '@/types/ferox'
+import { PRIORITY_LABELS } from '@/types/ferox'
 import type { Task } from '@/types/ferox'
 
 export default function TaskItem({ task, onToggle, onDelete }: { task: Task; onToggle: () => void; onDelete?: () => void }) {
@@ -27,9 +27,6 @@ export default function TaskItem({ task, onToggle, onDelete }: { task: Task; onT
           {task.note && (
             <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{task.note}</p>
           )}
-          <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-            {TASK_TYPE_LABELS[task.type]}
-          </p>
         </div>
         <span
           className="text-[0.65rem] font-semibold px-2 py-0.5 rounded-full shrink-0 mt-0.5 tracking-wide"

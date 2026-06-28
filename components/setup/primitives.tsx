@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react'
-import { TASK_TYPE_LABELS } from '@/types/ferox'
 import type { TaskType, Priority } from '@/types/ferox'
 import { DEFAULTS } from '@/lib/config'
 
@@ -16,10 +15,6 @@ export const PRIORITY_OPTIONS: { value: Priority; label: string }[] = [
   { value: 'medium', label: '🟡 Srednji' },
   { value: 'low',    label: '🟢 Nizak' },
 ]
-
-export const TYPE_OPTIONS = Object.entries(TASK_TYPE_LABELS).map(([value, label]) => ({
-  value: value as TaskType, label,
-}))
 
 export const EMPTY_TASK = { name: '', note: '', priority: 'medium' as Priority, type: 'light' as TaskType }
 export const EMPTY_APPT = { name: '', time: '09:00', reminder: DEFAULTS.reminderMinutes }

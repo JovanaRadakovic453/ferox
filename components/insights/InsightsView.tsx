@@ -1,9 +1,6 @@
 'use client'
 
 import type { Aggregates, Forecast, Bar } from '@/lib/insights'
-import { TASK_TYPE_LABELS } from '@/types/ferox'
-import type { TaskType } from '@/types/ferox'
-import { DEFAULTS } from '@/lib/config'
 
 function BarRow({ label, rate }: { label: string; rate: number }) {
   return (
@@ -30,12 +27,6 @@ function ChartCard({ title, bars }: { title: string; bars: Bar[] }) {
 }
 
 export default function InsightsView({ agg, forecast }: { agg: Aggregates; forecast: Forecast | null }) {
-
-  const typeBars = agg.byType.slice(0, DEFAULTS.insightsTopTaskTypes).map(b => ({
-    ...b,
-    label: TASK_TYPE_LABELS[b.label as TaskType] ?? b.label,
-  }))
-
   return (
     <main className="flex flex-col gap-5 lg:gap-6 pb-2">
       <header className="pt-2">
@@ -59,10 +50,7 @@ export default function InsightsView({ agg, forecast }: { agg: Aggregates; forec
       )}
 
       {/* Grafici */}
-      <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
-        <ChartCard title="Realizacija po danu u nedelji" bars={agg.byWeekday} />
-        <ChartCard title="Realizacija po tipu zadatka" bars={typeBars} />
-      </div>
+      <ChartCard title="Realizacija po danu u nedelji" bars={agg.byWeekday} />
     </main>
   )
 }

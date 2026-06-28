@@ -3,9 +3,8 @@
 import { useState } from 'react'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
-import { TASK_TYPE_LABELS } from '@/types/ferox'
 import type { Task, TaskType, Priority } from '@/types/ferox'
-import { SectionHeader, CountChip, PRIORITY_OPTIONS, TYPE_OPTIONS, EMPTY_TASK } from '@/components/setup/primitives'
+import { SectionHeader, CountChip, PRIORITY_OPTIONS, EMPTY_TASK } from '@/components/setup/primitives'
 
 type TaskDraft = { name: string; note: string; priority: Priority; type: TaskType }
 
@@ -42,7 +41,6 @@ export default function TaskEditor({
               </span>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{t.name}</p>
-                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{TASK_TYPE_LABELS[t.type]}</p>
               </div>
               <button onClick={() => onRemove(i)}
                 className="text-xs shrink-0 opacity-40 hover:opacity-80 transition-opacity"
@@ -60,23 +58,13 @@ export default function TaskEditor({
             autoFocus />
           <Input id="task-note" placeholder="Napomena (opciono)" value={form.note}
             onChange={e => setForm(f => ({ ...f, note: e.target.value }))} />
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="text-xs mb-1.5 block font-medium" style={{ color: 'var(--text-muted)' }}>Prioritet</label>
-              <select value={form.priority}
-                onChange={e => setForm(f => ({ ...f, priority: e.target.value as Priority }))}
-                className="field field-select h-11 px-3 text-sm">
-                {PRIORITY_OPTIONS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs mb-1.5 block font-medium" style={{ color: 'var(--text-muted)' }}>Tip</label>
-              <select value={form.type}
-                onChange={e => setForm(f => ({ ...f, type: e.target.value as TaskType }))}
-                className="field field-select h-11 px-3 text-sm">
-                {TYPE_OPTIONS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-              </select>
-            </div>
+          <div>
+            <label className="text-xs mb-1.5 block font-medium" style={{ color: 'var(--text-muted)' }}>Prioritet</label>
+            <select value={form.priority}
+              onChange={e => setForm(f => ({ ...f, priority: e.target.value as Priority }))}
+              className="field field-select h-11 px-3 text-sm">
+              {PRIORITY_OPTIONS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+            </select>
           </div>
           <div className="flex gap-2">
             <Button size="sm" onClick={add} disabled={!form.name.trim()} className="flex-1">Dodaj</Button>
