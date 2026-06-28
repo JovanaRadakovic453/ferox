@@ -191,6 +191,18 @@ export default function PlanScreen({
     }
   }
 
+  async function deleteAppointment(apptId: string) {
+    const appt = appts.find(a => a.id === apptId)
+    if (!appt) return
+    setAppts(prev => prev.filter(a => a.id !== apptId))
+    const supabase = createClient()
+    const { error } = await supabase.from('appointments').delete().eq('id', apptId)
+    if (error) {
+      setAppts(prev => [...prev, appt])
+      toast({ message: 'Brisanje nije uspelo — pokušaj ponovo', variant: 'error' })
+    }
+  }
+
   async function deleteTask(taskId: string) {
     const task = tasks.find(t => t.id === taskId)
     if (!task) return
@@ -407,7 +419,7 @@ export default function PlanScreen({
           <div className="card overflow-hidden">
             <div className="pl-6 pr-5">
               {appts.map(a => (
-                <AppointmentItem key={a.id ?? a.name + a.time} appt={a} onToggle={() => a.id && toggleAppointment(a.id)} />
+                <AppointmentItem key={a.id ?? a.name + a.time} appt={a} onToggle={() => a.id && toggleAppointment(a.id)} onDelete={() => a.id && deleteAppointment(a.id)} />
               ))}
               <div className="divide-y" style={{ borderColor: 'var(--hairline)' }}>
                 {[...tasks].sort((a, b) => ({ high: 0, medium: 1, low: 2 }[a.priority] ?? 1) - ({ high: 0, medium: 1, low: 2 }[b.priority] ?? 1)).map(task => (
