@@ -33,11 +33,14 @@ export default async function PlanPage({
   // finished_at je izvor istine da je dan završen (više se ne oslanjamo na cookie).
   const dayFinished = !!entry.finished_at
 
-  const [{ data: tasks }, { data: appointments }, { data: tomorrowEntry }, { data: finishedRows }] = await Promise.all([
+  const [{ data: tasks }, { data: appointments }, { data: tomorrowEntry }, { data: finishedRows }, { data: tomorrowScheduled }] = await Promise.all([
     supabase.from('tasks').select('*').eq('entry_id', entry.id).order('position'),
     supabase.from('appointments').select('*').eq('user_id', user.id).eq('date_key', viewDate).order('time'),
     supabase.from('day_entries').select('id').eq('user_id', user.id).eq('date_key', tomorrowKey()).maybeSingle(),
     supabase.from('day_entries').select('date_key').eq('user_id', user.id).not('finished_at', 'is', null).order('date_key', { ascending: false }).limit(60),
+    isToday
+      ? supabase.from('scheduled_tasks').select('id').eq('user_id', user.id).eq('for_date', tomorrowKey()).eq('done', false).eq('remind_before', 'day_before')
+      : Promise.resolve({ data: [] }),
   ])
 
   const finishedSet = new Set((finishedRows ?? []).map(r => r.date_key as string))
@@ -54,6 +57,7 @@ export default async function PlanPage({
       isToday={isToday}
       hasDateParam={hasDateParam}
       streak={streak}
+      tomorrowScheduledCount={(tomorrowScheduled ?? []).length}
     />
   )
 }

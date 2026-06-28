@@ -25,7 +25,7 @@ import { AnimatePresence } from 'framer-motion'
 import type { Routine } from '@/types/ferox'
 
 export default function PlanScreen({
-  entry, tasks: initialTasks, appointments, profile, dayFinished = false, tomorrowPlanned = false, isToday = true, hasDateParam = false, streak = 0,
+  entry, tasks: initialTasks, appointments, profile, dayFinished = false, tomorrowPlanned = false, isToday = true, hasDateParam = false, streak = 0, tomorrowScheduledCount = 0,
 }: {
   entry: DayEntry
   tasks: Task[]
@@ -36,6 +36,7 @@ export default function PlanScreen({
   isToday?: boolean
   hasDateParam?: boolean
   streak?: number
+  tomorrowScheduledCount?: number
 }) {
   const toast = useToast()
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
@@ -412,6 +413,16 @@ export default function PlanScreen({
             <p className="font-medium">Danas je završen</p>
             {tomorrowPlanned && <p className="opacity-70">Plan za sutra je spreman</p>}
           </div>
+        </div>
+      )}
+
+      {/* Podsetnik: sutra ima zakazanih zadataka iz kalendara */}
+      {isToday && tomorrowScheduledCount > 0 && !dayFinished && (
+        <div className="rounded-[var(--r-md)] px-4 py-3 flex items-center gap-3" style={{ background: 'var(--surface2)', border: '1px solid var(--hairline)' }}>
+          <span className="text-xl shrink-0">📅</span>
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+            Sutra imaš <span style={{ color: 'var(--text)', fontWeight: 600 }}>{tomorrowScheduledCount} zakazan{tomorrowScheduledCount === 1 ? '' : 'a'} zadatak{tomorrowScheduledCount === 1 ? '' : 'a'}</span> iz kalendara
+          </p>
         </div>
       )}
 

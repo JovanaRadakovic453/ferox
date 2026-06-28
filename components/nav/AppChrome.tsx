@@ -15,11 +15,12 @@ const ChromeCtx = createContext<ChromeValue>({ setHidden: () => {} })
 export function useChrome() { return useContext(ChromeCtx) }
 
 const TABS = [
-  { href: '/',         label: 'Danas',       icon: '☀️', match: (p: string) => p === '/' || p.startsWith('/plan') },
-  { href: '/history',  label: 'Istorija',    icon: '🗓️', match: (p: string) => p.startsWith('/history') },
-  { href: '/insights', label: 'Uvidi',       icon: '📈', match: (p: string) => p.startsWith('/insights') },
-  { href: '/extras',   label: 'Alati',       icon: '🛠️', match: (p: string) => p.startsWith('/extras') },
-  { href: '/settings', label: 'Podešavanja', icon: '⚙️', match: (p: string) => p.startsWith('/settings') },
+  { href: '/',          label: 'Danas',       icon: '☀️', match: (p: string) => p === '/' || p.startsWith('/plan') },
+  { href: '/calendar',  label: 'Kalendar',    icon: '📅', match: (p: string) => p.startsWith('/calendar') },
+  { href: '/history',   label: 'Istorija',    icon: '🗓️', match: (p: string) => p.startsWith('/history') },
+  { href: '/insights',  label: 'Uvidi',       icon: '📈', match: (p: string) => p.startsWith('/insights') },
+  { href: '/extras',    label: 'Alati',       icon: '🛠️', match: (p: string) => p.startsWith('/extras') },
+  { href: '/settings',  label: 'Podešavanja', icon: '⚙️', match: (p: string) => p.startsWith('/settings') },
 ]
 
 export default function AppChrome({ children, streak = 0 }: { children: ReactNode; streak?: number }) {

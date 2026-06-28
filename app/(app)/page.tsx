@@ -103,15 +103,27 @@ export default async function SetupPage({
     initialTasks = (existingTasks ?? []) as Task[]
     initialAppointments = (existingAppts ?? []) as Appointment[]
   } else {
-    const { data: transferred } = await supabase
-      .from('transferred_tasks')
-      .select('tasks')
-      .eq('user_id', user.id)
-      .eq('for_date', targetDate)
-      .maybeSingle()
+    const [{ data: transferred }, { data: scheduledRows }] = await Promise.all([
+      supabase
+        .from('transferred_tasks')
+        .select('tasks')
+        .eq('user_id', user.id)
+        .eq('for_date', targetDate)
+        .maybeSingle(),
+      supabase
+        .from('scheduled_tasks')
+        .select('name, priority, type, note')
+        .eq('user_id', user.id)
+        .eq('for_date', targetDate)
+        .eq('done', false),
+    ])
     const filtered = ((transferred?.tasks ?? []) as Task[]).filter((t: Task) => !t.done)
-    initialTasks = filtered
-    showTransferBanner = filtered.length > 0
+    const scheduled = (scheduledRows ?? []) as Task[]
+    initialTasks = [
+      ...filtered,
+      ...scheduled.map(t => ({ name: t.name, priority: t.priority, type: t.type ?? 'light', note: t.note ?? '', done: false })),
+    ]
+    showTransferBanner = initialTasks.length > 0
   }
 
   return (
