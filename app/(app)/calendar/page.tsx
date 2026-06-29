@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { todayKey, addDays } from '@/lib/date'
 import CalendarView from '@/components/calendar/CalendarView'
+import type { Zone } from '@/types/ferox'
 
 function monthBounds(month: string): { from: string; to: string } {
   const [year, m] = month.split('-').map(Number)
@@ -35,6 +36,7 @@ export default async function CalendarPage({
     { data: entries },
     { data: appointments },
     { data: scheduled },
+    { data: zones },
   ] = await Promise.all([
     supabase
       .from('day_entries')
@@ -58,6 +60,7 @@ export default async function CalendarPage({
       .lte('for_date', expandedTo)
       .eq('done', false)
       .order('for_date'),
+    supabase.from('zones').select('*').eq('user_id', user.id).order('position'),
   ])
 
   // Count tasks per date (via day_entry → tasks)
@@ -88,6 +91,7 @@ export default async function CalendarPage({
       taskCountByDate={taskCountByDate}
       appointments={(appointments ?? []) as { id: string; date_key: string; name: string; time: string; done: boolean }[]}
       scheduled={(scheduled ?? []) as { id: string; for_date: string; name: string; priority: string; note: string; remind_before_minutes: number | null; deadline_date: string | null }[]}
+      zones={(zones ?? []) as Zone[]}
     />
   )
 }

@@ -8,6 +8,7 @@ import DayPanel from './DayPanel'
 type Entry = { id: string; date_key: string; finished_at: string | null }
 type Appointment = { id: string; date_key: string; name: string; time: string; done: boolean }
 type ScheduledTask = { id: string; for_date: string; name: string; priority: string; note: string; remind_before_minutes: number | null; deadline_date: string | null }
+type Zone = { id: string; name: string; icon: string; position: number }
 
 const MONTH_NAMES = [
   'Januar', 'Februar', 'Mart', 'April', 'Maj', 'Jun',
@@ -27,6 +28,7 @@ export default function CalendarView({
   taskCountByDate,
   appointments,
   scheduled,
+  zones = [],
 }: {
   initialMonth: string
   today: string
@@ -34,6 +36,7 @@ export default function CalendarView({
   taskCountByDate: Record<string, number>
   appointments: Appointment[]
   scheduled: ScheduledTask[]
+  zones?: Zone[]
 }) {
   const router = useRouter()
   const [view, setView] = useState<'month' | 'week'>('month')
@@ -118,6 +121,7 @@ export default function CalendarView({
           scheduled={panelScheduled.filter(t => t.for_date === selectedDate)}
           onAddTask={addTask}
           onRemoveTask={removeTask}
+          zones={zones}
         />
       </div>
     </main>

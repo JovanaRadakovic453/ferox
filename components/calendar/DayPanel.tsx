@@ -8,6 +8,7 @@ import AddScheduledTaskModal from './AddScheduledTaskModal'
 type Entry = { id: string; date_key: string; finished_at: string | null }
 type Appointment = { id: string; date_key: string; name: string; time: string; done: boolean }
 type ScheduledTask = { id: string; for_date: string; name: string; priority: string; note: string; remind_before_minutes: number | null; deadline_date: string | null }
+type Zone = { id: string; name: string; icon: string; position: number }
 type LoadedTask = { id: string; name: string; priority: string; done: boolean; note: string }
 
 const PRIORITY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 }
@@ -53,6 +54,7 @@ export default function DayPanel({
   scheduled,
   onAddTask,
   onRemoveTask,
+  zones = [],
 }: {
   date: string
   today: string
@@ -61,6 +63,7 @@ export default function DayPanel({
   scheduled: ScheduledTask[]
   onAddTask: (task: ScheduledTask) => void
   onRemoveTask: (id: string) => void
+  zones?: Zone[]
 }) {
   const entry = entries.find(e => e.date_key === date)
   const isFuture = date > today
@@ -288,6 +291,7 @@ export default function DayPanel({
         onClose={() => setAddOpen(false)}
         onAdd={task => { onAddTask(task); setAddOpen(false) }}
         date={date}
+        zones={zones}
       />
     </div>
   )
