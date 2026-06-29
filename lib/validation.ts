@@ -22,6 +22,7 @@ export const zTaskInput = z.object({
   done: z.boolean().optional().default(false),
   position: z.number().int().optional(),
   block_index: z.number().int().min(0).max(3).nullable().optional(),
+  zone_id: z.string().uuid().nullable().optional(),
 })
 
 export const zAppointmentInput = z.object({

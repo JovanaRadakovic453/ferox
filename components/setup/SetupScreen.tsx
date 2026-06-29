@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useChrome } from '@/components/nav/AppChrome'
 import { todayKey, formatDate } from '@/lib/utils'
 import { energyLabel } from '@/lib/energy'
-import type { Task, TaskType, Priority, Appointment, UserProfile } from '@/types/ferox'
+import type { Task, TaskType, Priority, Appointment, UserProfile, Zone } from '@/types/ferox'
 import Link from 'next/link'
 import Button from '@/components/ui/Button'
 import TransferSuggestions from '@/components/setup/TransferSuggestions'
@@ -22,6 +22,12 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [resetting, setResetting] = useState(false)
   const [brainDumpLoading, setBrainDumpLoading] = useState(false)
+  const [zones, setZones] = useState<Zone[]>([])
+
+  useEffect(() => {
+    createClient().from('zones').select('id, name, icon, position').order('position')
+      .then(({ data }) => { if (data && data.length > 0) setZones(data as Zone[]) })
+  }, [])
   const isSutraMode = targetDate !== undefined && targetDate !== todayKey()
 
   const { setHidden } = useChrome()
@@ -159,7 +165,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
               />
             )}
 
-            <TaskEditor tasks={tasks} onAdd={addTask} onRemove={i => setTasks(prev => prev.filter((_, idx) => idx !== i))} />
+            <TaskEditor tasks={tasks} onAdd={addTask} onRemove={i => setTasks(prev => prev.filter((_, idx) => idx !== i))} zones={zones} />
 
             <AppointmentEditor appointments={appointments} onAdd={addAppointment} onRemove={i => setAppointments(prev => prev.filter((_, idx) => idx !== i))} />
 

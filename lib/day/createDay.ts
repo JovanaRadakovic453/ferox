@@ -49,6 +49,7 @@ export async function createDay(
     entry_id: entryId, user_id: userId, name: t.name, done: t.done ?? false,
     priority: t.priority, type: t.type, note: t.note ?? '',
     position: t.position ?? i, block_index: t.block_index ?? null,
+    zone_id: t.zone_id ?? null,
   }))
   if (taskRows.length > 0) {
     const { data, error } = await supabase.from('tasks').insert(taskRows)

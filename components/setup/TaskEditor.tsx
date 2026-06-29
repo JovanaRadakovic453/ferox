@@ -6,22 +6,24 @@ import Button from '@/components/ui/Button'
 import type { Task, TaskType, Priority } from '@/types/ferox'
 import { SectionHeader, CountChip, PRIORITY_OPTIONS, EMPTY_TASK } from '@/components/setup/primitives'
 
-type TaskDraft = { name: string; note: string; priority: Priority; type: TaskType }
+type Zone = { id: string; name: string; icon: string }
+type TaskDraft = { name: string; note: string; priority: Priority; type: TaskType; zone_id: string | null }
 
 export default function TaskEditor({
-  tasks, onAdd, onRemove,
+  tasks, onAdd, onRemove, zones = [],
 }: {
   tasks: Task[]
   onAdd: (t: TaskDraft) => void
   onRemove: (index: number) => void
+  zones?: Zone[]
 }) {
-  const [form, setForm] = useState<TaskDraft>(EMPTY_TASK)
+  const [form, setForm] = useState<TaskDraft>({ ...EMPTY_TASK, zone_id: null })
   const [showForm, setShowForm] = useState(false)
 
   function add() {
     if (!form.name.trim()) return
     onAdd(form)
-    setForm(EMPTY_TASK)
+    setForm({ ...EMPTY_TASK, zone_id: null })
     setShowForm(false)
   }
 
@@ -66,9 +68,20 @@ export default function TaskEditor({
               {PRIORITY_OPTIONS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
             </select>
           </div>
+          {zones.length > 0 && (
+            <div>
+              <label className="text-xs mb-1.5 block font-medium" style={{ color: 'var(--text-muted)' }}>Oblast</label>
+              <select value={form.zone_id ?? ''}
+                onChange={e => setForm(f => ({ ...f, zone_id: e.target.value || null }))}
+                className="field field-select h-11 px-3 text-sm">
+                <option value="">— Bez oblasti</option>
+                {zones.map(z => <option key={z.id} value={z.id}>{z.icon} {z.name}</option>)}
+              </select>
+            </div>
+          )}
           <div className="flex gap-2">
             <Button size="sm" onClick={add} disabled={!form.name.trim()} className="flex-1">Dodaj</Button>
-            <Button size="sm" variant="ghost" onClick={() => { setShowForm(false); setForm(EMPTY_TASK) }}>Otkaži</Button>
+            <Button size="sm" variant="ghost" onClick={() => { setShowForm(false); setForm({ ...EMPTY_TASK, zone_id: null }) }}>Otkaži</Button>
           </div>
         </div>
       ) : (
