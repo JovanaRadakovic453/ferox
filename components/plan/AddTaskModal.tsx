@@ -31,12 +31,8 @@ export default function AddTaskModal({
   const [zones, setZones] = useState(zonesProp)
 
   useEffect(() => {
-    const supabase = createClient()
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return
-      supabase.from('zones').select('id, name, icon, position').eq('user_id', user.id).order('position')
-        .then(({ data }) => { if (data && data.length > 0) setZones(data) })
-    })
+    createClient().from('zones').select('id, name, icon, position').order('position')
+      .then(({ data }) => { if (data && data.length > 0) setZones(data) })
   }, [])
 
   // Reset forme svaki put kad se modal otvori (čista forma pri svakom otvaranju).
