@@ -2,7 +2,7 @@ import Checkbox from '@/components/ui/Checkbox'
 import { PRIORITY_LABELS } from '@/types/ferox'
 import type { Task } from '@/types/ferox'
 
-export default function TaskItem({ task, onToggle, onDelete }: { task: Task; onToggle: () => void; onDelete?: () => void }) {
+export default function TaskItem({ task, onToggle, onDelete, zoneName }: { task: Task; onToggle: () => void; onDelete?: () => void; zoneName?: string }) {
   return (
     <div className="flex items-center w-full py-4">
       <button
@@ -26,6 +26,9 @@ export default function TaskItem({ task, onToggle, onDelete }: { task: Task; onT
           </p>
           {task.note && (
             <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{task.note}</p>
+          )}
+          {zoneName && !task.done && (
+            <p className="text-[0.6rem] font-medium mt-0.5" style={{ color: 'var(--text-muted)' }}>· {zoneName}</p>
           )}
         </div>
         <span

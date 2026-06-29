@@ -18,6 +18,22 @@ interface FormData {
   eveningTasks: string[]
 }
 
+const ZONE_PRESETS = {
+  entrepreneur: [
+    { name: 'Posao', icon: '💼' },
+    { name: 'Finansije', icon: '💰' },
+    { name: 'Zdravlje', icon: '💪' },
+    { name: 'Sport', icon: '🏃' },
+    { name: 'Lično', icon: '🌱' },
+  ],
+  student: [
+    { name: 'Fakultet', icon: '🎓' },
+    { name: 'Projekti', icon: '📝' },
+    { name: 'Sport', icon: '🏃' },
+    { name: 'Lično', icon: '🌱' },
+  ],
+}
+
 const TASK_CHIPS = [
   { value: 'planning',      label: '🗓️ Planiranje' },
   { value: 'creative',      label: '🎨 Kreativno' },
@@ -119,6 +135,8 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
     morningTasks: [],
     eveningTasks: [],
   })
+  const [zones, setZones] = useState<Array<{ name: string; icon: string }>>([])
+  const [newZoneName, setNewZoneName] = useState('')
 
   function next() {
     setDir(1)
@@ -153,6 +171,17 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
       evening_tasks: form.eveningTasks,
       completed_once: true,
     }).eq('id', user.id)
+
+    const validZones = zones.filter(z => z.name.trim())
+    await Promise.all(
+      validZones.map((z, i) =>
+        fetch('/api/zones', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: z.name.trim(), icon: z.icon, position: i }),
+        })
+      )
+    )
 
     router.push('/')
     router.refresh()
@@ -289,7 +318,101 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
           </div>
         </div>
 
-        <Button size="lg" className="w-full" onClick={finish} loading={loading}>
+        <Button size="lg" className="w-full" onClick={next}>
+          Dalje →
+        </Button>
+      </div>
+    ),
+
+    6: (
+      <div className="flex flex-col gap-5">
+        <div>
+          <h2 className="title-serif text-3xl mb-1" style={{ color: 'var(--text)' }}>
+            Tvoje oblasti
+          </h2>
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+            Koje oblasti svog života pratiš? Svaki zadatak ćeš moći da rasporediš u oblast.
+          </p>
+        </div>
+
+        {/* Preset dugmad */}
+        <div className="flex gap-2">
+          {(['entrepreneur', 'student'] as const).map(preset => (
+            <button
+              key={preset}
+              type="button"
+              onClick={() => setZones(ZONE_PRESETS[preset])}
+              className="flex-1 py-2.5 rounded-[var(--r-md)] border text-sm font-medium transition-colors"
+              style={{ borderColor: 'var(--border)', background: 'var(--surface2)', color: 'var(--text)' }}
+            >
+              {preset === 'entrepreneur' ? '💼 Preduzetnik' : '🎓 Student'}
+            </button>
+          ))}
+        </div>
+
+        {/* Lista zona */}
+        <div className="flex flex-col gap-2">
+          {zones.map((z, i) => (
+            <div
+              key={i}
+              className="flex items-center gap-2 px-3.5 py-2.5 rounded-[var(--r-md)] border"
+              style={{ borderColor: 'var(--border)', background: 'var(--surface2)' }}
+            >
+              <span className="text-lg shrink-0">{z.icon}</span>
+              <input
+                value={z.name}
+                onChange={e => setZones(prev => prev.map((zz, ii) => ii === i ? { ...zz, name: e.target.value } : zz))}
+                className="flex-1 bg-transparent text-sm font-medium outline-none"
+                style={{ color: 'var(--text)' }}
+              />
+              <button
+                type="button"
+                onClick={() => setZones(prev => prev.filter((_, ii) => ii !== i))}
+                className="text-xs opacity-40 hover:opacity-80 transition-opacity shrink-0"
+                style={{ color: 'var(--text-muted)' }}
+                aria-label="Obriši oblast"
+              >✕</button>
+            </div>
+          ))}
+        </div>
+
+        {/* Dodaj novu oblast */}
+        <div className="flex gap-2">
+          <input
+            value={newZoneName}
+            onChange={e => setNewZoneName(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && newZoneName.trim()) {
+                setZones(prev => [...prev, { name: newZoneName.trim(), icon: '📁' }])
+                setNewZoneName('')
+              }
+            }}
+            placeholder="Dodaj oblast..."
+            className="field h-10 px-3 text-sm flex-1"
+          />
+          <button
+            type="button"
+            disabled={!newZoneName.trim()}
+            onClick={() => {
+              if (newZoneName.trim()) {
+                setZones(prev => [...prev, { name: newZoneName.trim(), icon: '📁' }])
+                setNewZoneName('')
+              }
+            }}
+            className="px-4 h-10 rounded-[var(--r-md)] text-sm font-medium transition-colors disabled:opacity-40"
+            style={{ background: 'var(--surface2)', color: 'var(--text)', border: '1px solid var(--border)' }}
+          >
+            + Dodaj
+          </button>
+        </div>
+
+        <Button
+          size="lg"
+          className="w-full"
+          onClick={finish}
+          loading={loading}
+          disabled={zones.filter(z => z.name.trim()).length === 0}
+        >
           Kreiraj moj profil ✓
         </Button>
       </div>
@@ -331,7 +454,7 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
             </button>
           )}
 
-          <StepDots total={5} current={step} />
+          <StepDots total={6} current={step} />
 
           <AnimatePresence mode="wait" custom={dir}>
             <motion.div

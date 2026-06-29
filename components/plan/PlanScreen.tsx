@@ -9,7 +9,7 @@ let _audioCtx: AudioContext | null = null
 import { createClient } from '@/lib/supabase/client'
 import { addDays } from '@/lib/date'
 import { formatDate } from '@/lib/utils'
-import type { Task, Appointment, DayEntry, UserProfile, TaskType, Priority } from '@/types/ferox'
+import type { Task, Appointment, DayEntry, UserProfile, TaskType, Priority, Zone } from '@/types/ferox'
 import Button from '@/components/ui/Button'
 import { useCountUp } from '@/lib/useCountUp'
 import DayProgress from '@/components/plan/DayProgress'
@@ -38,7 +38,7 @@ function Divider() {
 }
 
 export default function PlanScreen({
-  entry, tasks: initialTasks, appointments, profile, dayFinished = false, tomorrowPlanned = false, isToday = true, hasDateParam = false, streak = 0, tomorrowScheduledCount = 0, overdueDeadlineCount = 0,
+  entry, tasks: initialTasks, appointments, profile, dayFinished = false, tomorrowPlanned = false, isToday = true, hasDateParam = false, streak = 0, tomorrowScheduledCount = 0, overdueDeadlineCount = 0, zones = [],
 }: {
   entry: DayEntry
   tasks: Task[]
@@ -51,6 +51,7 @@ export default function PlanScreen({
   streak?: number
   tomorrowScheduledCount?: number
   overdueDeadlineCount?: number
+  zones?: Zone[]
 }) {
   const toast = useToast()
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
@@ -79,6 +80,9 @@ export default function PlanScreen({
       }
     } catch {}
   }
+
+  const zoneMap: Record<string, string> = {}
+  for (const z of zones) zoneMap[z.id] = `${z.icon} ${z.name}`
 
   const doneTasks = tasks.filter(t => t.done).length
   const doneAppts = appts.filter(a => a.done).length
@@ -324,17 +328,16 @@ export default function PlanScreen({
     setDayJustFinished(true)
   }
 
-  async function handleAddTask({ name, type, priority, note }: { name: string; type: TaskType; priority: Priority; note: string }): Promise<boolean> {
-    // .select('id') da novi zadatak odmah nosi id (za pouzdan toggle po ID-u).
+  async function handleAddTask({ name, type, priority, note, zone_id }: { name: string; type: TaskType; priority: Priority; note: string; zone_id: string | null }): Promise<boolean> {
     const supabase = createClient()
     const { data, error } = await supabase.from('tasks').insert({
-      entry_id: entry.id, user_id: entry.user_id, name, done: false, priority, type, note, position: tasks.length,
+      entry_id: entry.id, user_id: entry.user_id, name, done: false, priority, type, note, position: tasks.length, zone_id: zone_id ?? null,
     }).select('id').single()
     if (error) {
       toast({ message: 'Zadatak nije dodat — pokušaj ponovo', variant: 'error' })
       return false
     }
-    setTasks(prev => [...prev, { id: data?.id, name, priority, type, note, done: false }])
+    setTasks(prev => [...prev, { id: data?.id, name, priority, type, note, done: false, zone_id: zone_id ?? null }])
     return true
   }
 
@@ -491,7 +494,7 @@ export default function PlanScreen({
                 .sort((a, b) => ({ high: 0, medium: 1, low: 2 }[a.priority] ?? 1) - ({ high: 0, medium: 1, low: 2 }[b.priority] ?? 1))
                 .map((task, idx, arr) => (
                   <div key={task.id ?? task.name}>
-                    <TaskItem task={task} onToggle={() => task.id && toggleTask(task.id)} onDelete={() => task.id && deleteTask(task.id)} />
+                    <TaskItem task={task} onToggle={() => task.id && toggleTask(task.id)} onDelete={() => task.id && deleteTask(task.id)} zoneName={task.zone_id ? zoneMap[task.zone_id] : undefined} />
                     {idx < arr.length - 1 && <Divider />}
                   </div>
                 ))
@@ -519,6 +522,7 @@ export default function PlanScreen({
         onClose={() => setShowAddTask(false)}
         onAddTask={handleAddTask}
         onAddAppointment={handleAddAppointment}
+        zones={zones}
       />
 
       <RoutineModal

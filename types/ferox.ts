@@ -12,6 +12,13 @@ export type Priority = (typeof PRIORITIES)[number]
 export type Reason = 'work' | 'school' | 'personal' | 'all'
 export type Rhythm = 'morning' | 'midday' | 'evening' | 'mixed'
 
+export type Zone = {
+  id: string
+  name: string
+  icon: string
+  position: number
+}
+
 export interface Task {
   id?: string
   name: string
@@ -22,6 +29,7 @@ export interface Task {
   position?: number
   /** Manual block placement (0..3) set via drag-reorder; null/undefined = engine auto-places. */
   block_index?: number | null
+  zone_id?: string | null
 }
 
 export interface Appointment {
