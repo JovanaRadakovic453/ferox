@@ -7,15 +7,11 @@ import { createClient } from '@/lib/supabase/client'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 
-type Reason = 'work' | 'school' | 'personal' | 'all'
-type Rhythm = 'morning' | 'midday' | 'evening' | 'mixed'
+type Reason = 'work' | 'school'
 
 interface FormData {
   name: string
   reason: Reason | null
-  rhythm: Rhythm | null
-  morningTasks: string[]
-  eveningTasks: string[]
 }
 
 const ZONE_PRESETS = {
@@ -34,47 +30,10 @@ const ZONE_PRESETS = {
   ],
 }
 
-const TASK_CHIPS = [
-  { value: 'planning',      label: '🗓️ Planiranje' },
-  { value: 'creative',      label: '🎨 Kreativno' },
-  { value: 'analytical',    label: '🧠 Analitičko' },
-  { value: 'learning',      label: '📚 Učenje' },
-  { value: 'exercise',      label: '💪 Vežbanje' },
-  { value: 'meetings',      label: '👥 Sastanci' },
-  { value: 'communication', label: '💬 Komunikacija' },
-  { value: 'admin',         label: '📋 Admin' },
-  { value: 'reading',       label: '📖 Čitanje' },
-  { value: 'meditation',    label: '🧘 Meditacija' },
-  { value: 'light',         label: '🌿 Lagano' },
-  { value: 'rest',          label: '😴 Odmor' },
-]
-
 const slideVariants = {
   enter: (dir: number) => ({ x: dir > 0 ? 60 : -60, opacity: 0 }),
   center: { x: 0, opacity: 1 },
   exit:  (dir: number) => ({ x: dir > 0 ? -60 : 60, opacity: 0 }),
-}
-
-function Chip({
-  label, selected, onClick,
-}: { label: string; selected: boolean; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="px-3.5 py-1.5 rounded-full text-sm font-medium transition-all duration-200 border active:scale-95"
-      style={{
-        borderColor: selected ? 'transparent' : 'var(--border)',
-        backgroundColor: selected ? 'transparent' : 'var(--surface2)',
-        backgroundImage: selected ? 'linear-gradient(135deg, var(--gold), var(--gold-deep))' : 'none',
-        color: selected ? '#fff' : 'var(--text)',
-        boxShadow: selected ? 'var(--sh-gold)' : 'none',
-        textShadow: selected ? '0 1px 2px rgba(70,30,2,0.45)' : undefined,
-      }}
-    >
-      {label}
-    </button>
-  )
 }
 
 function OptionCard({
@@ -131,9 +90,6 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
   const [form, setForm] = useState<FormData>({
     name: initialName,
     reason: null,
-    rhythm: null,
-    morningTasks: [],
-    eveningTasks: [],
   })
   const [zones, setZones] = useState<Array<{ name: string; icon: string }>>([])
   const [newZoneName, setNewZoneName] = useState('')
@@ -148,15 +104,6 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
     setStep(s => s - 1)
   }
 
-  function toggleChip(field: 'morningTasks' | 'eveningTasks', value: string) {
-    setForm(f => ({
-      ...f,
-      [field]: f[field].includes(value)
-        ? f[field].filter(v => v !== value)
-        : [...f[field], value],
-    }))
-  }
-
   async function finish() {
     setLoading(true)
     const supabase = createClient()
@@ -166,9 +113,6 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
     await supabase.from('profiles').update({
       name: form.name,
       reason: form.reason,
-      rhythm: form.rhythm,
-      morning_tasks: form.morningTasks,
-      evening_tasks: form.eveningTasks,
       completed_once: true,
     }).eq('id', user.id)
 
@@ -247,9 +191,7 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
         </div>
         <div className="flex flex-col gap-3">
           <OptionCard emoji="💼" title="Posao" desc="Projekti, rokovi, poslovni zadaci" selected={form.reason === 'work'} onClick={() => setForm(f => ({ ...f, reason: 'work' }))} />
-          <OptionCard emoji="🎓" title="Škola / Fakultet" desc="Učenje, ispiti, predavanja" selected={form.reason === 'school'} onClick={() => setForm(f => ({ ...f, reason: 'school' }))} />
-          <OptionCard emoji="🌱" title="Lični razvoj" desc="Navike, hobiji, ciljevi" selected={form.reason === 'personal'} onClick={() => setForm(f => ({ ...f, reason: 'personal' }))} />
-          <OptionCard emoji="✨" title="Sve pomalo" desc="Kombinacija svega navedenog" selected={form.reason === 'all'} onClick={() => setForm(f => ({ ...f, reason: 'all' }))} />
+          <OptionCard emoji="🎓" title="Fakultet" desc="Učenje, ispiti, predavanja" selected={form.reason === 'school'} onClick={() => setForm(f => ({ ...f, reason: 'school' }))} />
         </div>
         <Button size="lg" className="w-full" onClick={next} disabled={!form.reason}>
           Dalje →
@@ -258,73 +200,6 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
     ),
 
     4: (
-      <div className="flex flex-col gap-5">
-        <div>
-          <h2 className="title-serif text-3xl mb-1" style={{ color: 'var(--text)' }}>
-            Kad si najproduktivnija?
-          </h2>
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            Kada tokom dana si najproduktivnija?
-          </p>
-        </div>
-        <div className="flex flex-col gap-3">
-          <OptionCard emoji="🌅" title="Jutarnji tip" desc="Najbolja između 6h i 12h" selected={form.rhythm === 'morning'} onClick={() => setForm(f => ({ ...f, rhythm: 'morning' }))} />
-          <OptionCard emoji="☀️" title="Podnevni tip" desc="Najbolja između 10h i 14h" selected={form.rhythm === 'midday'} onClick={() => setForm(f => ({ ...f, rhythm: 'midday' }))} />
-          <OptionCard emoji="🌙" title="Večernji tip" desc="Najbolja posle 18h" selected={form.rhythm === 'evening'} onClick={() => setForm(f => ({ ...f, rhythm: 'evening' }))} />
-          <OptionCard emoji="🌊" title="Mešovito" desc="Zavisi od dana i raspoloženja" selected={form.rhythm === 'mixed'} onClick={() => setForm(f => ({ ...f, rhythm: 'mixed' }))} />
-        </div>
-        <Button size="lg" className="w-full" onClick={next} disabled={!form.rhythm}>
-          Dalje →
-        </Button>
-      </div>
-    ),
-
-    5: (
-      <div className="flex flex-col gap-5">
-        <div>
-          <h2 className="title-serif text-3xl mb-1" style={{ color: 'var(--text)' }}>
-            Tvoje navike
-          </h2>
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            Izaberi šta voliš da radiš ujutru i uveče
-          </p>
-        </div>
-
-        <div>
-          <p className="text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>🌅 Ujutru obično radim:</p>
-          <div className="flex flex-wrap gap-2">
-            {TASK_CHIPS.map(chip => (
-              <Chip
-                key={chip.value}
-                label={chip.label}
-                selected={form.morningTasks.includes(chip.value)}
-                onClick={() => toggleChip('morningTasks', chip.value)}
-              />
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <p className="text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>🌙 Uveče obično radim:</p>
-          <div className="flex flex-wrap gap-2">
-            {TASK_CHIPS.map(chip => (
-              <Chip
-                key={chip.value}
-                label={chip.label}
-                selected={form.eveningTasks.includes(chip.value)}
-                onClick={() => toggleChip('eveningTasks', chip.value)}
-              />
-            ))}
-          </div>
-        </div>
-
-        <Button size="lg" className="w-full" onClick={next}>
-          Dalje →
-        </Button>
-      </div>
-    ),
-
-    6: (
       <div className="flex flex-col gap-5">
         <div>
           <h2 className="title-serif text-3xl mb-1" style={{ color: 'var(--text)' }}>
@@ -453,7 +328,7 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
             </button>
           )}
 
-          <StepDots total={6} current={step} />
+          <StepDots total={4} current={step} />
 
           <AnimatePresence mode="wait" custom={dir}>
             <motion.div
