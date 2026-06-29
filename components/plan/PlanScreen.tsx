@@ -62,6 +62,13 @@ export default function PlanScreen({
   const [showRoutines, setShowRoutines] = useState(false)
   const [routines, setRoutines] = useState<Routine[]>([])
   const [activeReminder, setActiveReminder] = useState<{ name: string; time: string; minutesBefore: number } | null>(null)
+  const [zoneList, setZoneList] = useState<Zone[]>(zones)
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.from('zones').select('*').order('position')
+      .then(({ data }) => { if (data?.length) setZoneList(data as Zone[]) })
+  }, [])
 
   const REMINDER_KEY = `ferox-shown-reminders-${entry.date_key}`
 
@@ -82,7 +89,7 @@ export default function PlanScreen({
   }
 
   const zoneMap: Record<string, string> = {}
-  for (const z of zones) zoneMap[z.id] = `${z.icon} ${z.name}`
+  for (const z of zoneList) zoneMap[z.id] = `${z.icon} ${z.name}`
 
   const doneTasks = tasks.filter(t => t.done).length
   const doneAppts = appts.filter(a => a.done).length
@@ -522,7 +529,7 @@ export default function PlanScreen({
         onClose={() => setShowAddTask(false)}
         onAddTask={handleAddTask}
         onAddAppointment={handleAddAppointment}
-        zones={zones}
+        zones={zoneList}
       />
 
       <RoutineModal
