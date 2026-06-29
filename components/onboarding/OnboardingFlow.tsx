@@ -213,10 +213,6 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
           </p>
         </div>
 
-        <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
-          {form.reason === 'work' ? '💼 Posao' : '🎓 Fakultet'}
-        </p>
-
         {/* Lista zona */}
         <div className="flex flex-col gap-2">
           {zones.map((z, i) => (
