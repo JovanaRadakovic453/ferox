@@ -193,7 +193,10 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
           <OptionCard emoji="💼" title="Posao" desc="Projekti, rokovi, poslovni zadaci" selected={form.reason === 'work'} onClick={() => setForm(f => ({ ...f, reason: 'work' }))} />
           <OptionCard emoji="🎓" title="Fakultet" desc="Učenje, ispiti, predavanja" selected={form.reason === 'school'} onClick={() => setForm(f => ({ ...f, reason: 'school' }))} />
         </div>
-        <Button size="lg" className="w-full" onClick={next} disabled={!form.reason}>
+        <Button size="lg" className="w-full" onClick={() => {
+          setZones(form.reason === 'work' ? ZONE_PRESETS.entrepreneur : ZONE_PRESETS.student)
+          next()
+        }} disabled={!form.reason}>
           Dalje →
         </Button>
       </div>
@@ -210,20 +213,9 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
           </p>
         </div>
 
-        {/* Preset dugmad */}
-        <div className="flex gap-2">
-          {(['entrepreneur', 'student'] as const).map(preset => (
-            <button
-              key={preset}
-              type="button"
-              onClick={() => setZones(ZONE_PRESETS[preset])}
-              className="flex-1 py-2.5 rounded-[var(--r-md)] border text-sm font-medium transition-colors"
-              style={{ borderColor: 'var(--border)', background: 'var(--surface2)', color: 'var(--text)' }}
-            >
-              {preset === 'entrepreneur' ? '💼 Preduzetnik' : '🎓 Student'}
-            </button>
-          ))}
-        </div>
+        <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+          {form.reason === 'work' ? '💼 Posao' : '🎓 Fakultet'}
+        </p>
 
         {/* Lista zona */}
         <div className="flex flex-col gap-2">
