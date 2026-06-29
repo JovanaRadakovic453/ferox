@@ -5,6 +5,8 @@ import { todayKey, tomorrowKey, isValidDayKey, addDays } from '@/lib/date'
 import { computeStreak } from '@/lib/streak'
 import type { Task, Appointment, DayEntry, UserProfile, Zone } from '@/types/ferox'
 
+export const dynamic = 'force-dynamic'
+
 export default async function PlanPage({
   searchParams,
 }: {
