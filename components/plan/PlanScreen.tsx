@@ -65,9 +65,10 @@ export default function PlanScreen({
   const [zoneList, setZoneList] = useState<Zone[]>(zones)
 
   useEffect(() => {
-    const supabase = createClient()
-    supabase.from('zones').select('*').order('position')
-      .then(({ data }) => { if (data?.length) setZoneList(data as Zone[]) })
+    fetch('/api/zones')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (Array.isArray(d) && d.length) setZoneList(d as Zone[]) })
+      .catch(() => {})
   }, [])
 
   const REMINDER_KEY = `ferox-shown-reminders-${entry.date_key}`
