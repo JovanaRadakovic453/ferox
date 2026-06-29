@@ -5,11 +5,12 @@ import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
 import type { TaskType, Priority } from '@/types/ferox'
 import { DEFAULTS } from '@/lib/config'
+import { createClient } from '@/lib/supabase/client'
 
 // Dodavanje zadatka ili termina. Forma drži sopstveno stanje; roditelj radi
 // DB upis preko onAddTask/onAddAppointment (vraćaju true na uspeh).
 export default function AddTaskModal({
-  open, onClose, onAddTask, onAddAppointment, zones = [],
+  open, onClose, onAddTask, onAddAppointment, zones: zonesProp = [],
 }: {
   open: boolean
   onClose: () => void
@@ -27,6 +28,16 @@ export default function AddTaskModal({
   const [reminderValue, setReminderValue] = useState(DEFAULTS.reminderMinutes)
   const [reminderUnit, setReminderUnit] = useState<'min' | 'sat'>('min')
   const [submitting, setSubmitting] = useState(false)
+  const [zones, setZones] = useState(zonesProp)
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return
+      supabase.from('zones').select('id, name, icon, position').eq('user_id', user.id).order('position')
+        .then(({ data }) => { if (data && data.length > 0) setZones(data) })
+    })
+  }, [])
 
   // Reset forme svaki put kad se modal otvori (čista forma pri svakom otvaranju).
   useEffect(() => {
