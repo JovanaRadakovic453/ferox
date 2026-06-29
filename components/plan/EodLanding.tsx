@@ -1,67 +1,25 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { tomorrowKey } from '@/lib/date'
-import { energyLabel } from '@/lib/energy'
-import { createClient } from '@/lib/supabase/client'
-import Button from '@/components/ui/Button'
-import Input from '@/components/ui/Input'
 import LogoutButton from '@/components/LogoutButton'
 
-// Čist "Dan završen" landing na početnoj (/). Renderuje se kad današnji entry
-// ima finished_at. Sad uključuje i AI recap + kratku refleksiju.
 export default function EodLanding({
   doneCount,
   total,
   transferredCount,
-  tomorrowPlanned,
   dateKey,
   eodRecap = null,
-  reflection: initialReflection = null,
   streak = 0,
 }: {
   doneCount: number
   total: number
   transferredCount: number
-  tomorrowPlanned: boolean
   dateKey: string
   eodRecap?: string | null
-  reflection?: string | null
   streak?: number
 }) {
   const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0
   const [recap, setRecap] = useState<string | null>(eodRecap)
-  const [reflection, setReflection] = useState(initialReflection ?? '')
-  const [savedReflection, setSavedReflection] = useState(initialReflection ?? '')
-  const [savingReflection, setSavingReflection] = useState(false)
-  const [seedText, setSeedText] = useState('')
-  const [seeding, setSeeding] = useState(false)
-  const [seeded, setSeeded] = useState(false)
-
-  // "Posej 1 stvar za sutra" — direktan insert (NE dira transferred_tasks za sutra).
-  async function seedTomorrow() {
-    if (!seedText.trim()) return
-    setSeeding(true)
-    try {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-      const { data: newEntry } = await supabase
-        .from('day_entries')
-        .insert({ user_id: user.id, date_key: tomorrowKey(), energy: energyLabel(3), energy_level: 3 })
-        .select('id').single()
-      if (newEntry) {
-        await supabase.from('tasks').insert({
-          entry_id: newEntry.id, user_id: user.id, name: seedText.trim(),
-          priority: 'medium', type: 'light', note: '', position: 0,
-        })
-        setSeeded(true)
-        setSeedText('')
-      }
-    } finally {
-      setSeeding(false)
-    }
-  }
 
   useEffect(() => {
     if (recap) return
@@ -76,21 +34,6 @@ export default function EodLanding({
       .catch(() => {})
     return () => { cancelled = true }
   }, [recap, dateKey])
-
-  async function saveReflection() {
-    if (reflection === savedReflection) return
-    setSavingReflection(true)
-    try {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        await supabase.from('day_entries').update({ reflection }).eq('user_id', user.id).eq('date_key', dateKey)
-        setSavedReflection(reflection)
-      }
-    } finally {
-      setSavingReflection(false)
-    }
-  }
 
   return (
     <main className="flex flex-col gap-6 lg:gap-7 pb-2 lg:max-w-2xl lg:mx-auto lg:w-full">
@@ -107,14 +50,12 @@ export default function EodLanding({
         )}
       </header>
 
-      {/* AI recap */}
       {recap && (
         <div className="card p-5 lg:p-7">
           <p className="text-sm lg:text-base italic leading-relaxed" style={{ color: 'var(--text)' }}>"{recap}"</p>
         </div>
       )}
 
-      {/* Pregled učinka */}
       <div className="card p-6 flex flex-col gap-4">
         <div className="flex items-end justify-between">
           <div>
@@ -139,52 +80,6 @@ export default function EodLanding({
             ? `📦 ${transferredCount} ${transferredCount === 1 ? 'zadatak prenet' : 'zadataka preneto'} za sutra`
             : '✨ Sve čisto za danas'}
         </p>
-      </div>
-
-      {/* Refleksija */}
-      <div className="card p-5 flex flex-col gap-3">
-        <p className="section-label">Kako je prošao dan?</p>
-        <textarea
-          value={reflection}
-          onChange={e => setReflection(e.target.value)}
-          onBlur={saveReflection}
-          placeholder="Par reči za sebe (opciono)..."
-          rows={2}
-          className="field p-3 text-sm resize-none"
-        />
-        {reflection !== savedReflection && (
-          <Button size="sm" variant="secondary" onClick={saveReflection} loading={savingReflection}>
-            Sačuvaj belešku
-          </Button>
-        )}
-      </div>
-
-      {/* Posej za sutra (Zeigarnik) — samo ako sutra još nije planirano */}
-      {!tomorrowPlanned && !seeded && (
-        <div className="card p-5 flex flex-col gap-3">
-          <p className="section-label">Posej 1 stvar za sutra</p>
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-            Jedna mala stvar — da sutra ujutru imaš za šta da se uhvatiš.
-          </p>
-          <div className="flex gap-2">
-            <Input id="seed" value={seedText} onChange={e => setSeedText(e.target.value)} placeholder="Npr. Pozvati banku" />
-            <Button size="md" onClick={seedTomorrow} loading={seeding} disabled={!seedText.trim()}>Posej</Button>
-          </div>
-        </div>
-      )}
-      {seeded && (
-        <div className="rounded-[var(--r-md)] px-4 py-3 text-sm" style={{ background: 'rgba(34,197,94,0.12)', color: '#16a34a' }}>
-          ✓ Posejano za sutra. Vidimo se ujutru.
-        </div>
-      )}
-
-      {/* Akcije */}
-      <div className="flex flex-col gap-3">
-        <Button size="lg" className="w-full" onClick={() => {
-          window.location.href = (tomorrowPlanned || seeded) ? '/plan?date=' + tomorrowKey() : '/?sutra=1'
-        }}>
-          🌙 {(tomorrowPlanned || seeded) ? 'Pogledaj plan za sutra →' : 'Isplaniraj sutra →'}
-        </Button>
       </div>
 
       <div className="flex justify-center pb-4">

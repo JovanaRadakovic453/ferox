@@ -70,10 +70,8 @@ export default async function SetupPage({
         doneCount={doneCount}
         total={total}
         transferredCount={transferredCount}
-        tomorrowPlanned={!!tomorrowEntry}
         dateKey={targetDate}
         eodRecap={entry.eod_recap}
-        reflection={entry.reflection}
         streak={streak}
       />
     )
