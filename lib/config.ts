@@ -79,9 +79,9 @@ export const RATE_LIMITS = {
 /** Statički identitet aplikacije / metapodaci. */
 export const APP = {
   name: 'Ferox',
-  tagline: 'Svi planeri pretpostavljaju da si svaki dan ista osoba. Nisi.',
-  title: 'Ferox — Planer prema energiji',
+  tagline: 'Organizuj dan po oblastima svog života.',
+  title: 'Ferox — Tvoj lični planer',
   description:
-    'Energy-adaptive daily planner. Svi planeri pretpostavljaju da si svaki dan ista osoba. Nisi. Ferox pomera tvoj raspored prema energiji koju ćeš stvarno imati.',
+    'Tvoj lični planer dana. Organizuj zadatke po oblastima svog života i prati napredak svakog dana.',
   url: process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000',
 } as const

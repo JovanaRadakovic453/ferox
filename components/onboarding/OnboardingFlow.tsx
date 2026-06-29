@@ -198,7 +198,7 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
             Dobrodošla u Ferox
           </h1>
           <p className="text-sm leading-relaxed max-w-[280px]" style={{ color: 'var(--text-muted)' }}>
-            Svi planeri pretpostavljaju da si svaki dan ista osoba. Nisi. Ferox pomera tvoj raspored prema energiji koju ćeš stvarno imati.
+            Organizuj dan po oblastima svog života i prati šta si zaista uradila.
           </p>
         </div>
         <Button size="lg" className="w-full max-w-[280px]" onClick={next}>
@@ -264,7 +264,7 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
             Kad si najproduktivnija?
           </h2>
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            Tvoj prirodni ritam energije
+            Kada tokom dana si najproduktivnija?
           </p>
         </div>
         <div className="flex flex-col gap-3">
@@ -432,13 +432,12 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
         </div>
         <div>
           <h2 className="title-serif text-[2.6rem] leading-[1.1]" style={{ color: 'var(--text)' }}>
-            Svi planeri misle da si svaki dan <span className="foil">ista osoba.</span><br />Nisi.
+            Tvoje obaveze,<br /><span className="foil">tvoje oblasti.</span>
           </h2>
           <p className="text-base mt-6 max-w-[44ch]" style={{ color: 'var(--text-muted)' }}>
-            Ferox pomera tvoj raspored prema energiji koju ćeš zaista imati — ne prema fiksnom satu.
+            Organizuj dan po oblastima svog života — posao, zdravlje, lično. Sve na jednom mestu.
           </p>
         </div>
-        <p className="text-xs tracking-wide uppercase" style={{ color: 'var(--text-muted)', letterSpacing: '0.14em' }}>Planer za tvoj ritam</p>
       </aside>
 
       {/* Koraci */}

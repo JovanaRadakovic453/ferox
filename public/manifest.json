@@ -1,7 +1,7 @@
 {
-  "name": "Ferox — Planer prema energiji",
+  "name": "Ferox — Tvoj lični planer",
   "short_name": "Ferox",
-  "description": "Energy-adaptive planer. Planira dan prema energiji koju zaista imaš.",
+  "description": "Tvoj lični planer dana. Organizuj zadatke po oblastima svog života.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

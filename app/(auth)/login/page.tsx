@@ -58,7 +58,7 @@ export default function LoginPage() {
 
   return (
     <AuthCard
-      subtitle="Planira dan prema tvojoj energiji"
+      subtitle="Tvoj lični planer dana"
       footer={
         <>
           Nemaš nalog?{' '}
