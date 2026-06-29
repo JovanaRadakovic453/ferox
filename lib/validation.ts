@@ -30,6 +30,7 @@ export const zAppointmentInput = z.object({
   time: zTime,
   reminder: z.number().int().min(0).max(1440).optional().default(DEFAULTS.reminderMinutes),
   done: z.boolean().optional().default(false),
+  zone_id: z.string().uuid().nullable().optional(),
 })
 
 export const createDaySchema = z.object({

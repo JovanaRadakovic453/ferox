@@ -39,6 +39,7 @@ export interface Appointment {
   reminder: number
   done: boolean
   date_key?: string
+  zone_id?: string | null
 }
 
 export interface PlanBlock {
