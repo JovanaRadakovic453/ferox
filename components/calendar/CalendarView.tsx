@@ -61,6 +61,10 @@ export default function CalendarView({
     setPanelScheduled(prev => prev.filter(t => t.id !== id))
   }
 
+  function updateTask(updated: ScheduledTask) {
+    setPanelScheduled(prev => prev.map(t => t.id === updated.id ? updated : t))
+  }
+
   const filteredScheduled = selectedZoneId
     ? panelScheduled.filter(t => t.zone_id === selectedZoneId)
     : panelScheduled
@@ -158,6 +162,8 @@ export default function CalendarView({
             scheduled={filteredScheduled}
             appointments={filteredAppointments}
             today={today}
+            onUpdateTask={updateTask}
+            onDeleteTask={removeTask}
           />
         ) : (
           <DayPanel
@@ -168,6 +174,7 @@ export default function CalendarView({
             scheduled={filteredScheduled.filter(t => t.for_date === selectedDate)}
             onAddTask={addTask}
             onRemoveTask={removeTask}
+            onUpdateTask={updateTask}
             zones={zones}
             selectedZoneId={selectedZoneId}
           />

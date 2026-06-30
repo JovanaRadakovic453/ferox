@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import AddScheduledTaskModal from './AddScheduledTaskModal'
+import EditScheduledTaskModal from './EditScheduledTaskModal'
 
 type Entry = { id: string; date_key: string; finished_at: string | null }
 type Appointment = { id: string; date_key: string; name: string; time: string; done: boolean; zone_id?: string | null }
@@ -54,6 +55,7 @@ export default function DayPanel({
   scheduled,
   onAddTask,
   onRemoveTask,
+  onUpdateTask,
   zones = [],
   selectedZoneId = null,
 }: {
@@ -64,6 +66,7 @@ export default function DayPanel({
   scheduled: ScheduledTask[]
   onAddTask: (task: ScheduledTask) => void
   onRemoveTask: (id: string) => void
+  onUpdateTask: (updated: ScheduledTask) => void
   zones?: Zone[]
   selectedZoneId?: string | null
 }) {
@@ -75,6 +78,7 @@ export default function DayPanel({
   const [loadingTasks, setLoadingTasks] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
   const [removing, setRemoving] = useState<string | null>(null)
+  const [editingTask, setEditingTask] = useState<ScheduledTask | null>(null)
 
   // Fetch actual tasks for past/today entries
   useEffect(() => {
@@ -106,6 +110,10 @@ export default function DayPanel({
     } finally {
       setRemoving(null)
     }
+  }
+
+  function handleUpdate(updated: ScheduledTask) {
+    onUpdateTask(updated)
   }
 
   const dayLabel = isToday ? 'Danas' : isFuture ? 'Budući datum' : 'Prošli datum'
@@ -237,13 +245,21 @@ export default function DayPanel({
                           : `${t.remind_before_minutes}min`}
                       </span>
                     )}
-                    <button
-                      onClick={() => handleRemove(t.id)}
-                      disabled={removing === t.id}
-                      className="text-xs opacity-0 group-hover:opacity-40 hover:!opacity-100 transition-opacity shrink-0 mt-0.5 disabled:opacity-30"
-                      style={{ color: 'var(--text-muted)' }}
-                      aria-label={`Obriši ${t.name}`}
-                    >✕</button>
+                    <div className="flex items-center gap-1.5 shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => setEditingTask(t)}
+                        className="text-xs hover:opacity-70 transition-opacity"
+                        style={{ color: 'var(--text-muted)' }}
+                        aria-label={`Izmeni ${t.name}`}
+                      >✎</button>
+                      <button
+                        onClick={() => handleRemove(t.id)}
+                        disabled={removing === t.id}
+                        className="text-xs hover:opacity-70 transition-opacity disabled:opacity-30"
+                        style={{ color: 'var(--text-muted)' }}
+                        aria-label={`Obriši ${t.name}`}
+                      >✕</button>
+                    </div>
                   </div>
                 )
               })}
@@ -295,6 +311,13 @@ export default function DayPanel({
         onAdd={task => { onAddTask(task); setAddOpen(false) }}
         date={date}
         zones={zones}
+      />
+
+      <EditScheduledTaskModal
+        task={editingTask}
+        onClose={() => setEditingTask(null)}
+        onUpdate={updated => { handleUpdate(updated); setEditingTask(null) }}
+        onDelete={id => { onRemoveTask(id); setEditingTask(null) }}
       />
     </div>
   )

@@ -1,5 +1,8 @@
 'use client'
 
+import { useState } from 'react'
+import EditScheduledTaskModal from './EditScheduledTaskModal'
+
 type Appointment = { id: string; date_key: string; name: string; time: string; done: boolean; zone_id?: string | null }
 type ScheduledTask = { id: string; for_date: string; name: string; priority: string; note: string; remind_before_minutes: number | null; deadline_date: string | null; zone_id?: string | null }
 type Zone = { id: string; name: string; icon: string; position: number }
@@ -18,12 +21,17 @@ export default function ZonePanel({
   scheduled,
   appointments,
   today,
+  onUpdateTask,
+  onDeleteTask,
 }: {
   zone: Zone
   scheduled: ScheduledTask[]
   appointments: Appointment[]
   today: string
+  onUpdateTask: (updated: ScheduledTask) => void
+  onDeleteTask: (id: string) => void
 }) {
+  const [editingTask, setEditingTask] = useState<ScheduledTask | null>(null)
   const futureScheduled = scheduled.filter(t => t.for_date >= today)
   const futureAppointments = appointments.filter(a => a.date_key >= today)
 
@@ -97,7 +105,7 @@ export default function ZonePanel({
               {dayTasks.map(t => (
                 <div
                   key={t.id}
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-[var(--r-md)]"
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-[var(--r-md)] group"
                   style={{ background: 'var(--surface2)' }}
                 >
                   <span className="text-xs shrink-0">{PRIORITY_DOT[t.priority] ?? '🟡'}</span>
@@ -107,12 +115,26 @@ export default function ZonePanel({
                   >
                     {t.name}
                   </span>
+                  <button
+                    onClick={() => setEditingTask(t)}
+                    className="text-xs shrink-0 opacity-40 hover:opacity-100 transition-opacity"
+                    style={{ color: 'var(--text-muted)' }}
+                    aria-label={`Izmeni ${t.name}`}
+                  >
+                    ✎
+                  </button>
                 </div>
               ))}
             </div>
           </section>
         )
       })}
+      <EditScheduledTaskModal
+        task={editingTask}
+        onClose={() => setEditingTask(null)}
+        onUpdate={updated => { onUpdateTask(updated); setEditingTask(null) }}
+        onDelete={id => { onDeleteTask(id); setEditingTask(null) }}
+      />
     </div>
   )
 }
