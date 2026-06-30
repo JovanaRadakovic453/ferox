@@ -160,6 +160,7 @@ export default function CalendarView({
           onAddTask={addTask}
           onRemoveTask={removeTask}
           zones={zones}
+          selectedZoneId={selectedZoneId}
         />
       </div>
     </main>

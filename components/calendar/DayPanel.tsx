@@ -9,7 +9,7 @@ type Entry = { id: string; date_key: string; finished_at: string | null }
 type Appointment = { id: string; date_key: string; name: string; time: string; done: boolean; zone_id?: string | null }
 type ScheduledTask = { id: string; for_date: string; name: string; priority: string; note: string; remind_before_minutes: number | null; deadline_date: string | null; zone_id?: string | null }
 type Zone = { id: string; name: string; icon: string; position: number }
-type LoadedTask = { id: string; name: string; priority: string; done: boolean; note: string }
+type LoadedTask = { id: string; name: string; priority: string; done: boolean; note: string; zone_id?: string | null }
 
 const PRIORITY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 }
 const PRIORITY_DOT: Record<string, string> = { high: '🔴', medium: '🟡', low: '🟢' }
@@ -55,6 +55,7 @@ export default function DayPanel({
   onAddTask,
   onRemoveTask,
   zones = [],
+  selectedZoneId = null,
 }: {
   date: string
   today: string
@@ -64,6 +65,7 @@ export default function DayPanel({
   onAddTask: (task: ScheduledTask) => void
   onRemoveTask: (id: string) => void
   zones?: Zone[]
+  selectedZoneId?: string | null
 }) {
   const entry = entries.find(e => e.date_key === date)
   const isFuture = date > today
@@ -82,7 +84,7 @@ export default function DayPanel({
     const supabase = createClient()
     supabase
       .from('tasks')
-      .select('id, name, priority, done, note')
+      .select('id, name, priority, done, note, zone_id')
       .eq('entry_id', entry.id)
       .order('position')
       .then(({ data }) => {
@@ -91,9 +93,10 @@ export default function DayPanel({
       })
   }, [entry?.id])
 
+  const visibleTasks = selectedZoneId ? tasks.filter(t => t.zone_id === selectedZoneId) : tasks
   const sortedAppts = [...appointments].sort((a, b) => a.time.localeCompare(b.time))
   const sortedScheduled = sortByPriority(scheduled)
-  const sortedTasks = sortByPriority(tasks)
+  const sortedTasks = sortByPriority(visibleTasks)
 
   async function handleRemove(id: string) {
     setRemoving(id)
