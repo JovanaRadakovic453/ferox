@@ -125,6 +125,30 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
 
   return (
     <>
+      {/* Overlay animacija dok se pravi plan */}
+      {loading && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-8"
+          style={{ background: 'var(--bg)' }}
+        >
+          <div className="flex flex-col items-center gap-6">
+            <span className="display foil text-6xl tracking-[0.06em]">Ferox</span>
+            <div className="flex items-center gap-2.5">
+              {[0, 1, 2].map(i => (
+                <div
+                  key={i}
+                  className="w-2.5 h-2.5 rounded-full animate-bounce"
+                  style={{ background: 'var(--gold)', animationDelay: `${i * 160}ms` }}
+                />
+              ))}
+            </div>
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+              Pravimo tvoj plan...
+            </p>
+          </div>
+        </div>
+      )}
+
       <main className="flex flex-col gap-7 pb-44 lg:pb-12">
         {targetDate && targetDate !== todayKey() && (
           <Link href="/plan" className="flex items-center gap-1.5 text-sm font-medium -mb-3" style={{ color: 'var(--text-muted)' }}>

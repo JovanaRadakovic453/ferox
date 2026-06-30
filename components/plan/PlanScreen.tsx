@@ -487,16 +487,24 @@ export default function PlanScreen({
         ) : (
           <div className="card overflow-hidden">
             <div className="pl-6 pr-5">
+              {appts.length > 0 && (
+                <div className="py-2 text-[0.65rem] font-semibold tracking-[0.14em] uppercase" style={{ color: 'var(--text-muted)' }}>
+                  Zakazani termini
+                </div>
+              )}
               {[...appts].sort((a, b) => a.time.localeCompare(b.time)).map((a, idx, arr) => (
                 <div key={a.id ?? a.name + a.time}>
                   <AppointmentItem appt={a} onToggle={() => a.id && toggleAppointment(a.id)} onDelete={() => a.id && deleteAppointment(a.id)} />
                   {idx < arr.length - 1 && <Divider />}
                 </div>
               ))}
-              {appts.length > 0 && tasks.length > 0 && (
-                <div className="py-2 text-[0.65rem] font-semibold tracking-[0.14em] uppercase" style={{ color: 'var(--text-muted)' }}>
-                  Zadaci
-                </div>
+              {tasks.length > 0 && (
+                <>
+                  {appts.length > 0 && <Divider />}
+                  <div className="py-2 text-[0.65rem] font-semibold tracking-[0.14em] uppercase" style={{ color: 'var(--text-muted)' }}>
+                    Zadaci
+                  </div>
+                </>
               )}
               {[...tasks]
                 .sort((a, b) => ({ high: 0, medium: 1, low: 2 }[a.priority] ?? 1) - ({ high: 0, medium: 1, low: 2 }[b.priority] ?? 1))
