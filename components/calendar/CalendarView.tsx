@@ -6,8 +6,8 @@ import CalendarGrid from './CalendarGrid'
 import DayPanel from './DayPanel'
 
 type Entry = { id: string; date_key: string; finished_at: string | null }
-type Appointment = { id: string; date_key: string; name: string; time: string; done: boolean }
-type ScheduledTask = { id: string; for_date: string; name: string; priority: string; note: string; remind_before_minutes: number | null; deadline_date: string | null }
+type Appointment = { id: string; date_key: string; name: string; time: string; done: boolean; zone_id?: string | null }
+type ScheduledTask = { id: string; for_date: string; name: string; priority: string; note: string; remind_before_minutes: number | null; deadline_date: string | null; zone_id?: string | null }
 type Zone = { id: string; name: string; icon: string; position: number }
 
 const MONTH_NAMES = [
@@ -41,6 +41,7 @@ export default function CalendarView({
   const router = useRouter()
   const [view, setView] = useState<'month' | 'week'>('month')
   const [selectedDate, setSelectedDate] = useState<string>(today)
+  const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null)
   // Optimistic list — updated immediately on add/remove without waiting for re-fetch
   const [panelScheduled, setPanelScheduled] = useState<ScheduledTask[]>(scheduled)
 
@@ -58,6 +59,14 @@ export default function CalendarView({
   function removeTask(id: string) {
     setPanelScheduled(prev => prev.filter(t => t.id !== id))
   }
+
+  const filteredScheduled = selectedZoneId
+    ? panelScheduled.filter(t => t.zone_id === selectedZoneId)
+    : panelScheduled
+
+  const filteredAppointments = selectedZoneId
+    ? appointments.filter(a => a.zone_id === selectedZoneId)
+    : appointments
 
   return (
     <main className="flex flex-col gap-5 pb-2">
@@ -99,6 +108,35 @@ export default function CalendarView({
         </div>
       </div>
 
+      {/* Filter po oblastima */}
+      {zones.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setSelectedZoneId(null)}
+            className="px-3 py-1 rounded-full text-xs font-semibold transition-all"
+            style={{
+              background: selectedZoneId === null ? 'var(--gold)' : 'var(--surface2)',
+              color: selectedZoneId === null ? '#fff' : 'var(--text-muted)',
+            }}
+          >
+            Sve
+          </button>
+          {zones.map(z => (
+            <button
+              key={z.id}
+              onClick={() => setSelectedZoneId(prev => prev === z.id ? null : z.id)}
+              className="px-3 py-1 rounded-full text-xs font-semibold transition-all"
+              style={{
+                background: selectedZoneId === z.id ? 'var(--gold)' : 'var(--surface2)',
+                color: selectedZoneId === z.id ? '#fff' : 'var(--text-muted)',
+              }}
+            >
+              {z.icon} {z.name}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Grid + panel side by side on desktop */}
       <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[1fr_300px] lg:gap-5 lg:items-start">
         <CalendarGrid
@@ -107,8 +145,8 @@ export default function CalendarView({
           today={today}
           entries={entries}
           taskCountByDate={taskCountByDate}
-          appointments={appointments}
-          scheduled={panelScheduled}
+          appointments={filteredAppointments}
+          scheduled={filteredScheduled}
           selectedDate={selectedDate}
           onSelectDate={setSelectedDate}
         />
@@ -117,8 +155,8 @@ export default function CalendarView({
           date={selectedDate}
           today={today}
           entries={entries}
-          appointments={appointments.filter(a => a.date_key === selectedDate)}
-          scheduled={panelScheduled.filter(t => t.for_date === selectedDate)}
+          appointments={filteredAppointments.filter(a => a.date_key === selectedDate)}
+          scheduled={filteredScheduled.filter(t => t.for_date === selectedDate)}
           onAddTask={addTask}
           onRemoveTask={removeTask}
           zones={zones}

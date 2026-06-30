@@ -47,14 +47,14 @@ export default async function CalendarPage({
       .order('date_key'),
     supabase
       .from('appointments')
-      .select('id, date_key, name, time, done')
+      .select('id, date_key, name, time, done, zone_id')
       .eq('user_id', user.id)
       .gte('date_key', expandedFrom)
       .lte('date_key', expandedTo)
       .order('date_key'),
     supabase
       .from('scheduled_tasks')
-      .select('id, for_date, name, priority, note, remind_before_minutes, deadline_date')
+      .select('id, for_date, name, priority, note, remind_before_minutes, deadline_date, zone_id')
       .eq('user_id', user.id)
       .gte('for_date', expandedFrom)
       .lte('for_date', expandedTo)
@@ -89,8 +89,8 @@ export default async function CalendarPage({
       today={today}
       entries={entryRows as { id: string; date_key: string; finished_at: string | null }[]}
       taskCountByDate={taskCountByDate}
-      appointments={(appointments ?? []) as { id: string; date_key: string; name: string; time: string; done: boolean }[]}
-      scheduled={(scheduled ?? []) as { id: string; for_date: string; name: string; priority: string; note: string; remind_before_minutes: number | null; deadline_date: string | null }[]}
+      appointments={(appointments ?? []) as { id: string; date_key: string; name: string; time: string; done: boolean; zone_id?: string | null }[]}
+      scheduled={(scheduled ?? []) as { id: string; for_date: string; name: string; priority: string; note: string; remind_before_minutes: number | null; deadline_date: string | null; zone_id?: string | null }[]}
       zones={(zones ?? []) as Zone[]}
     />
   )

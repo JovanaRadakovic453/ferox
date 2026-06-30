@@ -6,8 +6,8 @@ import { createClient } from '@/lib/supabase/client'
 import AddScheduledTaskModal from './AddScheduledTaskModal'
 
 type Entry = { id: string; date_key: string; finished_at: string | null }
-type Appointment = { id: string; date_key: string; name: string; time: string; done: boolean }
-type ScheduledTask = { id: string; for_date: string; name: string; priority: string; note: string; remind_before_minutes: number | null; deadline_date: string | null }
+type Appointment = { id: string; date_key: string; name: string; time: string; done: boolean; zone_id?: string | null }
+type ScheduledTask = { id: string; for_date: string; name: string; priority: string; note: string; remind_before_minutes: number | null; deadline_date: string | null; zone_id?: string | null }
 type Zone = { id: string; name: string; icon: string; position: number }
 type LoadedTask = { id: string; name: string; priority: string; done: boolean; note: string }
 
