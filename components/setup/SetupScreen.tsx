@@ -128,24 +128,18 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
       {/* Overlay animacija dok se pravi plan */}
       {loading && (
         <div
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-8"
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6"
           style={{ background: 'var(--bg)' }}
         >
-          <div className="flex flex-col items-center gap-6">
-            <span className="display foil text-6xl tracking-[0.06em]">Ferox</span>
-            <div className="flex items-center gap-2.5">
-              {[0, 1, 2].map(i => (
-                <div
-                  key={i}
-                  className="w-2.5 h-2.5 rounded-full animate-bounce"
-                  style={{ background: 'var(--gold)', animationDelay: `${i * 160}ms` }}
-                />
-              ))}
-            </div>
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-              Pravimo tvoj plan...
-            </p>
+          <div
+            className="w-24 h-24 rounded-[2rem] flex items-center justify-center animate-pulse"
+            style={{ background: 'var(--gold)' }}
+          >
+            <span className="display text-5xl font-bold" style={{ color: '#fff' }}>F</span>
           </div>
+          <p className="text-base font-semibold" style={{ color: 'var(--text)' }}>
+            Izrada plana
+          </p>
         </div>
       )}
 
