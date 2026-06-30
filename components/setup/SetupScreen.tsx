@@ -128,18 +128,56 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
       {/* Overlay animacija dok se pravi plan */}
       {loading && (
         <div
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6"
-          style={{ background: 'var(--bg)' }}
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center"
+          style={{ background: 'var(--bg)', animation: 'backdropIn 0.45s ease forwards' }}
         >
           <div
-            className="w-24 h-24 rounded-[2rem] flex items-center justify-center animate-pulse"
-            style={{ background: 'var(--gold)' }}
+            className="flex flex-col items-center gap-7"
+            style={{ animation: 'riseIn 0.6s var(--ease-out) 0.1s both' }}
           >
-            <span className="display text-5xl font-bold" style={{ color: '#fff' }}>F</span>
+            {/* F badge */}
+            <div
+              style={{
+                width: 96,
+                height: 96,
+                borderRadius: 26,
+                background: 'var(--gold)',
+                boxShadow: 'var(--sh-gold), 0 0 64px rgba(212,116,42,0.28)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundImage: 'linear-gradient(160deg, var(--gold-light) 0%, var(--gold) 55%, var(--gold-deep) 100%)',
+              }}
+            >
+              <span
+                className="display"
+                style={{ color: '#fff', fontSize: '3rem', textShadow: '0 2px 10px rgba(0,0,0,0.18)' }}
+              >
+                F
+              </span>
+            </div>
+
+            {/* Ferox wordmark */}
+            <span
+              className="display foil"
+              style={{ fontSize: '2.1rem', letterSpacing: '0.1em' }}
+            >
+              Ferox
+            </span>
+
+            {/* Status + shimmer linija */}
+            <div className="flex flex-col items-center gap-4">
+              <p
+                className="text-[0.68rem] font-semibold uppercase"
+                style={{ color: 'var(--text-muted)', letterSpacing: '0.18em' }}
+              >
+                Izrada plana
+              </p>
+              <div style={{ width: 110, height: 1, borderRadius: 1, overflow: 'hidden' }}>
+                <div className="luxury-loader-line" style={{ width: '100%', height: '100%' }} />
+              </div>
+            </div>
           </div>
-          <p className="text-base font-semibold" style={{ color: 'var(--text)' }}>
-            Izrada plana
-          </p>
         </div>
       )}
 
