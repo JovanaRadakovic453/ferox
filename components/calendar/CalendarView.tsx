@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import CalendarGrid from './CalendarGrid'
 import DayPanel from './DayPanel'
+import ZonePanel from './ZonePanel'
 
 type Entry = { id: string; date_key: string; finished_at: string | null }
 type Appointment = { id: string; date_key: string; name: string; time: string; done: boolean; zone_id?: string | null }
@@ -151,17 +152,26 @@ export default function CalendarView({
           onSelectDate={setSelectedDate}
         />
 
-        <DayPanel
-          date={selectedDate}
-          today={today}
-          entries={entries}
-          appointments={filteredAppointments.filter(a => a.date_key === selectedDate)}
-          scheduled={filteredScheduled.filter(t => t.for_date === selectedDate)}
-          onAddTask={addTask}
-          onRemoveTask={removeTask}
-          zones={zones}
-          selectedZoneId={selectedZoneId}
-        />
+        {selectedZoneId ? (
+          <ZonePanel
+            zone={zones.find(z => z.id === selectedZoneId)!}
+            scheduled={filteredScheduled}
+            appointments={filteredAppointments}
+            today={today}
+          />
+        ) : (
+          <DayPanel
+            date={selectedDate}
+            today={today}
+            entries={entries}
+            appointments={filteredAppointments.filter(a => a.date_key === selectedDate)}
+            scheduled={filteredScheduled.filter(t => t.for_date === selectedDate)}
+            onAddTask={addTask}
+            onRemoveTask={removeTask}
+            zones={zones}
+            selectedZoneId={selectedZoneId}
+          />
+        )}
       </div>
     </main>
   )
