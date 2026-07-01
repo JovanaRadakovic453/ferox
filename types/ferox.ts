@@ -74,6 +74,8 @@ export interface UserProfile {
   micro_feedback?: boolean
   sound_enabled?: boolean
   pomodoro_minutes?: number
+  reminder_time?: string | null
+  push_subscription?: object | null
 }
 
 export interface DayEntry {

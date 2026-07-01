@@ -1,0 +1,34 @@
+import webpush from 'web-push'
+import { createClient } from '@/lib/supabase/server'
+import { apiOk, ERR } from '@/lib/api'
+
+export async function POST() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return ERR.unauthorized()
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('push_subscription')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile?.push_subscription) return ERR.invalidInput('Nema aktivne pretplate')
+
+  const vapidPublic = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+  const vapidPrivate = process.env.VAPID_PRIVATE_KEY
+  const vapidSubject = process.env.VAPID_SUBJECT
+  if (!vapidPublic || !vapidPrivate || !vapidSubject) return ERR.server('VAPID nije konfigurisan')
+
+  webpush.setVapidDetails(vapidSubject, vapidPublic, vapidPrivate)
+
+  try {
+    await webpush.sendNotification(
+      profile.push_subscription as webpush.PushSubscription,
+      JSON.stringify({ title: 'Ferox', body: 'Test uspešan! Dobijaćeš ovakve podsetnike svako jutro.' })
+    )
+    return apiOk({})
+  } catch {
+    return ERR.server('Slanje nije uspelo')
+  }
+}

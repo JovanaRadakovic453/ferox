@@ -48,6 +48,11 @@ export default function SettingsForm({ profile, email, zones: initialZones = [] 
   const [zones, setZones] = useState<Zone[]>(initialZones)
   const [newZoneName, setNewZoneName] = useState('')
 
+  const [notifActive, setNotifActive] = useState(!!profile.push_subscription)
+  const [reminderTime, setReminderTime] = useState(profile.reminder_time ?? '07:00')
+  const [notifLoading, setNotifLoading] = useState(false)
+  const [testLoading, setTestLoading] = useState(false)
+
   async function addZone() {
     if (!newZoneName.trim()) return
     const name = newZoneName.trim()
@@ -92,6 +97,61 @@ export default function SettingsForm({ profile, email, zones: initialZones = [] 
     setSaving(false)
     if (error) toast({ message: 'Nije sačuvano — pokušaj ponovo', variant: 'error' })
     else { toast({ message: 'Sačuvano ✓', variant: 'success' }); router.refresh() }
+  }
+
+  async function activateNotifications() {
+    setNotifLoading(true)
+    try {
+      const permission = await Notification.requestPermission()
+      if (permission !== 'granted') {
+        toast({ message: 'Dozvola odbijena — uključi notifikacije u podešavanjima pregledača', variant: 'error' })
+        return
+      }
+      const reg = await navigator.serviceWorker.ready
+      const existing = await reg.pushManager.getSubscription()
+      const sub = existing ?? await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+      })
+      const res = await fetch('/api/notifications/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription: sub.toJSON(), reminderTime }),
+      })
+      if (res.ok) { setNotifActive(true); toast({ message: 'Podsetnik aktiviran ✓', variant: 'success' }) }
+      else toast({ message: 'Nije uspelo — pokušaj ponovo', variant: 'error' })
+    } catch {
+      toast({ message: 'Greška pri aktivaciji', variant: 'error' })
+    } finally {
+      setNotifLoading(false)
+    }
+  }
+
+  async function deactivateNotifications() {
+    setNotifLoading(true)
+    try {
+      const reg = await navigator.serviceWorker.ready
+      const sub = await reg.pushManager.getSubscription()
+      await sub?.unsubscribe()
+      await fetch('/api/notifications/subscribe', { method: 'DELETE' })
+      setNotifActive(false)
+      toast({ message: 'Podsetnik isključen', variant: 'success' })
+    } catch {
+      toast({ message: 'Greška pri deaktivaciji', variant: 'error' })
+    } finally {
+      setNotifLoading(false)
+    }
+  }
+
+  async function sendTestNotification() {
+    setTestLoading(true)
+    try {
+      const res = await fetch('/api/notifications/test', { method: 'POST' })
+      if (res.ok) toast({ message: 'Test notifikacija poslata!', variant: 'success' })
+      else toast({ message: 'Slanje nije uspelo', variant: 'error' })
+    } finally {
+      setTestLoading(false)
+    }
   }
 
   async function persistTheme(theme: string) {
@@ -210,8 +270,83 @@ export default function SettingsForm({ profile, email, zones: initialZones = [] 
           <span className="text-sm">Zvuk</span>
           <input type="checkbox" checked={soundEnabled} onChange={e => setSoundEnabled(e.target.checked)} className="w-5 h-5 accent-[var(--gold)]" />
         </label>
-        <div className="rounded-[var(--r-md)] px-3.5 py-3 text-xs" style={{ background: 'var(--surface2)', color: 'var(--text-muted)' }}>
-          🔔 Podsetnici (push notifikacije) — uskoro
+        <div className="flex flex-col gap-3">
+          <label className="text-xs font-medium block" style={{ color: 'var(--text-muted)' }}>
+            🔔 Jutarnji podsetnik
+          </label>
+
+          {notifActive ? (
+            <div className="flex flex-col gap-2">
+              <div
+                className="flex items-center gap-3 px-3.5 py-3 rounded-[var(--r-md)]"
+                style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}
+              >
+                <span className="text-lg">⏰</span>
+                <input
+                  type="time"
+                  value={reminderTime}
+                  onChange={e => setReminderTime(e.target.value)}
+                  className="flex-1 bg-transparent text-sm font-semibold outline-none"
+                  style={{ color: 'var(--text)' }}
+                />
+                <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: 'var(--gold-tint)', color: 'var(--gold)' }}>aktivno</span>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={activateNotifications}
+                  disabled={notifLoading}
+                  className="flex-1 text-xs h-8 rounded-[var(--r-md)] font-medium transition-opacity disabled:opacity-40"
+                  style={{ background: 'var(--surface2)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+                >
+                  {notifLoading ? '...' : 'Sačuvaj novo vreme'}
+                </button>
+                <button
+                  type="button"
+                  onClick={sendTestNotification}
+                  disabled={testLoading}
+                  className="flex-1 text-xs h-8 rounded-[var(--r-md)] font-medium transition-opacity disabled:opacity-40"
+                  style={{ background: 'var(--gold-tint)', color: 'var(--gold)', border: '1px solid var(--gold)' }}
+                >
+                  {testLoading ? '...' : 'Pošalji test'}
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={deactivateNotifications}
+                disabled={notifLoading}
+                className="text-xs text-left transition-opacity hover:opacity-70 disabled:opacity-30"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                Isključi podsetnike
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              <div
+                className="flex items-center gap-3 px-3.5 py-3 rounded-[var(--r-md)]"
+                style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}
+              >
+                <span className="text-lg">⏰</span>
+                <input
+                  type="time"
+                  value={reminderTime}
+                  onChange={e => setReminderTime(e.target.value)}
+                  className="flex-1 bg-transparent text-sm font-semibold outline-none"
+                  style={{ color: 'var(--text)' }}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={activateNotifications}
+                disabled={notifLoading}
+                className="w-full text-sm h-9 rounded-[var(--r-md)] font-medium transition-opacity disabled:opacity-40"
+                style={{ background: 'var(--gold-tint)', color: 'var(--gold)', border: '1px solid var(--gold)' }}
+              >
+                {notifLoading ? 'Aktiviram...' : '+ Aktiviraj jutarnji podsetnik'}
+              </button>
+            </div>
+          )}
         </div>
       </section>
       </div>
