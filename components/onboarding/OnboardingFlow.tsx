@@ -93,6 +93,8 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
   })
   const [zones, setZones] = useState<Array<{ name: string; icon: string }>>([])
   const [newZoneName, setNewZoneName] = useState('')
+  const [reminderTime, setReminderTime] = useState('07:00')
+  const [notifLoading, setNotifLoading] = useState(false)
 
   function next() {
     setDir(1)
@@ -104,8 +106,7 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
     setStep(s => s - 1)
   }
 
-  async function finish() {
-    setLoading(true)
+  async function saveProfileAndZones() {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
@@ -126,9 +127,42 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
         })
       )
     )
+  }
 
+  async function finish() {
+    setLoading(true)
+    await saveProfileAndZones()
     router.push('/')
     router.refresh()
+  }
+
+  async function activateReminder() {
+    setNotifLoading(true)
+    try {
+      const permission = await Notification.requestPermission()
+      if (permission !== 'granted') {
+        await finish()
+        return
+      }
+
+      const reg = await navigator.serviceWorker.ready
+      const existing = await reg.pushManager.getSubscription()
+      const sub = existing ?? await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+      })
+
+      await fetch('/api/notifications/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription: sub.toJSON(), reminderTime }),
+      })
+    } catch {
+      // If push setup fails, we still proceed
+    } finally {
+      setNotifLoading(false)
+      await finish()
+    }
   }
 
   const steps: Record<number, React.ReactNode> = {
@@ -272,12 +306,57 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
         <Button
           size="lg"
           className="w-full"
-          onClick={finish}
-          loading={loading}
+          onClick={next}
           disabled={zones.filter(z => z.name.trim()).length === 0}
         >
-          Kreiraj moj profil ✓
+          Dalje →
         </Button>
+      </div>
+    ),
+
+    5: (
+      <div className="flex flex-col gap-6">
+        <div>
+          <h2 className="title-serif text-3xl mb-1" style={{ color: 'var(--text)' }}>
+            Jutarnji podsetnik
+          </h2>
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+            Svako jutro u ovo vreme podsećamo te da napraviš plan dana.
+          </p>
+        </div>
+
+        <div
+          className="flex items-center gap-4 px-5 py-4 rounded-[var(--r-md)]"
+          style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}
+        >
+          <span className="text-2xl">⏰</span>
+          <input
+            type="time"
+            value={reminderTime}
+            onChange={e => setReminderTime(e.target.value)}
+            className="flex-1 bg-transparent text-xl font-semibold outline-none"
+            style={{ color: 'var(--text)' }}
+          />
+        </div>
+
+        <Button
+          size="lg"
+          className="w-full"
+          onClick={activateReminder}
+          loading={notifLoading || loading}
+        >
+          Aktiviraj podsetnik →
+        </Button>
+
+        <button
+          type="button"
+          onClick={finish}
+          disabled={loading || notifLoading}
+          className="text-sm text-center transition-opacity hover:opacity-70 disabled:opacity-30"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          Preskoči
+        </button>
       </div>
     ),
   }
@@ -316,7 +395,7 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
             </button>
           )}
 
-          <StepDots total={4} current={step} />
+          <StepDots total={5} current={step} />
 
           <AnimatePresence mode="wait" custom={dir}>
             <motion.div
