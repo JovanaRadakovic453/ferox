@@ -8,7 +8,6 @@ import { apiOk, ERR } from '@/lib/api'
 import { zStrictDate } from '@/lib/validation'
 import { extractText } from '@/lib/ai/parse'
 import { FEROX_PERSONA } from '@/lib/ai/prompts'
-import { energyLabel } from '@/lib/energy'
 import { TASK_TYPE_LABELS } from '@/types/ferox'
 import type { TaskType } from '@/types/ferox'
 import { AI, RATE_LIMITS } from '@/lib/config'
@@ -47,7 +46,6 @@ export async function POST(request: NextRequest) {
   const done = list.filter(t => t.done)
   const total = list.length
   const doneTypes = [...new Set(done.map(t => TASK_TYPE_LABELS[t.type as TaskType] ?? t.type))].join(', ')
-  const energyTxt = entry.energy_level ? energyLabel(entry.energy_level) : 'nepoznata'
 
   let recap = ''
   try {
@@ -59,7 +57,7 @@ export async function POST(request: NextRequest) {
         role: 'user',
         content:
           `Korisnik je upravo završio dan. Uradio/la je ${done.length} od ${total} zadataka. ` +
-          `Energija danas: ${energyTxt}. ${doneTypes ? `Završeni tipovi: ${doneTypes}. ` : ''}` +
+          `${doneTypes ? `Završeni tipovi: ${doneTypes}. ` : ''}` +
           `Napiši toplu poruku od 1-2 rečenice na srpskom koja priznaje trud (čak i ako je malo urađeno). Bez osuđivanja, bez klišea. Vrati SAMO poruku.`,
       }],
     })
