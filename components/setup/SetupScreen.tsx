@@ -14,7 +14,7 @@ import TaskEditor from '@/components/setup/TaskEditor'
 import AppointmentEditor from '@/components/setup/AppointmentEditor'
 import PreviewRail from '@/components/setup/PreviewRail'
 
-export default function SetupScreen({ profile, targetDate, transferredTasks = [], initialAppointments = [], showTransferBanner = false }: { profile: UserProfile; targetDate?: string; transferredTasks?: Task[]; initialAppointments?: Appointment[]; showTransferBanner?: boolean }) {
+export default function SetupScreen({ profile, targetDate, transferredTasks = [], initialAppointments = [], showTransferBanner = false, streak = 0 }: { profile: UserProfile; targetDate?: string; transferredTasks?: Task[]; initialAppointments?: Appointment[]; showTransferBanner?: boolean; streak?: number }) {
   const [tasks, setTasks] = useState<Task[]>(showTransferBanner ? [] : transferredTasks)
   const [suggestedTransfers, setSuggestedTransfers] = useState<Task[]>(showTransferBanner ? transferredTasks : [])
   const [appointments, setAppointments] = useState<Appointment[]>(showTransferBanner ? [] : initialAppointments)
@@ -190,15 +190,35 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
         <header className="flex flex-col gap-5 pt-2 animate-fade-slide">
           <div className="flex items-center justify-between lg:hidden">
             <span className="display foil text-2xl tracking-[0.06em]">Ferox</span>
-            <span
-              className="text-xs font-medium px-3 py-1.5 rounded-full whitespace-nowrap"
-              style={{ background: 'var(--surface)', border: '1px solid var(--hairline)', color: 'var(--text-muted)', boxShadow: 'var(--sh-xs)' }}
-            >
-              {formatDate(targetDate ?? todayKey())}
-            </span>
+            <div className="flex items-center gap-2">
+              {streak > 0 && (
+                <span
+                  className="text-xs font-semibold px-2.5 py-1.5 rounded-full whitespace-nowrap"
+                  style={{ background: 'var(--gold-tint)', color: 'var(--gold)', border: '1px solid var(--gold)' }}
+                >
+                  🔥 {streak}
+                </span>
+              )}
+              <span
+                className="text-xs font-medium px-3 py-1.5 rounded-full whitespace-nowrap"
+                style={{ background: 'var(--surface)', border: '1px solid var(--hairline)', color: 'var(--text-muted)', boxShadow: 'var(--sh-xs)' }}
+              >
+                {formatDate(targetDate ?? todayKey())}
+              </span>
+            </div>
           </div>
           <div>
-            <div className="hidden lg:block mb-3"><span className="section-label">{formatDate(targetDate ?? todayKey())}</span></div>
+            <div className="hidden lg:flex lg:items-center lg:gap-3 mb-3">
+              <span className="section-label">{formatDate(targetDate ?? todayKey())}</span>
+              {streak > 0 && (
+                <span
+                  className="text-xs font-semibold px-2.5 py-1 rounded-full"
+                  style={{ background: 'var(--gold-tint)', color: 'var(--gold)', border: '1px solid var(--gold)' }}
+                >
+                  🔥 {streak} {streak === 1 ? 'dan' : streak < 5 ? 'dana' : 'dana'}
+                </span>
+              )}
+            </div>
             <h1 className="title-serif text-[2.15rem] lg:text-[2.9rem] leading-[1.08]" style={{ color: 'var(--text)' }}>
               {heroTitle},<br />
               <span className="foil">{profile.name}</span>

@@ -77,6 +77,17 @@ export default async function SetupPage({
     )
   }
 
+  // Streak za SetupScreen
+  const { data: finishedForStreak } = await supabase
+    .from('day_entries')
+    .select('date_key')
+    .eq('user_id', user.id)
+    .not('finished_at', 'is', null)
+    .order('date_key', { ascending: false })
+    .limit(60)
+  const finishedSetForStreak = new Set((finishedForStreak ?? []).map(r => r.date_key as string))
+  const streak = computeStreak(finishedSetForStreak, profile.rest_days ?? [0, 6], todayKey())
+
   // Ako vec postoji plan za targetDate, ucitaj te zadatke i izabranu energiju
   // Inace ucitaj prenesene zadatke iz prethodnog dana
   let initialTasks: Task[] = []
@@ -131,6 +142,7 @@ export default async function SetupPage({
       transferredTasks={initialTasks}
       initialAppointments={initialAppointments}
       showTransferBanner={showTransferBanner}
+      streak={streak}
     />
   )
 }
