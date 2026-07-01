@@ -33,10 +33,10 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
   const { setHidden } = useChrome()
   useEffect(() => { setHidden(true); return () => setHidden(false) }, [setHidden])
 
-  function addTask(draft: { name: string; note: string; priority: Priority; type: TaskType }) {
+  function addTask(draft: { name: string; note: string; priority: Priority; type: TaskType; zone_id: string | null }) {
     setTasks(prev => [...prev, { ...draft, done: false }])
   }
-  function addAppointment(a: { name: string; time: string; reminder: number }) {
+  function addAppointment(a: { name: string; time: string; reminder: number; zone_id: string | null }) {
     setAppointments(prev => [...prev, { ...a, done: false }])
   }
   function onBrainDumpExtracted(extracted: Task[], extractedAppts: Appointment[]) {

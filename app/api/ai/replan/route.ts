@@ -53,7 +53,8 @@ Koristi TAČNO imena zadataka iz liste. Vrati SAMO JSON, bez ikakvog drugog teks
   const text = extractText(message)
   if (!text) return ERR.aiUnavailable('Prazan AI odgovor')
   try {
-    const result = replanResultSchema.parse(JSON.parse(text))
+    const clean = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim()
+    const result = replanResultSchema.parse(JSON.parse(clean))
     return apiOk(result)
   } catch {
     return ERR.aiUnavailable('Nisam mogao da pročitam AI odgovor')

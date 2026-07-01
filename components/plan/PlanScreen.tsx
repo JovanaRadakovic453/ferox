@@ -323,7 +323,7 @@ export default function PlanScreen({
         await supabase.from('transferred_tasks').upsert({
           user_id: user.id,
           tasks: tasksToTransfer.map(t => ({
-            name: t.name, priority: t.priority, type: t.type, note: t.note ?? '', done: false,
+            name: t.name, priority: t.priority, type: t.type, note: t.note ?? '', done: false, zone_id: t.zone_id ?? null,
           })),
           for_date: nextKey,
         }, { onConflict: 'user_id,for_date' })

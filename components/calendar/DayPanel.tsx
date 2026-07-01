@@ -95,7 +95,7 @@ export default function DayPanel({
         setTasks((data ?? []) as LoadedTask[])
         setLoadingTasks(false)
       })
-  }, [entry?.id])
+  }, [entry?.id, entry?.finished_at])
 
   const visibleTasks = selectedZoneId ? tasks.filter(t => t.zone_id === selectedZoneId) : tasks
   const sortedAppts = [...appointments].sort((a, b) => a.time.localeCompare(b.time))

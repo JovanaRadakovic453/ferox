@@ -12,8 +12,8 @@ export function formatDate(dateKey: string): string {
     'jan', 'feb', 'mar', 'apr', 'maj', 'jun',
     'jul', 'avg', 'sep', 'okt', 'nov', 'dec',
   ]
-  const d = new Date(dateKey)
-  return `${days[d.getDay()]}, ${d.getDate()}. ${months[d.getMonth()]}`
+  const d = new Date(`${dateKey}T12:00:00Z`)
+  return `${days[d.getUTCDay()]}, ${d.getUTCDate()}. ${months[d.getUTCMonth()]}`
 }
 
 // Reeksport iz lib/date radi kompatibilnosti postojećih import-a.

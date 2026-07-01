@@ -10,6 +10,7 @@ const updateSchema = z.object({
   note: z.string().max(500).optional(),
   remind_before_minutes: z.number().int().min(1).max(142560).nullable().optional(),
   deadline_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  zone_id: z.string().uuid().nullable().optional(),
 })
 
 export async function PATCH(

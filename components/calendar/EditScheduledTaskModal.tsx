@@ -82,6 +82,7 @@ export default function EditScheduledTaskModal({
           note: task.note ?? '',
           remind_before_minutes,
           deadline_date: deadlineEnabled ? deadlineDate : null,
+          zone_id: task.zone_id ?? null,
         }),
       })
       if (!res.ok) { setError('Nije sačuvano — pokušaj ponovo'); return }

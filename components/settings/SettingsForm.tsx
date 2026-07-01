@@ -59,7 +59,7 @@ export default function SettingsForm({ profile, email, zones: initialZones = [] 
     })
     if (res.ok) {
       const json = await res.json()
-      setZones(prev => [...prev, json.data])
+      setZones(prev => [...prev, json])
     } else {
       toast({ message: 'Oblast nije dodana — pokušaj ponovo', variant: 'error' })
     }

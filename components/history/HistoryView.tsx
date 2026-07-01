@@ -13,8 +13,8 @@ export type HistoryDay = {
 }
 
 function weekLabel(dateKey: string, todayKey: string): string {
-  const d = new Date(dateKey)
-  const t = new Date(todayKey)
+  const d = new Date(`${dateKey}T12:00:00Z`)
+  const t = new Date(`${todayKey}T12:00:00Z`)
   const mondayOf = (dt: Date) => {
     const day = dt.getDay() === 0 ? 6 : dt.getDay() - 1
     const m = new Date(dt)

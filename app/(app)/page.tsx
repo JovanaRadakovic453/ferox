@@ -87,13 +87,13 @@ export default async function SetupPage({
     const [{ data: existingTasks }, { data: existingAppts }] = await Promise.all([
       supabase
         .from('tasks')
-        .select('name, note, priority, type, done, position')
+        .select('name, note, priority, type, done, position, zone_id')
         .eq('entry_id', entry.id)
         .eq('user_id', user.id)
         .order('position'),
       supabase
         .from('appointments')
-        .select('id, name, time, reminder, done')
+        .select('id, name, time, reminder, done, zone_id')
         .eq('user_id', user.id)
         .eq('date_key', targetDate)
         .order('time'),
