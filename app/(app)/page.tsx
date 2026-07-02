@@ -32,7 +32,7 @@ export default async function SetupPage({
 
   const { data: entry } = await supabase
     .from('day_entries')
-    .select('id, energy, finished_at, eod_recap, reflection')
+    .select('id, energy, finished_at, eod_recap')
     .eq('user_id', user.id)
     .eq('date_key', targetDate)
     .maybeSingle()
@@ -121,7 +121,7 @@ export default async function SetupPage({
         .maybeSingle(),
       supabase
         .from('scheduled_tasks')
-        .select('name, priority, type, note')
+        .select('name, priority, type, note, zone_id')
         .eq('user_id', user.id)
         .eq('for_date', targetDate)
         .eq('done', false),
@@ -130,7 +130,7 @@ export default async function SetupPage({
     const scheduled = (scheduledRows ?? []) as Task[]
     initialTasks = [
       ...filtered,
-      ...scheduled.map(t => ({ name: t.name, priority: t.priority, type: t.type ?? 'light', note: t.note ?? '', done: false })),
+      ...scheduled.map(t => ({ name: t.name, priority: t.priority, type: t.type ?? 'light', note: t.note ?? '', done: false, zone_id: t.zone_id ?? null })),
     ]
     showTransferBanner = initialTasks.length > 0
   }

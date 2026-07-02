@@ -31,7 +31,7 @@ describe('computeAggregates', () => {
     )
     expect(a.dayCount).toBe(1)
     expect(a.overallCompletion).toBe(75)
-    expect(a.byEnergy).toEqual([{ label: '🔥', rate: 75, n: 1 }])
+    expect(a.byEnergy).toEqual([{ label: '🔥 (visoka)', rate: 75, n: 1 }])
     expect(a.byWeekday).toEqual([{ label: 'Pon', rate: 75, n: 1 }])
     expect(a.byType).toEqual([{ label: 'analytical', rate: 50, n: 2 }])
     expect(a.sleepInsight).toBeNull() // needs >=2 low and >=2 high sleep days
