@@ -49,7 +49,6 @@ export default function SettingsForm({ profile, email, zones: initialZones = [] 
   const [newZoneName, setNewZoneName] = useState('')
 
   const [notifActive, setNotifActive] = useState(!!profile.push_subscription)
-  const [reminderTime, setReminderTime] = useState(profile.reminder_time ?? '07:00')
   const [notifLoading, setNotifLoading] = useState(false)
   const [testLoading, setTestLoading] = useState(false)
 
@@ -119,7 +118,7 @@ export default function SettingsForm({ profile, email, zones: initialZones = [] 
       const res = await fetch('/api/notifications/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subscription: sub.toJSON(), reminderTime }),
+        body: JSON.stringify({ subscription: sub.toJSON() }),
       })
       if (res.ok) { setNotifActive(true); toast({ message: 'Podsetnik aktiviran ✓', variant: 'success' }) }
       else toast({ message: 'Nije uspelo — pokušaj ponovo', variant: 'error' })
@@ -293,35 +292,20 @@ export default function SettingsForm({ profile, email, zones: initialZones = [] 
                 style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}
               >
                 <span className="text-lg">⏰</span>
-                <input
-                  type="time"
-                  value={reminderTime}
-                  onChange={e => setReminderTime(e.target.value)}
-                  className="flex-1 bg-transparent text-sm font-semibold outline-none"
-                  style={{ color: 'var(--text)' }}
-                />
+                <span className="flex-1 text-sm font-semibold" style={{ color: 'var(--text)' }}>
+                  Podsetnik stiže svako jutro
+                </span>
                 <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: 'var(--gold-tint)', color: 'var(--gold)' }}>aktivno</span>
               </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={activateNotifications}
-                  disabled={notifLoading}
-                  className="flex-1 text-xs h-8 rounded-[var(--r-md)] font-medium transition-opacity disabled:opacity-40"
-                  style={{ background: 'var(--surface2)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
-                >
-                  {notifLoading ? '...' : 'Sačuvaj novo vreme'}
-                </button>
-                <button
-                  type="button"
-                  onClick={sendTestNotification}
-                  disabled={testLoading}
-                  className="flex-1 text-xs h-8 rounded-[var(--r-md)] font-medium transition-opacity disabled:opacity-40"
-                  style={{ background: 'var(--gold-tint)', color: 'var(--gold)', border: '1px solid var(--gold)' }}
-                >
-                  {testLoading ? '...' : 'Pošalji test'}
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={sendTestNotification}
+                disabled={testLoading}
+                className="w-full text-xs h-8 rounded-[var(--r-md)] font-medium transition-opacity disabled:opacity-40"
+                style={{ background: 'var(--gold-tint)', color: 'var(--gold)', border: '1px solid var(--gold)' }}
+              >
+                {testLoading ? '...' : 'Pošalji test'}
+              </button>
               <button
                 type="button"
                 onClick={deactivateNotifications}
@@ -334,19 +318,6 @@ export default function SettingsForm({ profile, email, zones: initialZones = [] 
             </div>
           ) : (
             <div className="flex flex-col gap-2">
-              <div
-                className="flex items-center gap-3 px-3.5 py-3 rounded-[var(--r-md)]"
-                style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}
-              >
-                <span className="text-lg">⏰</span>
-                <input
-                  type="time"
-                  value={reminderTime}
-                  onChange={e => setReminderTime(e.target.value)}
-                  className="flex-1 bg-transparent text-sm font-semibold outline-none"
-                  style={{ color: 'var(--text)' }}
-                />
-              </div>
               <button
                 type="button"
                 onClick={activateNotifications}
@@ -356,6 +327,9 @@ export default function SettingsForm({ profile, email, zones: initialZones = [] 
               >
                 {notifLoading ? 'Aktiviram...' : '+ Aktiviraj jutarnji podsetnik'}
               </button>
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                Stiže svako jutro — kratko podsećanje da napraviš plan za dan.
+              </p>
             </div>
           )}
         </div>

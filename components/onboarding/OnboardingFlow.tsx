@@ -93,7 +93,6 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
   })
   const [zones, setZones] = useState<Array<{ name: string; icon: string }>>([])
   const [newZoneName, setNewZoneName] = useState('')
-  const [reminderTime, setReminderTime] = useState('07:00')
   const [notifLoading, setNotifLoading] = useState(false)
 
   function next() {
@@ -155,7 +154,7 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
       await fetch('/api/notifications/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subscription: sub.toJSON(), reminderTime }),
+        body: JSON.stringify({ subscription: sub.toJSON() }),
       })
     } catch {
       // If push setup fails, we still proceed
@@ -321,7 +320,7 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
             Jutarnji podsetnik
           </h2>
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            Svako jutro u ovo vreme podsećamo te da napraviš plan dana.
+            Svako jutro te kratko podsetimo da napraviš plan dana.
           </p>
         </div>
 
@@ -330,13 +329,9 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
           style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}
         >
           <span className="text-2xl">⏰</span>
-          <input
-            type="time"
-            value={reminderTime}
-            onChange={e => setReminderTime(e.target.value)}
-            className="flex-1 bg-transparent text-xl font-semibold outline-none"
-            style={{ color: 'var(--text)' }}
-          />
+          <span className="flex-1 text-lg font-semibold" style={{ color: 'var(--text)' }}>
+            Jedna poruka ujutru
+          </span>
         </div>
 
         <Button

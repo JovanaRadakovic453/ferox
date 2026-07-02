@@ -12,7 +12,6 @@ const schema = z.object({
       auth: z.string(),
     }),
   }),
-  reminderTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
 })
 
 export async function POST(request: Request) {
@@ -27,11 +26,11 @@ export async function POST(request: Request) {
   const parsed = schema.safeParse(json)
   if (!parsed.success) return ERR.invalidInput(parsed.error.issues)
 
-  const { subscription, reminderTime } = parsed.data
+  const { subscription } = parsed.data
 
   const { error } = await supabase
     .from('profiles')
-    .update({ push_subscription: subscription, reminder_time: reminderTime })
+    .update({ push_subscription: subscription })
     .eq('id', user.id)
 
   if (error) return ERR.server(error.message)
@@ -45,7 +44,7 @@ export async function DELETE(request: Request) {
 
   await supabase
     .from('profiles')
-    .update({ push_subscription: null, reminder_time: null })
+    .update({ push_subscription: null })
     .eq('id', user.id)
 
   return apiOk({})
