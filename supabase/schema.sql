@@ -1,9 +1,14 @@
--- ============================
--- FEROX DATABASE SCHEMA
--- Run this in Supabase SQL Editor
--- ============================
+-- ============================================================
+-- FEROX DATABASE SCHEMA — kompletan skript za SVEŽ Supabase projekat
+-- ⚠️ NIKAD ne puštati na postojeću produkciju (tamo idu samo
+--    pojedinačne migracije iz supabase/migrations/).
+-- Stanje odgovara primenjenim migracijama zaključno sa 0013.
+-- Kolone označene sa "legacy" postoje u bazi (istorijski podaci),
+-- ali ih aplikacija više ne piše ni ne čita.
+-- ============================================================
 
--- Enable UUID extension
+-- UUID default-i: stare tabele koriste uuid_generate_v4() (uuid-ossp),
+-- novije gen_random_uuid() (built-in) — namerno ostavljeno kao u produkciji.
 create extension if not exists "uuid-ossp";
 
 -- ============================
@@ -13,9 +18,9 @@ create table if not exists public.profiles (
   id uuid references auth.users on delete cascade primary key,
   name text not null default '',
   reason text not null default 'all' check (reason in ('work', 'school', 'personal', 'all')),
-  rhythm text not null default 'mixed' check (rhythm in ('morning', 'midday', 'evening', 'mixed')),
-  morning_tasks text[] not null default '{}',
-  evening_tasks text[] not null default '{}',
+  rhythm text not null default 'mixed' check (rhythm in ('morning', 'midday', 'evening', 'mixed')), -- legacy (hronotip)
+  morning_tasks text[] not null default '{}',   -- legacy (navike iz starog onboardinga)
+  evening_tasks text[] not null default '{}',   -- legacy
   sleep_time text not null default '23:00',
   start_time text not null default '08:00',
   rest_days int[] not null default '{0,6}',
@@ -27,6 +32,11 @@ create table if not exists public.profiles (
   micro_feedback boolean not null default true,
   sound_enabled boolean not null default false,
   pomodoro_minutes smallint not null default 25 check (pomodoro_minutes between 5 and 90),
+  reminder_time text check (reminder_time is null or reminder_time ~ '^([01]\d|2[0-3]):[0-5]\d$'), -- legacy (podsetnik je sada fiksno jutarnji)
+  push_subscription jsonb,
+  google_access_token text,
+  google_refresh_token text,
+  google_token_expires_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -62,19 +72,38 @@ create or replace trigger on_auth_user_created
   for each row execute procedure public.handle_new_user();
 
 -- ============================
--- DAY ENTRIES
+-- ZONES — oblasti života (Posao, Fakultet, Zdravlje...)
+-- ============================
+create table if not exists public.zones (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  name text not null,
+  icon text not null default '📁',
+  position int not null default 0,
+  created_at timestamptz default now()
+);
+
+alter table public.zones enable row level security;
+
+create policy "Users manage own zones" on public.zones
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+create index if not exists idx_zones_user on public.zones(user_id, position);
+
+-- ============================
+-- DAY ENTRIES — jedan red po (user, datum)
 -- ============================
 create table if not exists public.day_entries (
   id uuid primary key default uuid_generate_v4(),
   user_id uuid references public.profiles on delete cascade not null,
   date_key date not null,
-  energy text not null default '',
-  energy_level smallint check (energy_level is null or energy_level between 1 and 5), -- 1=Pun gas … 5=Preživljavam
+  energy text not null default '',        -- legacy (energy-adaptive era)
+  energy_level smallint check (energy_level is null or energy_level between 1 and 5), -- legacy
   sleep_hours float,
-  water_intake int not null default 0,
-  water_goal int not null default 2000,
-  reflection text,
-  eod_recap text,
+  water_intake int not null default 0,    -- legacy (water tracker uklonjen)
+  water_goal int not null default 2000,   -- legacy
+  reflection text,                        -- legacy (EOD refleksija uklonjena)
+  eod_recap text,                         -- keš AI rezimea dana
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   finished_at timestamptz,  -- NULL = aktivan dan; != NULL = dan je završen
@@ -88,7 +117,7 @@ create policy "Users can manage own day entries"
   using (auth.uid() = user_id);
 
 -- ============================
--- TASKS
+-- TASKS — zadaci vezani za day_entry
 -- ============================
 create table if not exists public.tasks (
   id uuid primary key default uuid_generate_v4(),
@@ -101,10 +130,11 @@ create table if not exists public.tasks (
     'creative', 'analytical', 'meetings', 'communication',
     'admin', 'light', 'rest', 'learning', 'exercise',
     'planning', 'reading', 'meditation'
-  )),
+  )), -- tip se više ne bira u UI (default 'light'); koristi se u EOD/uvidima za stare podatke
   note text not null default '',
   position int not null default 0,
-  block_index smallint check (block_index is null or block_index between 0 and 3), -- manual placement; null = auto
+  block_index smallint check (block_index is null or block_index between 0 and 3), -- legacy (blokovi uklonjeni)
+  zone_id uuid references public.zones(id) on delete set null,
   created_at timestamptz not null default now()
 );
 
@@ -115,7 +145,7 @@ create policy "Users can manage own tasks"
   using (auth.uid() = user_id);
 
 -- ============================
--- APPOINTMENTS
+-- APPOINTMENTS — termini po datumu
 -- ============================
 create table if not exists public.appointments (
   id uuid primary key default uuid_generate_v4(),
@@ -125,6 +155,7 @@ create table if not exists public.appointments (
   time text not null,
   reminder int not null default 15,
   done boolean not null default false,
+  zone_id uuid references public.zones(id) on delete set null,
   created_at timestamptz not null default now()
 );
 
@@ -135,7 +166,7 @@ create policy "Users can manage own appointments"
   using (auth.uid() = user_id);
 
 -- ============================
--- TRANSFERRED TASKS
+-- TRANSFERRED TASKS — nedovršeno preneseno na sutra (jsonb)
 -- ============================
 create table if not exists public.transferred_tasks (
   id uuid primary key default uuid_generate_v4(),
@@ -153,7 +184,49 @@ create policy "Users can manage own transferred tasks"
   using (auth.uid() = user_id);
 
 -- ============================
--- INDEXES for performance
+-- SCHEDULED TASKS — kalendarski zadaci unapred (rok + podsetnik)
+-- ============================
+create table if not exists public.scheduled_tasks (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  name text not null,
+  priority text not null default 'medium' check (priority in ('high', 'medium', 'low')),
+  type text not null default 'light', -- UI ga ne nudi; ostaje default
+  note text not null default '',
+  for_date date not null,
+  done boolean not null default false,
+  remind_before_minutes integer default null, -- podsetnik N minuta pre (app ograničava na 28 dana)
+  deadline_date date default null,
+  zone_id uuid references public.zones(id) on delete set null,
+  created_at timestamptz default now()
+);
+
+alter table public.scheduled_tasks enable row level security;
+
+create policy "Users manage own scheduled tasks" on public.scheduled_tasks
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+create index if not exists idx_scheduled_tasks_user_date on public.scheduled_tasks(user_id, for_date);
+
+-- ============================
+-- ROUTINES — šabloni zadataka (jsonb lista)
+-- ============================
+create table if not exists public.routines (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  name text not null,
+  tasks jsonb not null default '[]',
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+alter table public.routines enable row level security;
+
+create policy "Users manage own routines"
+  on public.routines for all using (auth.uid() = user_id);
+
+-- ============================
+-- INDEXES
 -- ============================
 create index if not exists idx_day_entries_user_date on public.day_entries(user_id, date_key desc);
 create index if not exists idx_tasks_entry on public.tasks(entry_id);

@@ -9,15 +9,9 @@ cd "$(dirname "$0")"
 
 # .env.local provera
 if [ ! -f .env.local ]; then
-  echo "⚠️  Nedostaje .env.local — kopiram primer iz CLAUDE.md varijabli."
-  echo "    Popuni SUPABASE_SERVICE_ROLE_KEY i ANTHROPIC_API_KEY pre pokretanja."
-  cat > .env.local <<'EOF'
-NEXT_PUBLIC_SUPABASE_URL=https://scwsifonygvfxiixaiak.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_DLpcNCKEMKoUIHrL1pzDKA_ftfNdn9T
-SUPABASE_SERVICE_ROLE_KEY=
-ANTHROPIC_API_KEY=
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-EOF
+  echo "⚠️  Nedostaje .env.local — kopiram šablon iz .env.example."
+  echo "    Popuni vrednosti (bar Supabase URL/ključ) pre pokretanja."
+  cp .env.example .env.local
 fi
 
 # Instaliraj zavisnosti ako fale
