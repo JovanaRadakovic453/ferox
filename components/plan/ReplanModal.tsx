@@ -11,12 +11,11 @@ export type ReplanResult = { poruka: string; danas: string[]; sutra: string[]; o
 // "Dan se raspao" — AI replan. Drži sopstveno stanje; primenu (optimističko
 // otpisivanje zadataka + DB) radi roditelj preko onApply.
 export default function ReplanModal({
-  open, onClose, tasks, energy, onApply,
+  open, onClose, tasks, onApply,
 }: {
   open: boolean
   onClose: () => void
   tasks: Task[]
-  energy: string
   onApply: (result: ReplanResult) => void
 }) {
   const toast = useToast()
@@ -36,7 +35,7 @@ export default function ReplanModal({
       const res = await fetch('/api/ai/replan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ situation: text, remainingTasks: unfinished.map(t => t.name), energy }),
+        body: JSON.stringify({ situation: text, remainingTasks: unfinished.map(t => t.name) }),
       })
       if (res.ok) setResult(await res.json())
       else toast({ message: 'AI replan nije uspeo — pokušaj ponovo', variant: 'error' })

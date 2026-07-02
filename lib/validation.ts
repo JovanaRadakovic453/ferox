@@ -46,7 +46,6 @@ export const createDaySchema = z.object({
 export const replanSchema = z.object({
   situation: z.string().trim().min(1).max(1000),
   remainingTasks: z.array(z.string().max(120)).max(50),
-  energy: z.string().min(1),
 })
 
 export const brainDumpSchema = z.object({
