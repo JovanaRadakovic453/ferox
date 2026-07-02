@@ -13,7 +13,7 @@ export default function AppointmentItem({ appt, onToggle, onDelete }: { appt: Ap
       >
         <span aria-hidden><Checkbox checked={appt.done} /></span>
         <span
-          className="text-sm font-medium shrink-0 transition-all duration-200"
+          className="text-sm font-semibold tabular-nums shrink-0 transition-all duration-200"
           style={{ color: appt.done ? 'var(--text-muted)' : 'var(--gold)', opacity: appt.done ? 0.6 : 1 }}
         >
           {appt.time}
@@ -24,7 +24,7 @@ export default function AppointmentItem({ appt, onToggle, onDelete }: { appt: Ap
         >
           {appt.name}
         </p>
-        <span className="text-xs px-1.5 py-0.5 rounded shrink-0" style={{ background: 'rgba(212,116,42,0.12)', color: 'var(--gold)' }}>termin</span>
+        <span className="text-xs px-1.5 py-0.5 rounded shrink-0" style={{ background: 'var(--gold-tint)', color: 'var(--gold)' }}>termin</span>
       </button>
       {onDelete && (
         <button

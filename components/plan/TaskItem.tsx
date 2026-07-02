@@ -28,7 +28,12 @@ export default function TaskItem({ task, onToggle, onDelete, zoneName }: { task:
             <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{task.note}</p>
           )}
           {zoneName && !task.done && (
-            <p className="text-[0.6rem] font-medium mt-0.5" style={{ color: 'var(--text-muted)' }}>· {zoneName}</p>
+            <span
+              className="inline-flex items-center gap-1 text-[0.62rem] font-medium mt-1.5 px-2 py-0.5 rounded-full"
+              style={{ background: 'var(--surface2)', border: '1px solid var(--hairline)', color: 'var(--text-muted)' }}
+            >
+              {zoneName}
+            </span>
           )}
         </div>
         <span

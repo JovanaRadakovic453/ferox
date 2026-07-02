@@ -88,6 +88,7 @@ export default function HistoryView({ days, todayKey }: { days: HistoryDay[]; to
                       <p className="display text-2xl leading-none tabular-nums" style={{ color: 'var(--text)' }}>
                         {d.done}<span className="text-sm" style={{ color: 'var(--text-muted)' }}>/{d.total}</span>
                       </p>
+                      <p className="text-[0.65rem] font-semibold tabular-nums mt-1" style={{ color: 'var(--gold)' }}>{d.pct}%</p>
                     </div>
                   </Link>
                 ))}

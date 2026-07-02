@@ -104,7 +104,7 @@ app/
     account/export | delete/   — GDPR export (sve tabele) / brisanje (service role)
   auth/callback | reset-callback — Supabase email potvrda / reset
 components/
-  ui/Button|Input|Checkbox|Toast|Modal|ThemeToggle
+  ui/Button|Input|Checkbox|Toast|Modal|ThemeToggle|ProgressRing
   auth/AuthCard.tsx
   nav/AppChrome.tsx            — responsivni shell: desktop Sidebar + mobilni TabBar
                                  (TABS: Danas/Kalendar/Istorija/Uvidi/Alati/Podešavanja)

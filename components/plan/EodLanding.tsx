@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import LogoutButton from '@/components/LogoutButton'
+import ProgressRing from '@/components/ui/ProgressRing'
 
 export default function EodLanding({
   doneCount,
@@ -78,30 +79,22 @@ export default function EodLanding({
         </div>
       )}
 
-      <div className="card p-6 flex flex-col gap-4">
-        <div className="flex items-end justify-between">
-          <div>
-            <p className="text-[0.65rem] font-semibold tracking-[0.14em] uppercase" style={{ color: 'var(--text-muted)' }}>
-              Završeno
-            </p>
-            <p className="display text-5xl lg:text-6xl leading-none mt-1" style={{ color: 'var(--text)' }}>
-              {doneCount}
-              <span className="text-2xl lg:text-3xl" style={{ color: 'var(--text-muted)' }}>/{total}</span>
-            </p>
-          </div>
-          <span className="text-sm font-semibold tabular-nums" style={{ color: 'var(--gold)' }}>{pct}%</span>
+      <div className="card p-6 lg:p-7 flex items-center gap-6 lg:gap-8">
+        <ProgressRing pct={pct} size={124} />
+        <div className="min-w-0 flex flex-col gap-2">
+          <p className="text-[0.65rem] font-semibold tracking-[0.14em] uppercase" style={{ color: 'var(--text-muted)' }}>
+            Završeno
+          </p>
+          <p className="display text-5xl lg:text-6xl leading-none" style={{ color: 'var(--text)' }}>
+            {doneCount}
+            <span className="text-2xl lg:text-3xl" style={{ color: 'var(--text-muted)' }}>/{total}</span>
+          </p>
+          <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
+            {transferredCount > 0
+              ? `📦 ${transferredCount} ${transferredCount === 1 ? 'zadatak prenet' : 'zadataka preneto'} za sutra`
+              : '✨ Sve čisto za danas'}
+          </p>
         </div>
-        <div className="rounded-full overflow-hidden h-2.5" style={{ background: 'var(--surface2)' }}>
-          <div
-            className="h-full rounded-full transition-all duration-700"
-            style={{ width: `${pct}%`, backgroundImage: 'linear-gradient(90deg, var(--gold-light), var(--gold))' }}
-          />
-        </div>
-        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-          {transferredCount > 0
-            ? `📦 ${transferredCount} ${transferredCount === 1 ? 'zadatak prenet' : 'zadataka preneto'} za sutra`
-            : '✨ Sve čisto za danas'}
-        </p>
       </div>
 
       <div className="flex justify-center pb-4">

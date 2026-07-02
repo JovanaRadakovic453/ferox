@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { computeAggregates, type DayAgg } from '@/lib/insights'
+import { computeStreak } from '@/lib/streak'
+import { todayKey } from '@/lib/date'
 import InsightsView from '@/components/insights/InsightsView'
 import type { TaskType } from '@/types/ferox'
 
@@ -12,12 +14,22 @@ export default async function InsightsPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: entries } = await supabase
-    .from('day_entries')
-    .select('id, date_key, sleep_hours')
-    .eq('user_id', user.id)
-    .order('date_key', { ascending: false })
-    .limit(30)
+  const [{ data: entries }, { data: profile }, { data: finishedRows }] = await Promise.all([
+    supabase
+      .from('day_entries')
+      .select('id, date_key, sleep_hours')
+      .eq('user_id', user.id)
+      .order('date_key', { ascending: false })
+      .limit(30),
+    supabase.from('profiles').select('rest_days, best_streak').eq('id', user.id).maybeSingle(),
+    supabase
+      .from('day_entries')
+      .select('date_key')
+      .eq('user_id', user.id)
+      .not('finished_at', 'is', null)
+      .order('date_key', { ascending: false })
+      .limit(60),
+  ])
 
   const list = entries ?? []
   const ids = list.map(e => e.id)
@@ -61,7 +73,7 @@ export default async function InsightsPage() {
           <span className="text-4xl">📈</span>
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
             Još skupljam tvoje obrasce. Treba mi bar {MIN_DAYS} dana sa zadacima — imaš {loggedDays.length}.
-            Nastavi da planiraš i ovde će se pojaviti tvoji uvidi i prognoza energije.
+            Nastavi da planiraš i ovde će se pojaviti tvoji uvidi.
           </p>
           <Link href="/" className="text-sm font-semibold" style={{ color: 'var(--gold)' }}>Napravi plan →</Link>
         </div>
@@ -71,5 +83,16 @@ export default async function InsightsPage() {
 
   const agg = computeAggregates(loggedDays, [...typeAgg.entries()].map(([type, v]) => ({ type, ...v })))
 
-  return <InsightsView agg={agg} />
+  const finishedSet = new Set((finishedRows ?? []).map(r => r.date_key as string))
+  const streak = computeStreak(finishedSet, profile?.rest_days ?? [0, 6], todayKey())
+  const totalDone = [...perEntry.values()].reduce((s, c) => s + c.done, 0)
+
+  return (
+    <InsightsView
+      agg={agg}
+      streak={streak}
+      bestStreak={Math.max(profile?.best_streak ?? 0, streak)}
+      totalDone={totalDone}
+    />
+  )
 }
