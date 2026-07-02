@@ -71,11 +71,18 @@ export async function createDay(
     if (error) return { ok: false, code: 'DB_INSERT_APPT', message: 'Greška pri čuvanju termina', detail: error.message }
   }
 
-  // 4. Clear transferred tasks and mark scheduled tasks as done for this day
-  await Promise.all([
+  // 4. Clear transferred tasks; mark done SAMO zakazane zadatke koji su stvarno ušli u plan
+  //    (blanket update je ranije gutao zakazane zadatke dodate posle kreiranja dana).
+  const cleanup: PromiseLike<unknown>[] = [
     supabase.from('transferred_tasks').delete().eq('user_id', userId).eq('for_date', dateKey),
-    supabase.from('scheduled_tasks').update({ done: true }).eq('user_id', userId).eq('for_date', dateKey).eq('done', false),
-  ])
+  ]
+  if (body.scheduledTaskIds.length > 0) {
+    cleanup.push(
+      supabase.from('scheduled_tasks').update({ done: true })
+        .eq('user_id', userId).eq('for_date', dateKey).in('id', body.scheduledTaskIds),
+    )
+  }
+  await Promise.all(cleanup)
 
   // 5. Remember sleep/wake on the profile (best-effort)
   if (sleepTime || wakeTime || sleep != null) {

@@ -14,7 +14,7 @@ import TaskEditor from '@/components/setup/TaskEditor'
 import AppointmentEditor from '@/components/setup/AppointmentEditor'
 import PreviewRail from '@/components/setup/PreviewRail'
 
-export default function SetupScreen({ profile, targetDate, transferredTasks = [], initialAppointments = [], showTransferBanner = false, streak = 0 }: { profile: UserProfile; targetDate?: string; transferredTasks?: Task[]; initialAppointments?: Appointment[]; showTransferBanner?: boolean; streak?: number }) {
+export default function SetupScreen({ profile, targetDate, transferredTasks = [], initialAppointments = [], showTransferBanner = false, scheduledTaskIds = [], streak = 0 }: { profile: UserProfile; targetDate?: string; transferredTasks?: Task[]; initialAppointments?: Appointment[]; showTransferBanner?: boolean; scheduledTaskIds?: string[]; streak?: number }) {
   const [tasks, setTasks] = useState<Task[]>(showTransferBanner ? [] : transferredTasks)
   const [suggestedTransfers, setSuggestedTransfers] = useState<Task[]>(showTransferBanner ? transferredTasks : [])
   const [appointments, setAppointments] = useState<Appointment[]>(showTransferBanner ? [] : initialAppointments)
@@ -105,6 +105,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
           energyLevel: 3,
           tasks,
           appointments,
+          scheduledTaskIds,
         }),
       })
 

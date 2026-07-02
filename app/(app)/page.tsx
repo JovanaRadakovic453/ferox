@@ -93,9 +93,11 @@ export default async function SetupPage({
   let initialTasks: Task[] = []
   let initialAppointments: Appointment[] = []
   let showTransferBanner = false
+  // Zakazani zadaci koji ulaze u ovaj plan — samo se ONI markiraju kao done pri snimanju.
+  let scheduledTaskIds: string[] = []
 
   if (entry) {
-    const [{ data: existingTasks }, { data: existingAppts }] = await Promise.all([
+    const [{ data: existingTasks }, { data: existingAppts }, { data: pendingScheduled }] = await Promise.all([
       supabase
         .from('tasks')
         .select('name, note, priority, type, done, position, zone_id')
@@ -108,9 +110,24 @@ export default async function SetupPage({
         .eq('user_id', user.id)
         .eq('date_key', targetDate)
         .order('time'),
+      supabase
+        .from('scheduled_tasks')
+        .select('id, name, priority, type, note, zone_id')
+        .eq('user_id', user.id)
+        .eq('for_date', targetDate)
+        .eq('done', false),
     ])
     initialTasks = (existingTasks ?? []) as Task[]
     initialAppointments = (existingAppts ?? []) as Appointment[]
+    // Zakazan zadatak dodat POSLE kreiranja dana: ubaci ga u editor umesto da se tiho proguta.
+    const pending = (pendingScheduled ?? []) as (Task & { id: string })[]
+    if (pending.length > 0) {
+      initialTasks = [
+        ...initialTasks,
+        ...pending.map(t => ({ name: t.name, priority: t.priority, type: t.type ?? 'light', note: t.note ?? '', done: false, zone_id: t.zone_id ?? null })),
+      ]
+      scheduledTaskIds = pending.map(t => t.id)
+    }
   } else {
     const [{ data: transferred }, { data: scheduledRows }] = await Promise.all([
       supabase
@@ -121,17 +138,18 @@ export default async function SetupPage({
         .maybeSingle(),
       supabase
         .from('scheduled_tasks')
-        .select('name, priority, type, note, zone_id')
+        .select('id, name, priority, type, note, zone_id')
         .eq('user_id', user.id)
         .eq('for_date', targetDate)
         .eq('done', false),
     ])
     const filtered = ((transferred?.tasks ?? []) as Task[]).filter((t: Task) => !t.done)
-    const scheduled = (scheduledRows ?? []) as Task[]
+    const scheduled = (scheduledRows ?? []) as (Task & { id: string })[]
     initialTasks = [
       ...filtered,
       ...scheduled.map(t => ({ name: t.name, priority: t.priority, type: t.type ?? 'light', note: t.note ?? '', done: false, zone_id: t.zone_id ?? null })),
     ]
+    scheduledTaskIds = scheduled.map(t => t.id)
     showTransferBanner = initialTasks.length > 0
   }
 
@@ -142,6 +160,7 @@ export default async function SetupPage({
       transferredTasks={initialTasks}
       initialAppointments={initialAppointments}
       showTransferBanner={showTransferBanner}
+      scheduledTaskIds={scheduledTaskIds}
       streak={streak}
     />
   )

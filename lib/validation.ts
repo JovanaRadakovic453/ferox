@@ -42,6 +42,8 @@ export const createDaySchema = z.object({
   wakeTime: zTime.optional(),
   tasks: z.array(zTaskInput).max(50),
   appointments: z.array(zAppointmentInput).max(50).optional().default([]),
+  // Zakazani zadaci koji su UŠLI u ovaj plan — samo oni se markiraju kao done.
+  scheduledTaskIds: z.array(z.string().uuid()).max(50).optional().default([]),
 })
 
 export const replanSchema = z.object({
