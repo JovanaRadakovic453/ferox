@@ -32,7 +32,7 @@ export default async function SetupPage({
 
   const { data: entry } = await supabase
     .from('day_entries')
-    .select('id, energy, finished_at, eod_recap')
+    .select('id, finished_at, eod_recap')
     .eq('user_id', user.id)
     .eq('date_key', targetDate)
     .maybeSingle()

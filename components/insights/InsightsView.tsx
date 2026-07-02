@@ -1,6 +1,6 @@
 'use client'
 
-import type { Aggregates, Forecast, Bar } from '@/lib/insights'
+import type { Aggregates, Bar } from '@/lib/insights'
 
 function BarRow({ label, rate }: { label: string; rate: number }) {
   return (
@@ -26,7 +26,7 @@ function ChartCard({ title, bars }: { title: string; bars: Bar[] }) {
   )
 }
 
-export default function InsightsView({ agg, forecast }: { agg: Aggregates; forecast: Forecast | null }) {
+export default function InsightsView({ agg }: { agg: Aggregates }) {
   return (
     <main className="flex flex-col gap-5 lg:gap-6 pb-2">
       <header className="pt-2">
@@ -51,6 +51,7 @@ export default function InsightsView({ agg, forecast }: { agg: Aggregates; forec
 
       {/* Grafici */}
       <ChartCard title="Realizacija po danu u nedelji" bars={agg.byWeekday} />
+      <ChartCard title="Realizacija po tipu zadatka" bars={agg.byType} />
     </main>
   )
 }

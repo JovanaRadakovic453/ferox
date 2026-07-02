@@ -1,8 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { computeAggregates, forecastTomorrow, type DayAgg } from '@/lib/insights'
-import { tomorrowKey } from '@/lib/date'
+import { computeAggregates, type DayAgg } from '@/lib/insights'
 import InsightsView from '@/components/insights/InsightsView'
 import type { TaskType } from '@/types/ferox'
 
@@ -15,7 +14,7 @@ export default async function InsightsPage() {
 
   const { data: entries } = await supabase
     .from('day_entries')
-    .select('id, date_key, energy_level, sleep_hours')
+    .select('id, date_key, sleep_hours')
     .eq('user_id', user.id)
     .order('date_key', { ascending: false })
     .limit(30)
@@ -42,7 +41,6 @@ export default async function InsightsPage() {
     const c = perEntry.get(e.id) ?? { done: 0, total: 0 }
     return {
       date_key: e.date_key,
-      energy_level: e.energy_level,
       sleep_hours: e.sleep_hours,
       done: c.done,
       total: c.total,
@@ -72,8 +70,6 @@ export default async function InsightsPage() {
   }
 
   const agg = computeAggregates(loggedDays, [...typeAgg.entries()].map(([type, v]) => ({ type, ...v })))
-  const tWeekday = new Date(`${tomorrowKey()}T12:00:00Z`).getUTCDay()
-  const forecast = forecastTomorrow(loggedDays, tWeekday)
 
-  return <InsightsView agg={agg} forecast={forecast} />
+  return <InsightsView agg={agg} />
 }

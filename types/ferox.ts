@@ -42,18 +42,6 @@ export interface Appointment {
   zone_id?: string | null
 }
 
-export interface PlanBlock {
-  label: string
-  badge: string
-  badgeText: string
-  timeRange: string
-  tasks: Task[]
-  /** True for the user's peak-energy block (chronotype). */
-  peak?: boolean
-  /** Short Serbian "why these tasks are here" line, derived from the energy fit. */
-  rationale?: string
-}
-
 export type Theme = 'light' | 'dark' | 'system'
 
 export interface UserProfile {
@@ -83,28 +71,20 @@ export interface DayEntry {
   id?: string
   user_id?: string
   date_key: string
-  /** Emoji label for display, e.g. "🔥 Pun gas". Mirrors energy_level. */
-  energy: string
-  /** Numeric energy, canonical 1=best … 5=survival. Source of truth for the engine & analytics. */
+  /** legacy kolona — aplikacija je više ne piše ni ne čita (istorijski podaci ostaju u bazi) */
+  energy?: string
+  /** legacy kolona — ne koristi se */
   energy_level?: number | null
   sleep_hours: number | null
-  water_intake: number
-  water_goal: number
+  /** legacy kolone — water tracker je uklonjen iz UI-ja */
+  water_intake?: number
+  water_goal?: number
+  /** legacy kolona — refleksija je uklonjena iz EOD toka */
   reflection?: string | null
   eod_recap?: string | null
   finished_at?: string | null
   tasks?: Task[]
   appointments?: Appointment[]
-}
-
-export type EnergyLevel = 1 | 2 | 3 | 4 | 5
-
-export const ENERGY_LABELS: Record<EnergyLevel, string> = {
-  1: '🔥 Pun gas',
-  2: '😊 Dobro',
-  3: '😐 Prosečno',
-  4: '🥱 Umorno',
-  5: '🪫 Preživljavam',
 }
 
 export const TASK_TYPE_LABELS: Record<TaskType, string> = {
@@ -124,13 +104,6 @@ export const TASK_TYPE_LABELS: Record<TaskType, string> = {
 
 export type RoutineTask = { name: string; type: TaskType; priority: Priority; block_index?: number | null }
 export type Routine = { id: string; user_id: string; name: string; tasks: RoutineTask[]; created_at: string }
-
-export const BLOCK_LABELS: Record<number, string> = {
-  0: '🌅 Jutro',
-  1: '🕙 Prepodne',
-  2: '☀️ Popodne',
-  3: '🌙 Veče',
-}
 
 export const PRIORITY_LABELS: Record<Priority, string> = {
   high: '🔴 Visok',

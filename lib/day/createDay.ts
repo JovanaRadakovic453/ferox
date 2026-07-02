@@ -9,15 +9,15 @@ export type CreateDayResult =
 
 /**
  * Single validated path that creates/updates a day_entry + its tasks + appointments.
- * Used by /api/day/create AND quick-start / seed-tomorrow so every write goes through
- * the same enum/energy_level/validation logic. Returns inserted tasks WITH ids.
+ * Used by /api/day/create so every write goes through the same enum/validation
+ * logic. Returns inserted tasks WITH ids.
  */
 export async function createDay(
   supabase: SupabaseClient,
   userId: string,
   body: CreateDayBody,
 ): Promise<CreateDayResult> {
-  const { dateKey, energy, energyLevel, sleepHours, sleepTime, wakeTime, tasks, appointments } = body
+  const { dateKey, sleepHours, sleepTime, wakeTime, tasks, appointments } = body
   const sleep = sleepHours ?? null
 
   // 1. Find existing day_entry
@@ -32,12 +32,12 @@ export async function createDay(
     const { error: delErr } = await supabase.from('tasks').delete().eq('user_id', userId).eq('entry_id', entryId)
     if (delErr) return { ok: false, code: 'DB_DEL_TASKS', message: 'Greška pri brisanju starih zadataka', detail: delErr.message }
     const { error: upErr } = await supabase.from('day_entries')
-      .update({ energy, energy_level: energyLevel, sleep_hours: sleep, finished_at: null, updated_at: new Date().toISOString() })
+      .update({ sleep_hours: sleep, finished_at: null, updated_at: new Date().toISOString() })
       .eq('user_id', userId).eq('id', entryId)
     if (upErr) return { ok: false, code: 'DB_UPDATE_ENTRY', message: 'Greška pri ažuriranju dana', detail: upErr.message }
   } else {
     const { data: newEntry, error: insErr } = await supabase.from('day_entries')
-      .insert({ user_id: userId, date_key: dateKey, energy, energy_level: energyLevel, sleep_hours: sleep })
+      .insert({ user_id: userId, date_key: dateKey, sleep_hours: sleep })
       .select('id').single()
     if (insErr || !newEntry) return { ok: false, code: 'DB_INSERT_ENTRY', message: 'Greška pri kreiranju dana', detail: insErr?.message }
     entryId = newEntry.id

@@ -11,7 +11,6 @@ export const zPriority = z.enum(PRIORITIES)
 export const zTaskType = z.enum(TASK_TYPES)
 export const zTime = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Vreme mora biti HH:MM')
 export const zStrictDate = z.string().refine(isValidDayKey, 'Neispravan datum')
-export const zEnergyLevel = z.number().int().min(1).max(5)
 
 // ---- Ulazne sheme (telo zahteva) ----
 export const zTaskInput = z.object({
@@ -35,8 +34,6 @@ export const zAppointmentInput = z.object({
 
 export const createDaySchema = z.object({
   dateKey: zStrictDate,
-  energy: z.string().min(1),
-  energyLevel: zEnergyLevel,
   sleepHours: z.number().nullable().optional(),
   sleepTime: zTime.optional(),
   wakeTime: zTime.optional(),
@@ -54,19 +51,6 @@ export const replanSchema = z.object({
 
 export const brainDumpSchema = z.object({
   text: z.string().trim().min(1).max(2000),
-})
-
-export const chatSchema = z.object({
-  message: z.string().trim().min(1).max(2000),
-  context: z.unknown().optional(),
-})
-
-export const reorderSchema = z.object({
-  updates: z.array(z.object({
-    id: z.string().uuid(),
-    position: z.number().int().min(0),
-    block_index: z.number().int().min(0).max(3).nullable(),
-  })).max(100),
 })
 
 // ---- Izlazne sheme (AI parsiranje / tool-use) — tolerantne, sa fallback-om ----
@@ -90,34 +74,6 @@ export const replanResultSchema = z.object({
   sutra: z.array(z.string()).default([]),
   obrisi: z.array(z.string()).default([]),
   poruka: z.string().default(''),
-})
-
-// Insights ulaz: agregati su PRE-izračunati na klijentu (vidi lib/insights.ts
-// Aggregates). Validacija ograničava veličinu (odbrana + cap na token-trošak).
-const zBar = z.object({
-  label: z.string().max(40),
-  rate: z.number(),
-  n: z.number().int().min(0),
-})
-export const insightsInputSchema = z.object({
-  aggregates: z.object({
-    dayCount: z.number().int().min(0),
-    overallCompletion: z.number(),
-    byEnergy: z.array(zBar).max(10),
-    byWeekday: z.array(zBar).max(10),
-    byType: z.array(zBar).max(20),
-    sleepInsight: z.string().max(300).nullable(),
-  }),
-})
-
-// Insights izlaz (tool-use) — re-validira se zod-om kao i brain-dump.
-export const aiInsightSchema = z.object({
-  title: z.string().trim().min(1).max(120),
-  body: z.string().trim().min(1).max(400),
-  type: z.enum(['pattern', 'tip', 'win']).optional(),
-})
-export const aiInsightsResult = z.object({
-  insights: z.array(aiInsightSchema).default([]),
 })
 
 export type CreateDayBody = z.infer<typeof createDaySchema>

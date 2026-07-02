@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useChrome } from '@/components/nav/AppChrome'
 import { todayKey, formatDate } from '@/lib/utils'
-import { energyLabel } from '@/lib/energy'
 import type { Task, TaskType, Priority, Appointment, UserProfile, Zone } from '@/types/ferox'
 import Link from 'next/link'
 import Button from '@/components/ui/Button'
@@ -105,8 +104,6 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           dateKey,
-          energy: energyLabel(3),
-          energyLevel: 3,
           tasks,
           appointments,
           scheduledTaskIds,

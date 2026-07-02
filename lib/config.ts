@@ -13,28 +13,12 @@ export const AI = {
   model: 'claude-sonnet-4-6',
   /** max_tokens po ruti (kratke poruke = manji budžet = jeftinije). */
   maxTokens: {
-    chat: 1024,
     brainDump: 1024,
     replan: 1024,
-    insights: 600,
     eod: 200,
   },
-  /** Budžet konteksta dana (u karakterima) u chat system promptu. */
-  chatContextChars: 4000,
   /** Najviše zadataka koje brain-dump izvuče (koristi se i u promptu i u .slice()). */
   brainDumpMaxTasks: 8,
-  /** Najviše uvida koje Pattern Coach vrati. */
-  insightsMax: 3,
-  /**
-   * DeepSeek (OpenAI-compatible) — alternativni provajder za Coach chat.
-   * Uključuje se tek kad je env `AI_PROVIDER=deepseek` I `DEEPSEEK_API_KEY`
-   * postavljen (vidi lib/deepseek.ts). Model id i URL nisu tajne; ključ ostaje
-   * u process.env. Default ostaje Anthropic — bez env-a se ništa ne menja.
-   */
-  deepseek: {
-    model: 'deepseek-chat',
-    baseUrl: 'https://api.deepseek.com',
-  },
 } as const
 
 /**
@@ -44,8 +28,6 @@ export const AI = {
  * inače `useState` previše suzi tip stanja.
  */
 export const DEFAULTS = {
-  /** Dnevni cilj unosa vode (ml). */
-  waterGoalMl: 2000,
   /** Pomodoro trajanje (min) + dozvoljeni opseg. */
   pomodoroMinutes: 25,
   pomodoroMin: 5,
@@ -68,11 +50,9 @@ export const DEFAULTS = {
  * `windowSec` sekundi.
  */
 export const RATE_LIMITS = {
-  chat: { limit: 20, windowSec: 60 },
   brainDump: { limit: 10, windowSec: 60 },
   replan: { limit: 10, windowSec: 60 },
   eod: { limit: 10, windowSec: 60 },
-  insights: { limit: 10, windowSec: 300 },
   accountDelete: { limit: 3, windowSec: 86400 },
   /** CRUD mutacije (zaštita od DB bloat-a; GET liste ostaju bez limita). */
   zonesWrite: { limit: 30, windowSec: 60 },

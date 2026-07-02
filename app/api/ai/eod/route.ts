@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) return ERR.invalidInput(parsed.error.issues)
 
   const { data: entry } = await supabase.from('day_entries')
-    .select('id, energy_level, eod_recap')
+    .select('id, eod_recap')
     .eq('user_id', user.id).eq('date_key', parsed.data.dateKey).maybeSingle()
   if (!entry) return ERR.invalidInput('Dan nije pronađen')
 
