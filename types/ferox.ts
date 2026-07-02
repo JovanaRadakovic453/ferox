@@ -76,6 +76,7 @@ export interface UserProfile {
   pomodoro_minutes?: number
   reminder_time?: string | null
   push_subscription?: object | null
+  google_refresh_token?: string | null
 }
 
 export interface DayEntry {
