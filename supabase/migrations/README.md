@@ -2,12 +2,11 @@
 
 ## Stanje
 
-Na produkciji (Supabase projekat `scwsifonygvfxiixaiak`) primenjene su
-migracije **zaključno sa `0012_google_calendar.sql`**.
-**`0013_routines_fk_profiles.sql` još NIJE primenjena** — pusti je kroz SQL
-editor pa ažuriraj ovaj red. Fajlovi su numerisani po stvarnom redosledu
-primene (renumerisano jul 2026 — ranije su postojali duplikati 0003/0004;
-sadržaj fajlova nije menjan).
+Na produkciji (Supabase projekat `scwsifonygvfxiixaiak`) primenjene su **sve
+migracije zaključno sa `0013_routines_fk_profiles.sql`** (0013 primenjena
+2026-07-02 kroz Management API; FK provereno pokazuje na profiles, cascade).
+Fajlovi su numerisani po stvarnom redosledu primene (renumerisano jul 2026 —
+ranije su postojali duplikati 0003/0004; sadržaj fajlova nije menjan).
 
 `../schema.sql` je kompletan skript **samo za svež (prazan) Supabase projekat**
 i odgovara stanju posle 0013. Nikad ga ne puštaj na postojeću produkciju.
