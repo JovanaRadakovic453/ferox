@@ -66,7 +66,7 @@ export default async function CalendarPage({
   // Count tasks per date (via day_entry → tasks)
   const entryRows = entries ?? []
   const entryIds = entryRows.map(e => e.id)
-  let taskCountByDate: Record<string, number> = {}
+  const taskCountByDate: Record<string, number> = {}
 
   if (entryIds.length > 0) {
     const { data: taskRows } = await supabase

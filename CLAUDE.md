@@ -41,14 +41,20 @@ Ovaj projekat (**Ferox**) je do sada radio **Petar**. Petar ga je sada
 
 ## Šta je Ferox (jednostavno)
 
-Ferox je **aplikacija-planer dana**. Raspoređuje obaveze prema **energiji**
-korisnika, a ne prema krutom satnici. Ideja: nisi svaki dan ista osoba — nekad
-imaš snage za teške zadatke, nekad nemaš — pa ti aplikacija namesti dan u
-skladu s tim.
+Ferox je **aplikacija-planer dana**. Korisnik organizuje obaveze po
+**oblastima svog života** (Posao, Fakultet, Zdravlje…), planira dan, prati
+kalendar i rokove, i na kraju dana dobije topao rezime. Sve je na srpskom.
 
-Korisnik ujutru/uveče unese kako se oseća i šta ima da radi → aplikacija
-pametno rasporedi zadatke kroz dan → uveče napravi topli rezime dana. Sve je
-na srpskom jeziku.
+Šta sve ume:
+- **Danas** — uneseš zadatke i termine (možeš i da "izbaciš iz glave" tekst pa
+  AI sam izvuče zadatke) → štikliraš ih kroz dan → uveče "Završi dan" (AI ti
+  napiše ohrabrujući rezime, nedovršeno se samo ponudi za sutra). Ako se dan
+  raspao, dugme **"Dan se raspao?"** pita AI da preraspodeli ostatak dana.
+- **Kalendar** — zakažeš zadatke unapred, sa rokom i podsetnikom; tog dana se
+  sami pojave u planu.
+- **Rutine i Alati** — sačuvani šabloni zadataka + tajmer za pauze.
+- **Podsetnik ujutru** — stigne notifikacija da napraviš plan (ako je
+  uključena), a može i uvoz termina iz Google Kalendara.
 
 ## Osnovne stvari koje treba da znaš (za Jovanu)
 
@@ -69,29 +75,36 @@ na srpskom jeziku.
 ## 🔧 Tehnički podsetnik — SAMO za Claude (Jovana ovo ne mora da čita)
 
 Kratak podsetnik da možeš da radiš kompetentno. **Puna tehnička dokumentacija
-projekta je u `AGENTS.md`** (stack, struktura, Supabase model, energetski motor,
-sve konvencije) — pročitaj je za stvarni rad. Ostalo je u samom kodu (`lib/`,
-`app/`, `components/`).
+projekta je u `AGENTS.md`** (stack, struktura, Supabase model, sve konvencije)
+— pročitaj je za stvarni rad. Ostalo je u samom kodu (`lib/`, `app/`,
+`components/`).
 
 - **Stack:** Next.js 16.2 (App Router) + React 19.2 + TypeScript + Tailwind v4 ·
-  Supabase (PostgreSQL + Auth + RLS) · Anthropic AI (`claude-sonnet-4-6`, **samo
-  server-side**) · `zod` validacija · `vitest` · hosting **Vercel**.
+  Supabase (PostgreSQL + Auth + RLS) · Anthropic AI (model u `lib/config.ts`,
+  **samo server-side**) · `zod` validacija · `vitest` · `eslint` · hosting
+  **Vercel** (+ cron za jutarnji podsetnik).
 - **Pokretanje:** `npm run dev` (localhost:3000) · `npm test` · `npm run
-  typecheck`. Node 20+. `node_modules` već postoji — **preskoči `npm install`**.
-- **Deploy:** `git push origin main` → Vercel sam builduje i objavi. (Bez
-  ručnih koraka.)
-- **Env (`.env.local`):** Supabase URL/ključevi, `ANTHROPIC_API_KEY`,
-  `NEXT_PUBLIC_APP_URL`. Tajne ostaju u `process.env` — **nikad u kodu**.
+  typecheck` · `npm run lint`. Node 20+. `node_modules` već postoji —
+  **preskoči `npm install`** osim kad se menja package.json.
+- **Deploy:** `git push origin main` → Vercel sam builduje i objavi. CI
+  (GitHub Actions) pušta lint+typecheck+test na svaki push — crveno = popravi.
+- **Env (`.env.local`):** vidi `.env.example` (Supabase, Anthropic, Google
+  OAuth, VAPID push, CRON_SECRET). Tajne ostaju u `process.env` — **nikad u kodu**.
+- **Proizvod DANAS:** strukturiran planer (Danas → Kalendar → Istorija → Uvidi
+  → Alati → Podešavanja). Energetski motor je UKLONJEN (jul 2026) — ne vraćaj
+  energetske koncepte; par legacy kolona u bazi je normalno (vidi AGENTS.md).
 - **Ključne konvencije (poštuj):** AI ključ nikad na klijentu (svi AI pozivi
-  kroz `/api/ai/*`); energija je **`1 = najbolje`** (ne invertuj); mutacije po
-  `id`-u (ne po imenu); sve rute `zod` + standardni `apiOk`/`ERR` iz `lib/api.ts`;
-  datumi kroz `lib/date.ts` (zona `Europe/Belgrade`); optimistički UI + rollback
-  uz `Toast`; svi stringovi i AI promptovi na srpskom; tunables u `lib/config.ts`.
-- **Srž proizvoda:** energetski motor u `lib/plan.ts` (raspoređuje zadatke po
-  energiji i hronotipu) + `lib/energy.ts`.
+  kroz `/api/ai/*`, tool-use + fallback); mutacije po `id`-u (ne po imenu);
+  API rute `zod` + `apiOk`/`ERR` iz `lib/api.ts` + rate limit; klijentske
+  mutacije (tasks/appointments/routines) direktno na Supabase uz RLS +
+  optimistički UI + rollback uz `Toast`; datumi kroz `lib/date.ts` (zona
+  `Europe/Belgrade`); svi stringovi i AI promptovi na srpskom; tunables u
+  `lib/config.ts`; statusne boje kroz `--danger/--warn/--ok` var (dark mode!).
+- **Baza:** `supabase/schema.sql` = svež DB; promene idu kroz
+  `supabase/migrations/` (procedura u tamošnjem README-u). Nedestruktivno.
 - **Windows cert bug** (Node na ovoj mašini): `npm install`/`build` znaju da
   padnu na TLS grešci → workaround sa `--use-openssl-ca` +
-  `NODE_EXTRA_CA_CERTS` (detalji u memoriji projekta). Za HTTP iz skripti
+  `NODE_EXTRA_CA_CERTS` (tačne komande u `AGENTS.md`). Za HTTP iz skripti
   koristi `curl`, ne Node `fetch`.
 - **Pre Next-specifičnog koda:** ovo je Next.js 16 sa breaking promenama —
   proveri `node_modules/next/dist/docs/` (vidi `AGENTS.md`).

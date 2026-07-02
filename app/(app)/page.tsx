@@ -49,10 +49,9 @@ export default async function SetupPage({
 
   // Završen današnji dan → čista "Dan završen" početna (ne baca nazad na /plan).
   if (!isSutra && !isEdit && entry && entry.finished_at) {
-    const [{ data: dayTasks }, { data: transferred }, { data: tomorrowEntry }, { data: finishedRows }] = await Promise.all([
+    const [{ data: dayTasks }, { data: transferred }, { data: finishedRows }] = await Promise.all([
       supabase.from('tasks').select('done').eq('entry_id', entry.id).eq('user_id', user.id),
       supabase.from('transferred_tasks').select('tasks').eq('user_id', user.id).eq('for_date', tomorrowKey()).maybeSingle(),
-      supabase.from('day_entries').select('id').eq('user_id', user.id).eq('date_key', tomorrowKey()).maybeSingle(),
       supabase.from('day_entries').select('date_key').eq('user_id', user.id).not('finished_at', 'is', null).order('date_key', { ascending: false }).limit(60),
     ])
     const total = dayTasks?.length ?? 0

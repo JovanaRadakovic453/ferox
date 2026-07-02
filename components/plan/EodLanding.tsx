@@ -59,7 +59,7 @@ export default function EodLanding({
 
       {recap && (
         <div className="card p-5 lg:p-7">
-          <p className="text-sm lg:text-base italic leading-relaxed" style={{ color: 'var(--text)' }}>"{recap}"</p>
+          <p className="text-sm lg:text-base italic leading-relaxed" style={{ color: 'var(--text)' }}>„{recap}”</p>
         </div>
       )}
 

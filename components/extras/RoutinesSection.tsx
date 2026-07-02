@@ -111,7 +111,7 @@ export default function RoutinesSection({ initialRoutines, userId }: { initialRo
 
       {routines.length === 0 && !formOpen && (
         <p className="text-xs text-center py-4" style={{ color: 'var(--text-muted)' }}>
-          Još nema rutina. Klikni "+ Nova rutina" da napraviš prvu.
+          Još nema rutina. Klikni „+ Nova rutina” da napraviš prvu.
         </p>
       )}
 
