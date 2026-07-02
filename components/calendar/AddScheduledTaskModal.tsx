@@ -239,7 +239,7 @@ export default function AddScheduledTaskModal({
       </div>
 
       {error && (
-        <p className="text-xs" style={{ color: '#ef4444' }}>{error}</p>
+        <p className="text-xs" style={{ color: 'var(--danger)' }}>{error}</p>
       )}
 
       <Button size="md" className="w-full" onClick={submit} loading={submitting} disabled={!name.trim()}>

@@ -115,7 +115,7 @@ export default function LoginPage() {
         </button>
 
         {resetSent && (
-          <p className="text-sm text-center rounded-[10px] px-3 py-2" style={{ background: 'rgba(34,197,94,0.12)', color: '#16a34a' }}>
+          <p className="text-sm text-center rounded-[10px] px-3 py-2" style={{ background: 'var(--ok-tint)', color: 'var(--ok)' }}>
             ✓ Poslali smo ti link za reset lozinke na email
           </p>
         )}

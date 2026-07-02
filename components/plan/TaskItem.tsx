@@ -35,8 +35,8 @@ export default function TaskItem({ task, onToggle, onDelete, zoneName }: { task:
           className="text-[0.65rem] font-semibold px-2 py-0.5 rounded-full shrink-0 mt-0.5 tracking-wide"
           title={PRIORITY_LABELS[task.priority]}
           style={{
-            background: task.priority === 'high' ? '#ef444418' : task.priority === 'medium' ? '#f59e0b18' : '#22c55e18',
-            color: task.priority === 'high' ? '#ef4444' : task.priority === 'medium' ? '#d97706' : '#16a34a',
+            background: task.priority === 'high' ? 'var(--danger-tint)' : task.priority === 'medium' ? 'var(--warn-tint)' : 'var(--ok-tint)',
+            color: task.priority === 'high' ? 'var(--danger)' : task.priority === 'medium' ? 'var(--warn)' : 'var(--ok)',
           }}
         >
           <span aria-hidden>{task.priority === 'high' ? 'V' : task.priority === 'medium' ? 'S' : 'N'}</span>

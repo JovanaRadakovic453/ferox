@@ -389,7 +389,7 @@ export default function SettingsForm({ profile, email, zones: initialZones = [] 
           </div>
           <div className="flex flex-col gap-3">
             <a href="/api/account/export" className="text-sm font-medium" style={{ color: 'var(--gold)' }}>⬇️ Preuzmi sve svoje podatke</a>
-            <button onClick={() => setShowDelete(true)} className="text-sm text-left" style={{ color: '#c0392b' }}>🗑️ Trajno obriši nalog</button>
+            <button onClick={() => setShowDelete(true)} className="text-sm text-left" style={{ color: 'var(--danger)' }}>🗑️ Trajno obriši nalog</button>
             <div className="pt-1"><LogoutButton /></div>
           </div>
         </div>

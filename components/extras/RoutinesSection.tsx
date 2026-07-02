@@ -138,7 +138,7 @@ export default function RoutinesSection({ initialRoutines, userId }: { initialRo
             </div>
             <div className="flex flex-wrap gap-1.5">
               {r.tasks.map((t, i) => (
-                <span key={i} className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--surface1)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
+                <span key={i} className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--surface)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
                   {t.name}
                 </span>
               ))}
@@ -167,7 +167,7 @@ export default function RoutinesSection({ initialRoutines, userId }: { initialRo
 
           <div className="flex flex-col gap-2">
             {draftTasks.map((t, i) => (
-              <div key={i} className="flex flex-col gap-2 p-3 rounded-[var(--r-md)]" style={{ background: 'var(--surface1)', border: '1px solid var(--border)' }}>
+              <div key={i} className="flex flex-col gap-2 p-3 rounded-[var(--r-md)]" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
                 <div className="flex gap-2 items-center">
                   <input
                     value={t.name}

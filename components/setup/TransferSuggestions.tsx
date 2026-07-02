@@ -30,8 +30,8 @@ export default function TransferSuggestions({
         {items.map((t, i) => (
           <div key={i} className="flex items-center gap-3 p-3.5 rounded-[var(--r-md)]" style={{ background: 'var(--surface2)' }}>
             <span className="text-[0.65rem] font-semibold px-2 py-0.5 rounded-full shrink-0" style={{
-              background: t.priority === 'high' ? '#ef444418' : t.priority === 'medium' ? '#f59e0b18' : '#22c55e18',
-              color: t.priority === 'high' ? '#ef4444' : t.priority === 'medium' ? '#d97706' : '#16a34a',
+              background: t.priority === 'high' ? 'var(--danger-tint)' : t.priority === 'medium' ? 'var(--warn-tint)' : 'var(--ok-tint)',
+              color: t.priority === 'high' ? 'var(--danger)' : t.priority === 'medium' ? 'var(--warn)' : 'var(--ok)',
             }}>
               {t.priority === 'high' ? 'V' : t.priority === 'medium' ? 'S' : 'N'}
             </span>

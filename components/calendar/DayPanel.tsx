@@ -25,10 +25,10 @@ function formatDeadlineDate(dateKey: string, today: string): string {
 
 function getDeadlineBadge(deadlineDate: string, today: string): { text: string; color: string } {
   if (deadlineDate < today) {
-    return { text: `Rok: ${formatDeadlineDate(deadlineDate, today)}`, color: '#ef4444' }
+    return { text: `Rok: ${formatDeadlineDate(deadlineDate, today)}`, color: 'var(--danger)' }
   }
   if (deadlineDate === today) {
-    return { text: 'Rok: danas', color: '#f97316' }
+    return { text: 'Rok: danas', color: 'var(--warn)' }
   }
   const diffMs = new Date(`${deadlineDate}T12:00:00Z`).getTime() - new Date(`${today}T12:00:00Z`).getTime()
   const days = Math.round(diffMs / (1000 * 60 * 60 * 24))
@@ -268,10 +268,10 @@ export default function DayPanel({
           {sortedScheduled.some(t => t.deadline_date) && (
             <div className="flex items-center gap-3 mb-2 px-1">
               <span className="text-[0.55rem] font-semibold uppercase tracking-wide shrink-0" style={{ color: 'var(--text-muted)' }}>Rok:</span>
-              <div className="flex items-center gap-1 text-[0.58rem] font-semibold" style={{ color: '#ef4444' }}>
+              <div className="flex items-center gap-1 text-[0.58rem] font-semibold" style={{ color: 'var(--danger)' }}>
                 <span>▲</span><span>prošao</span>
               </div>
-              <div className="flex items-center gap-1 text-[0.58rem] font-semibold" style={{ color: '#f97316' }}>
+              <div className="flex items-center gap-1 text-[0.58rem] font-semibold" style={{ color: 'var(--warn)' }}>
                 <span>▲</span><span>uskoro</span>
               </div>
               <div className="flex items-center gap-1 text-[0.58rem] font-semibold" style={{ color: 'var(--text-muted)' }}>

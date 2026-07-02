@@ -43,7 +43,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               className="pointer-events-auto w-full rounded-[var(--r-md)] px-4 py-3 flex items-center gap-3 text-sm"
               style={{
                 background: 'var(--surface)',
-                border: `1px solid ${t.variant === 'error' ? 'rgba(192,57,43,0.45)' : t.variant === 'success' ? 'rgba(34,197,94,0.45)' : 'var(--border)'}`,
+                border: `1px solid ${t.variant === 'error' ? 'color-mix(in srgb, var(--danger) 45%, transparent)' : t.variant === 'success' ? 'color-mix(in srgb, var(--ok) 45%, transparent)' : 'var(--border)'}`,
                 boxShadow: 'var(--sh-lg)',
                 color: 'var(--text)',
               }}

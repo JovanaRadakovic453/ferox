@@ -4,7 +4,7 @@ import SetupScreen from '@/components/setup/SetupScreen'
 import EodLanding from '@/components/plan/EodLanding'
 import { todayKey, tomorrowKey } from '@/lib/date'
 import { computeStreak } from '@/lib/streak'
-import type { UserProfile, Task, Appointment } from '@/types/ferox'
+import type { UserProfile, Task, Appointment, Zone } from '@/types/ferox'
 
 export default async function SetupPage({
   searchParams,
@@ -77,14 +77,21 @@ export default async function SetupPage({
     )
   }
 
-  // Streak za SetupScreen
-  const { data: finishedForStreak } = await supabase
-    .from('day_entries')
-    .select('date_key')
-    .eq('user_id', user.id)
-    .not('finished_at', 'is', null)
-    .order('date_key', { ascending: false })
-    .limit(60)
+  // Streak + zone za SetupScreen (zone idu server-side — bez klijentskog waterfall-a)
+  const [{ data: finishedForStreak }, { data: zoneRows }] = await Promise.all([
+    supabase
+      .from('day_entries')
+      .select('date_key')
+      .eq('user_id', user.id)
+      .not('finished_at', 'is', null)
+      .order('date_key', { ascending: false })
+      .limit(60),
+    supabase
+      .from('zones')
+      .select('id, name, icon, position')
+      .eq('user_id', user.id)
+      .order('position'),
+  ])
   const finishedSetForStreak = new Set((finishedForStreak ?? []).map(r => r.date_key as string))
   const streak = computeStreak(finishedSetForStreak, profile.rest_days ?? [0, 6], todayKey())
 
@@ -162,6 +169,7 @@ export default async function SetupPage({
       showTransferBanner={showTransferBanner}
       scheduledTaskIds={scheduledTaskIds}
       streak={streak}
+      zones={(zoneRows ?? []) as Zone[]}
     />
   )
 }

@@ -229,7 +229,7 @@ export default function EditScheduledTaskModal({
       </div>
 
       {error && (
-        <p className="text-xs" style={{ color: '#ef4444' }}>{error}</p>
+        <p className="text-xs" style={{ color: 'var(--danger)' }}>{error}</p>
       )}
 
       <Button size="md" className="w-full" onClick={save} loading={saving} disabled={!name.trim()}>
@@ -240,7 +240,7 @@ export default function EditScheduledTaskModal({
         onClick={remove}
         disabled={deleting}
         className="w-full py-2.5 text-sm font-medium rounded-[var(--r-md)] transition-colors disabled:opacity-50"
-        style={{ color: '#ef4444', background: 'rgba(239,68,68,0.08)' }}
+        style={{ color: 'var(--danger)', background: 'var(--danger-tint)' }}
       >
         {deleting ? 'Brišem...' : '🗑️ Obriši zadatak'}
       </button>

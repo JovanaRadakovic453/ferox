@@ -20,20 +20,27 @@ export default function EodLanding({
 }) {
   const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0
   const [recap, setRecap] = useState<string | null>(eodRecap)
+  const [recapFailed, setRecapFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     if (recap) return
     let cancelled = false
+    setRecapFailed(false)
     fetch('/api/ai/eod', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ dateKey }),
     })
       .then(r => (r.ok ? r.json() : null))
-      .then(d => { if (!cancelled && d?.recap) setRecap(d.recap) })
-      .catch(() => {})
+      .then(d => {
+        if (cancelled) return
+        if (d?.recap) setRecap(d.recap)
+        else setRecapFailed(true)
+      })
+      .catch(() => { if (!cancelled) setRecapFailed(true) })
     return () => { cancelled = true }
-  }, [recap, dateKey])
+  }, [recap, dateKey, attempt])
 
   return (
     <main className="flex flex-col gap-6 lg:gap-7 pb-2 lg:max-w-2xl lg:mx-auto lg:w-full">
@@ -53,6 +60,21 @@ export default function EodLanding({
       {recap && (
         <div className="card p-5 lg:p-7">
           <p className="text-sm lg:text-base italic leading-relaxed" style={{ color: 'var(--text)' }}>"{recap}"</p>
+        </div>
+      )}
+
+      {!recap && recapFailed && (
+        <div className="card p-5 flex items-center justify-between gap-3">
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+            Rezime dana trenutno nije dostupan.
+          </p>
+          <button
+            onClick={() => setAttempt(a => a + 1)}
+            className="text-sm font-semibold shrink-0 transition-opacity hover:opacity-75"
+            style={{ color: 'var(--gold)' }}
+          >
+            Pokušaj ponovo
+          </button>
         </div>
       )}
 

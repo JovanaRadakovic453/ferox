@@ -13,7 +13,7 @@ import TaskEditor from '@/components/setup/TaskEditor'
 import AppointmentEditor from '@/components/setup/AppointmentEditor'
 import PreviewRail from '@/components/setup/PreviewRail'
 
-export default function SetupScreen({ profile, targetDate, transferredTasks = [], initialAppointments = [], showTransferBanner = false, scheduledTaskIds = [], streak = 0 }: { profile: UserProfile; targetDate?: string; transferredTasks?: Task[]; initialAppointments?: Appointment[]; showTransferBanner?: boolean; scheduledTaskIds?: string[]; streak?: number }) {
+export default function SetupScreen({ profile, targetDate, transferredTasks = [], initialAppointments = [], showTransferBanner = false, scheduledTaskIds = [], streak = 0, zones = [] }: { profile: UserProfile; targetDate?: string; transferredTasks?: Task[]; initialAppointments?: Appointment[]; showTransferBanner?: boolean; scheduledTaskIds?: string[]; streak?: number; zones?: Zone[] }) {
   const [tasks, setTasks] = useState<Task[]>(showTransferBanner ? [] : transferredTasks)
   const [suggestedTransfers, setSuggestedTransfers] = useState<Task[]>(showTransferBanner ? transferredTasks : [])
   const [appointments, setAppointments] = useState<Appointment[]>(showTransferBanner ? [] : initialAppointments)
@@ -21,17 +21,11 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [resetting, setResetting] = useState(false)
   const [brainDumpLoading, setBrainDumpLoading] = useState(false)
-  const [zones, setZones] = useState<Zone[]>([])
 
   type GoogleEvent = { id: string; title: string; time: string | null; endTime: string | null }
   const [googleEvents, setGoogleEvents] = useState<GoogleEvent[]>([])
   const [googleAdded, setGoogleAdded] = useState<Set<string>>(new Set())
   const [googleNeedsReconnect, setGoogleNeedsReconnect] = useState(false)
-
-  useEffect(() => {
-    createClient().from('zones').select('id, name, icon, position').order('position')
-      .then(({ data }) => { if (data && data.length > 0) setZones(data as Zone[]) })
-  }, [])
 
   useEffect(() => {
     if (!profile.google_refresh_token) return
@@ -315,8 +309,8 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
 
             {submitError && (
               <div className="rounded-[var(--r-md)] px-4 py-3 text-sm" style={{
-                background: submitError.startsWith('✅') ? 'rgba(34,197,94,0.12)' : 'rgba(192,57,43,0.10)',
-                color: submitError.startsWith('✅') ? '#16a34a' : '#c0392b',
+                background: submitError.startsWith('✅') ? 'var(--ok-tint)' : 'var(--danger-tint)',
+                color: submitError.startsWith('✅') ? 'var(--ok)' : 'var(--danger)',
               }}>
                 {submitError}
               </div>

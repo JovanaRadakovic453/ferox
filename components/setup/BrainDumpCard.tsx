@@ -90,7 +90,7 @@ export default function BrainDumpCard({
         }
       />
       {success !== null && (
-        <div className="rounded-[var(--r-md)] px-4 py-2.5 text-sm" style={{ background: 'rgba(34,197,94,0.12)', color: '#16a34a' }}>
+        <div className="rounded-[var(--r-md)] px-4 py-2.5 text-sm" style={{ background: 'var(--ok-tint)', color: 'var(--ok)' }}>
           ✓ {success} {success === 1 ? 'zadatak dodat' : 'zadataka dodato'} u listu ispod
         </div>
       )}
@@ -108,7 +108,7 @@ export default function BrainDumpCard({
             className="field p-3.5 text-sm resize-none"
           />
           {error && (
-            <p className="text-xs px-1" style={{ color: '#c0392b' }}>Greška: {error}</p>
+            <p className="text-xs px-1" style={{ color: 'var(--danger)' }}>Greška: {error}</p>
           )}
           <div className="flex gap-2">
             <Button size="sm" onClick={handle} loading={loading}

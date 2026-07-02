@@ -64,14 +64,8 @@ export default function PlanScreen({
   const [showReplan, setShowReplan] = useState(false)
   const [routines, setRoutines] = useState<Routine[]>([])
   const [activeReminder, setActiveReminder] = useState<{ name: string; time: string; minutesBefore: number } | null>(null)
-  const [zoneList, setZoneList] = useState<Zone[]>(zones)
-
-  useEffect(() => {
-    fetch('/api/zones')
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (Array.isArray(d) && d.length) setZoneList(d as Zone[]) })
-      .catch(() => {})
-  }, [])
+  // Zone stižu server-side iz plan/page.tsx (force-dynamic → uvek sveže).
+  const zoneList = zones
 
   const REMINDER_KEY = `ferox-shown-reminders-${entry.date_key}`
 
@@ -506,10 +500,10 @@ export default function PlanScreen({
 
       {/* Upozorenje: zakazani zadaci sa isteklim ili današnjim rokom */}
       {isToday && overdueDeadlineCount > 0 && !dayFinished && (
-        <div className="rounded-[var(--r-md)] px-4 py-3 flex items-center gap-3" style={{ background: 'color-mix(in srgb, #ef4444 8%, transparent)', border: '1px solid color-mix(in srgb, #ef4444 20%, transparent)' }}>
+        <div className="rounded-[var(--r-md)] px-4 py-3 flex items-center gap-3" style={{ background: 'var(--danger-tint)', border: '1px solid color-mix(in srgb, var(--danger) 20%, transparent)' }}>
           <span className="text-xl shrink-0">⚠️</span>
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            <span style={{ color: '#ef4444', fontWeight: 600 }}>{overdueDeadlineCount} zakazan{overdueDeadlineCount === 1 ? '' : 'a'} zadatak{overdueDeadlineCount === 1 ? '' : 'a'}</span> ima rok koji danas ističe ili je već prošao
+            <span style={{ color: 'var(--danger)', fontWeight: 600 }}>{overdueDeadlineCount} zakazan{overdueDeadlineCount === 1 ? '' : 'a'} zadatak{overdueDeadlineCount === 1 ? '' : 'a'}</span> ima rok koji danas ističe ili je već prošao
           </p>
         </div>
       )}
