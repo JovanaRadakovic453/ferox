@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { apiOk, ERR } from '@/lib/api'
 import { z } from 'zod'
+import { RATE_LIMITS } from '@/lib/config'
+import { checkRateLimit } from '@/lib/rateLimit'
 
 const schema = z.object({
   subscription: z.object({
@@ -17,6 +19,9 @@ export async function POST(request: Request) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return ERR.unauthorized()
+
+  const rl = RATE_LIMITS.notifications
+  if (!(await checkRateLimit(supabase, 'notifications', rl.limit, rl.windowSec))) return ERR.rateLimited()
 
   const json = await request.json().catch(() => null)
   const parsed = schema.safeParse(json)

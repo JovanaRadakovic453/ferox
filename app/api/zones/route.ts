@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import type { NextRequest } from 'next/server'
 import { apiOk, ERR } from '@/lib/api'
 import { z } from 'zod'
+import { RATE_LIMITS } from '@/lib/config'
+import { checkRateLimit } from '@/lib/rateLimit'
 
 const createSchema = z.object({
   name: z.string().trim().min(1).max(50),
@@ -28,6 +30,9 @@ export async function POST(request: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return ERR.unauthorized()
+
+  const rl = RATE_LIMITS.zonesWrite
+  if (!(await checkRateLimit(supabase, 'zones-write', rl.limit, rl.windowSec))) return ERR.rateLimited()
 
   const json = await request.json().catch(() => null)
   const parsed = createSchema.safeParse(json)

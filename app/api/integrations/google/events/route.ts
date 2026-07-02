@@ -1,8 +1,14 @@
 import { createClient } from '@/lib/supabase/server'
 import { apiOk, ERR } from '@/lib/api'
 import type { NextRequest } from 'next/server'
+import { RATE_LIMITS } from '@/lib/config'
+import { checkRateLimit } from '@/lib/rateLimit'
 
-async function refreshAccessToken(refreshToken: string): Promise<{ access_token: string; expires_at: string } | null> {
+type RefreshResult =
+  | { ok: true; access_token: string; expires_at: string }
+  | { ok: false; status: number }
+
+async function refreshAccessToken(refreshToken: string): Promise<RefreshResult> {
   const res = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -12,10 +18,12 @@ async function refreshAccessToken(refreshToken: string): Promise<{ access_token:
       refresh_token: refreshToken,
       grant_type: 'refresh_token',
     }),
-  })
-  if (!res.ok) return null
+  }).catch(() => null)
+  if (!res) return { ok: false, status: 0 }
+  if (!res.ok) return { ok: false, status: res.status }
   const data = await res.json()
   return {
+    ok: true,
     access_token: data.access_token,
     expires_at: new Date(Date.now() + data.expires_in * 1000).toISOString(),
   }
@@ -28,6 +36,9 @@ export async function GET(request: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return ERR.unauthorized()
+
+  const rl = RATE_LIMITS.googleEvents
+  if (!(await checkRateLimit(supabase, 'google-events', rl.limit, rl.windowSec))) return ERR.rateLimited()
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -43,7 +54,21 @@ export async function GET(request: NextRequest) {
 
   if (needsRefresh) {
     const refreshed = await refreshAccessToken(profile.google_refresh_token)
-    if (!refreshed) return apiOk({ events: [] })
+    if (!refreshed.ok) {
+      // 400/401 = refresh token opozvan/istekao → očisti vezu i reci klijentu da se ponovo poveže.
+      if (refreshed.status === 400 || refreshed.status === 401) {
+        console.error('google events: refresh token nevažeći, brišem vezu', user.id)
+        await supabase.from('profiles').update({
+          google_access_token: null,
+          google_refresh_token: null,
+          google_token_expires_at: null,
+        }).eq('id', user.id)
+        return apiOk({ events: [], needsReconnect: true })
+      }
+      // Tranzijentna greška (mreža/5xx) — NE diramo tokene.
+      console.error('google events: refresh nije uspeo (tranzijentno)', user.id, refreshed.status)
+      return apiOk({ events: [], degraded: true })
+    }
     accessToken = refreshed.access_token
     await supabase.from('profiles').update({
       google_access_token: refreshed.access_token,
@@ -65,7 +90,10 @@ export async function GET(request: NextRequest) {
     { headers: { Authorization: `Bearer ${accessToken}` } }
   )
 
-  if (!calRes.ok) return apiOk({ events: [] })
+  if (!calRes.ok) {
+    console.error('google events: calendar API greška', user.id, calRes.status)
+    return apiOk({ events: [], degraded: true })
+  }
 
   const calData = await calRes.json()
   const events = (calData.items ?? []).map((e: Record<string, unknown>) => {

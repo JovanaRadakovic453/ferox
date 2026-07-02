@@ -7,12 +7,15 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return ERR.unauthorized()
 
-  const [profile, days, tasks, appointments, transferred] = await Promise.all([
+  const [profile, days, tasks, appointments, transferred, zones, scheduled, routines] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
     supabase.from('day_entries').select('*').eq('user_id', user.id),
     supabase.from('tasks').select('*').eq('user_id', user.id),
     supabase.from('appointments').select('*').eq('user_id', user.id),
     supabase.from('transferred_tasks').select('*').eq('user_id', user.id),
+    supabase.from('zones').select('*').eq('user_id', user.id),
+    supabase.from('scheduled_tasks').select('*').eq('user_id', user.id),
+    supabase.from('routines').select('*').eq('user_id', user.id),
   ])
 
   const payload = {
@@ -23,6 +26,9 @@ export async function GET() {
     tasks: tasks.data ?? [],
     appointments: appointments.data ?? [],
     transferred_tasks: transferred.data ?? [],
+    zones: zones.data ?? [],
+    scheduled_tasks: scheduled.data ?? [],
+    routines: routines.data ?? [],
   }
 
   return new Response(JSON.stringify(payload, null, 2), {

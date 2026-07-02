@@ -3,14 +3,20 @@ import type { NextRequest } from 'next/server'
 import { apiOk, ERR } from '@/lib/api'
 import { z } from 'zod'
 import { zStrictDate, zPriority } from '@/lib/validation'
+import { todayKey } from '@/lib/date'
+import { RATE_LIMITS } from '@/lib/config'
+import { checkRateLimit } from '@/lib/rateLimit'
+
+// Podsetnik najviše 28 dana unapred (40320 min) — realan prozor, ne 99 dana.
+const REMIND_MAX_MINUTES = 40320
 
 const createSchema = z.object({
   name: z.string().trim().min(1).max(120),
   priority: zPriority.default('medium'),
   note: z.string().max(500).default(''),
-  for_date: zStrictDate,
-  remind_before_minutes: z.number().int().min(1).max(142560).nullable().default(null),
-  deadline_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().default(null),
+  for_date: zStrictDate.refine(d => d >= todayKey(), 'Datum ne može biti u prošlosti'),
+  remind_before_minutes: z.number().int().min(1).max(REMIND_MAX_MINUTES).nullable().default(null),
+  deadline_date: zStrictDate.nullable().default(null),
   zone_id: z.string().uuid().nullable().default(null),
 })
 
@@ -41,6 +47,9 @@ export async function POST(request: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return ERR.unauthorized()
+
+  const rl = RATE_LIMITS.scheduledWrite
+  if (!(await checkRateLimit(supabase, 'scheduled-write', rl.limit, rl.windowSec))) return ERR.rateLimited()
 
   const json = await request.json().catch(() => null)
   const parsed = createSchema.safeParse(json)

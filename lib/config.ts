@@ -74,6 +74,12 @@ export const RATE_LIMITS = {
   eod: { limit: 10, windowSec: 60 },
   insights: { limit: 10, windowSec: 300 },
   accountDelete: { limit: 3, windowSec: 86400 },
+  /** CRUD mutacije (zaštita od DB bloat-a; GET liste ostaju bez limita). */
+  zonesWrite: { limit: 30, windowSec: 60 },
+  scheduledWrite: { limit: 30, windowSec: 60 },
+  notifications: { limit: 10, windowSec: 60 },
+  /** Google Calendar proxy — štiti Google API kvotu aplikacije. */
+  googleEvents: { limit: 30, windowSec: 60 },
 } as const
 
 /** Statički identitet aplikacije / metapodaci. */

@@ -1,11 +1,16 @@
 import webpush from 'web-push'
 import { createClient } from '@/lib/supabase/server'
 import { apiOk, ERR } from '@/lib/api'
+import { RATE_LIMITS } from '@/lib/config'
+import { checkRateLimit } from '@/lib/rateLimit'
 
 export async function POST() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return ERR.unauthorized()
+
+  const rl = RATE_LIMITS.notifications
+  if (!(await checkRateLimit(supabase, 'notifications', rl.limit, rl.windowSec))) return ERR.rateLimited()
 
   const { data: profile } = await supabase
     .from('profiles')

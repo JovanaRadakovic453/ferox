@@ -2,14 +2,19 @@ import { createClient } from '@/lib/supabase/server'
 import type { NextRequest } from 'next/server'
 import { apiOk, ERR } from '@/lib/api'
 import { z } from 'zod'
-import { zPriority } from '@/lib/validation'
+import { zPriority, zStrictDate } from '@/lib/validation'
+import { RATE_LIMITS } from '@/lib/config'
+import { checkRateLimit } from '@/lib/rateLimit'
+
+// Isti cap kao u POST ruti (28 dana).
+const REMIND_MAX_MINUTES = 40320
 
 const updateSchema = z.object({
   name: z.string().trim().min(1).max(120).optional(),
   priority: zPriority.optional(),
   note: z.string().max(500).optional(),
-  remind_before_minutes: z.number().int().min(1).max(142560).nullable().optional(),
-  deadline_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  remind_before_minutes: z.number().int().min(1).max(REMIND_MAX_MINUTES).nullable().optional(),
+  deadline_date: zStrictDate.nullable().optional(),
   zone_id: z.string().uuid().nullable().optional(),
 })
 
@@ -20,6 +25,9 @@ export async function PATCH(
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return ERR.unauthorized()
+
+  const rl = RATE_LIMITS.scheduledWrite
+  if (!(await checkRateLimit(supabase, 'scheduled-write', rl.limit, rl.windowSec))) return ERR.rateLimited()
 
   const { id } = await params
   const json = await request.json().catch(() => null)
@@ -45,6 +53,9 @@ export async function DELETE(
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return ERR.unauthorized()
+
+  const rl = RATE_LIMITS.scheduledWrite
+  if (!(await checkRateLimit(supabase, 'scheduled-write', rl.limit, rl.windowSec))) return ERR.rateLimited()
 
   const { id } = await params
   const { error } = await supabase

@@ -27,6 +27,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
   type GoogleEvent = { id: string; title: string; time: string | null; endTime: string | null }
   const [googleEvents, setGoogleEvents] = useState<GoogleEvent[]>([])
   const [googleAdded, setGoogleAdded] = useState<Set<string>>(new Set())
+  const [googleNeedsReconnect, setGoogleNeedsReconnect] = useState(false)
 
   useEffect(() => {
     createClient().from('zones').select('id, name, icon, position').order('position')
@@ -38,7 +39,10 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
     const date = targetDate ?? todayKey()
     fetch(`/api/integrations/google/events?date=${date}`)
       .then(r => r.ok ? r.json() : null)
-      .then(json => { if (json?.events?.length) setGoogleEvents(json.events) })
+      .then(json => {
+        if (json?.needsReconnect) setGoogleNeedsReconnect(true)
+        if (json?.events?.length) setGoogleEvents(json.events)
+      })
       .catch(() => {})
   }, [targetDate, profile.google_refresh_token])
   const isSutraMode = targetDate !== undefined && targetDate !== todayKey()
@@ -256,6 +260,21 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
             )}
 
             <TaskEditor tasks={tasks} onAdd={addTask} onRemove={i => setTasks(prev => prev.filter((_, idx) => idx !== i))} zones={zones} />
+
+            {googleNeedsReconnect && (
+              <div className="card p-4 flex items-center justify-between gap-3" style={{ border: '1px solid var(--hairline)' }}>
+                <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                  Google Kalendar veza je istekla — poveži ponovo u Podešavanjima.
+                </span>
+                <Link
+                  href="/settings"
+                  className="shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full"
+                  style={{ background: 'var(--gold-tint)', color: 'var(--gold)', border: '1px solid var(--gold)' }}
+                >
+                  Podešavanja →
+                </Link>
+              </div>
+            )}
 
             {googleEvents.length > 0 && googleEvents.some(e => !googleAdded.has(e.id)) && (
               <div className="card p-4 flex flex-col gap-3" style={{ border: '1px solid var(--hairline)' }}>
