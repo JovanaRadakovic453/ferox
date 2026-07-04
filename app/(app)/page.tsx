@@ -151,12 +151,23 @@ export default async function SetupPage({
     ])
     const filtered = ((transferred?.tasks ?? []) as Task[]).filter((t: Task) => !t.done)
     const scheduled = (scheduledRows ?? []) as (Task & { id: string })[]
-    initialTasks = [
-      ...filtered,
-      ...scheduled.map(t => ({ name: t.name, priority: t.priority, type: t.type ?? 'light', note: t.note ?? '', done: false, zone_id: t.zone_id ?? null })),
-    ]
+    const scheduledMapped = scheduled.map(t => ({ name: t.name, priority: t.priority, type: t.type ?? 'light', note: t.note ?? '', done: false, zone_id: t.zone_id ?? null }))
+    initialTasks = filtered
     scheduledTaskIds = scheduled.map(t => t.id)
-    showTransferBanner = initialTasks.length > 0
+    showTransferBanner = filtered.length > 0 || scheduledMapped.length > 0
+    return (
+      <SetupScreen
+        profile={profile as UserProfile}
+        targetDate={targetDate}
+        transferredTasks={initialTasks}
+        scheduledSuggestions={scheduledMapped}
+        initialAppointments={initialAppointments}
+        showTransferBanner={showTransferBanner}
+        scheduledTaskIds={scheduledTaskIds}
+        streak={streak}
+        zones={(zoneRows ?? []) as Zone[]}
+      />
+    )
   }
 
   return (

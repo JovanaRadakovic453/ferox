@@ -1,21 +1,21 @@
-import { TASK_TYPE_LABELS } from '@/types/ferox'
 import type { Task } from '@/types/ferox'
 import { SectionHeader } from '@/components/setup/primitives'
 
-// Predloženi zadaci iz prethodnog dana (opt-in). Parent drži listu.
 export default function TransferSuggestions({
-  items, onAddAll, onAddOne, onDismiss,
+  items, onAddAll, onAddOne, onDismiss, title = 'Iz prethodnog dana', icon = '📋',
 }: {
   items: Task[]
   onAddAll: () => void
   onAddOne: (index: number) => void
   onDismiss: (index: number) => void
+  title?: string
+  icon?: string
 }) {
   return (
     <section className="card p-7 flex flex-col gap-6">
       <SectionHeader
-        icon="📋"
-        title="Iz prethodnog dana"
+        icon={icon}
+        title={title}
         trailing={
           <button
             onClick={onAddAll}
@@ -37,7 +37,7 @@ export default function TransferSuggestions({
             </span>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{t.name}</p>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{TASK_TYPE_LABELS[t.type]}</p>
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{t.priority === 'high' ? 'Visok prioritet' : t.priority === 'medium' ? 'Srednji prioritet' : 'Nizak prioritet'}</p>
             </div>
             <button
               onClick={() => onAddOne(i)}

@@ -13,9 +13,10 @@ import TaskEditor from '@/components/setup/TaskEditor'
 import AppointmentEditor from '@/components/setup/AppointmentEditor'
 import PreviewRail from '@/components/setup/PreviewRail'
 
-export default function SetupScreen({ profile, targetDate, transferredTasks = [], initialAppointments = [], showTransferBanner = false, scheduledTaskIds = [], streak = 0, zones = [] }: { profile: UserProfile; targetDate?: string; transferredTasks?: Task[]; initialAppointments?: Appointment[]; showTransferBanner?: boolean; scheduledTaskIds?: string[]; streak?: number; zones?: Zone[] }) {
+export default function SetupScreen({ profile, targetDate, transferredTasks = [], scheduledSuggestions = [], initialAppointments = [], showTransferBanner = false, scheduledTaskIds = [], streak = 0, zones = [] }: { profile: UserProfile; targetDate?: string; transferredTasks?: Task[]; scheduledSuggestions?: Task[]; initialAppointments?: Appointment[]; showTransferBanner?: boolean; scheduledTaskIds?: string[]; streak?: number; zones?: Zone[] }) {
   const [tasks, setTasks] = useState<Task[]>(showTransferBanner ? [] : transferredTasks)
   const [suggestedTransfers, setSuggestedTransfers] = useState<Task[]>(showTransferBanner ? transferredTasks : [])
+  const [suggestedScheduled, setSuggestedScheduled] = useState<Task[]>(showTransferBanner ? scheduledSuggestions : [])
   const [appointments, setAppointments] = useState<Appointment[]>(showTransferBanner ? [] : initialAppointments)
   const [loading, setLoading] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -53,31 +54,47 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
     if (extracted.length) setTasks(prev => [...prev, ...extracted])
     if (extractedAppts.length) setAppointments(prev => [...prev, ...extractedAppts])
   }
-  function clearTransfersFromDB() {
+  function clearTransferredFromDB() {
     if (!profile.id) return
-    const date = targetDate ?? todayKey()
-    const supabase = createClient()
-    Promise.all([
-      supabase.from('transferred_tasks').delete().eq('user_id', profile.id).eq('for_date', date),
-      supabase.from('scheduled_tasks').update({ done: true }).eq('user_id', profile.id).eq('for_date', date).eq('done', false),
-    ]).then(() => {})
+    createClient().from('transferred_tasks').delete().eq('user_id', profile.id).eq('for_date', targetDate ?? todayKey()).then(() => {})
+  }
+  function clearScheduledFromDB() {
+    if (!profile.id) return
+    createClient().from('scheduled_tasks').update({ done: true }).eq('user_id', profile.id).eq('for_date', targetDate ?? todayKey()).eq('done', false).then(() => {})
   }
   function addAllSuggested() {
     setTasks(prev => [...prev, ...suggestedTransfers])
     setSuggestedTransfers([])
-    clearTransfersFromDB()
+    clearTransferredFromDB()
   }
   function addSuggested(index: number) {
     const t = suggestedTransfers[index]
     setTasks(prev => [...prev, t])
     const remaining = suggestedTransfers.filter((_, i) => i !== index)
     setSuggestedTransfers(remaining)
-    if (remaining.length === 0) clearTransfersFromDB()
+    if (remaining.length === 0) clearTransferredFromDB()
   }
   function dismissSuggested(index: number) {
     const remaining = suggestedTransfers.filter((_, i) => i !== index)
     setSuggestedTransfers(remaining)
-    if (remaining.length === 0) clearTransfersFromDB()
+    if (remaining.length === 0) clearTransferredFromDB()
+  }
+  function addAllScheduled() {
+    setTasks(prev => [...prev, ...suggestedScheduled])
+    setSuggestedScheduled([])
+    clearScheduledFromDB()
+  }
+  function addScheduled(index: number) {
+    const t = suggestedScheduled[index]
+    setTasks(prev => [...prev, t])
+    const remaining = suggestedScheduled.filter((_, i) => i !== index)
+    setSuggestedScheduled(remaining)
+    if (remaining.length === 0) clearScheduledFromDB()
+  }
+  function dismissScheduled(index: number) {
+    const remaining = suggestedScheduled.filter((_, i) => i !== index)
+    setSuggestedScheduled(remaining)
+    if (remaining.length === 0) clearScheduledFromDB()
   }
 
   async function resetDay() {
@@ -262,6 +279,19 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
                 onAddAll={addAllSuggested}
                 onAddOne={addSuggested}
                 onDismiss={dismissSuggested}
+                title="Iz prethodnog dana"
+                icon="📋"
+              />
+            )}
+
+            {suggestedScheduled.length > 0 && (
+              <TransferSuggestions
+                items={suggestedScheduled}
+                onAddAll={addAllScheduled}
+                onAddOne={addScheduled}
+                onDismiss={dismissScheduled}
+                title="Zakazani zadaci"
+                icon="📅"
               />
             )}
 

@@ -318,6 +318,7 @@ export default function DayPanel({
         onClose={() => setEditingTask(null)}
         onUpdate={updated => { handleUpdate(updated); setEditingTask(null) }}
         onDelete={id => { onRemoveTask(id); setEditingTask(null) }}
+        zones={zones}
       />
     </div>
   )
