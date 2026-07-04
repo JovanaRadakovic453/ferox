@@ -100,20 +100,12 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
   async function resetDay() {
     if (!window.confirm('Obrisati sve podatke za danas i početi ispočetka?')) return
     setResetting(true)
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { setResetting(false); return }
     const dateKey = targetDate ?? todayKey()
-    const { data: existing } = await supabase
-      .from('day_entries').select('id').eq('user_id', user.id).eq('date_key', dateKey).maybeSingle()
-    if (existing) {
-      await supabase.from('tasks').delete().eq('user_id', user.id).eq('entry_id', existing.id)
-      await supabase.from('day_entries').delete().eq('user_id', user.id).eq('id', existing.id)
-    }
-    await supabase.from('appointments').delete().eq('user_id', user.id).eq('date_key', dateKey)
-    await supabase.from('transferred_tasks').delete().eq('user_id', user.id).eq('for_date', dateKey)
-    await supabase.from('scheduled_tasks').update({ done: false }).eq('user_id', user.id).eq('for_date', dateKey)
-    setResetting(false)
+    await fetch('/api/day/reset', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dateKey }),
+    })
     window.location.reload()
   }
 
