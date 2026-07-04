@@ -55,9 +55,12 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
   }
   function clearTransfersFromDB() {
     if (!profile.id) return
-    createClient().from('transferred_tasks').delete()
-      .eq('user_id', profile.id).eq('for_date', targetDate ?? todayKey())
-      .then(() => {})
+    const date = targetDate ?? todayKey()
+    const supabase = createClient()
+    Promise.all([
+      supabase.from('transferred_tasks').delete().eq('user_id', profile.id).eq('for_date', date),
+      supabase.from('scheduled_tasks').update({ done: true }).eq('user_id', profile.id).eq('for_date', date).eq('done', false),
+    ]).then(() => {})
   }
   function addAllSuggested() {
     setTasks(prev => [...prev, ...suggestedTransfers])
