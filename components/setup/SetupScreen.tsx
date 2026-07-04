@@ -22,8 +22,9 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
   const [resetting, setResetting] = useState(false)
   const [brainDumpLoading, setBrainDumpLoading] = useState(false)
 
-  // Nedovršen plan (draft): zadaci/termini/predlozi se pamte u pregledaču dok se ne
-  // klikne "Napravi plan". Tako preživljavaju odlazak na drugu stranicu i osvežavanje.
+  // Nedovršen plan (draft): pamte se SAMO korisnikovi zadaci i termini (njegov rad),
+  // da prežive odlazak na drugu stranicu / osvežavanje. Predlozi (preneseni i zakazani)
+  // uvek dolaze sveži sa servera — ne pamte se, da stari draft ne bi sakrio nove predloge.
   const draftKey = `ferox-draft-${targetDate ?? todayKey()}`
   const [hydrated, setHydrated] = useState(false)
 
@@ -31,11 +32,18 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
     try {
       const raw = localStorage.getItem(draftKey)
       if (raw) {
-        const d = JSON.parse(raw) as { tasks?: Task[]; appointments?: Appointment[]; suggestedTransfers?: Task[]; suggestedScheduled?: Task[] }
-        if (d.tasks) setTasks(d.tasks)
-        if (d.appointments) setAppointments(d.appointments)
-        if (d.suggestedTransfers) setSuggestedTransfers(d.suggestedTransfers)
-        if (d.suggestedScheduled) setSuggestedScheduled(d.suggestedScheduled)
+        const d = JSON.parse(raw) as { tasks?: Task[]; appointments?: Appointment[] }
+        const dTasks = d.tasks ?? []
+        const dAppts = d.appointments ?? []
+        if (dTasks.length) setTasks(dTasks)
+        if (dAppts.length) setAppointments(dAppts)
+        // Ukloni iz predloga stavke koje je korisnik već ubacio u editor (po nazivu),
+        // da se ne pojave dvaput.
+        const taskNames = new Set(dTasks.map(t => t.name))
+        if (taskNames.size) {
+          setSuggestedTransfers(prev => prev.filter(t => !taskNames.has(t.name)))
+          setSuggestedScheduled(prev => prev.filter(t => !taskNames.has(t.name)))
+        }
       }
     } catch { /* localStorage nedostupan — radi bez drafta */ }
     setHydrated(true)
@@ -44,9 +52,9 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
   useEffect(() => {
     if (!hydrated) return
     try {
-      localStorage.setItem(draftKey, JSON.stringify({ tasks, appointments, suggestedTransfers, suggestedScheduled }))
+      localStorage.setItem(draftKey, JSON.stringify({ tasks, appointments }))
     } catch { /* ignore */ }
-  }, [hydrated, draftKey, tasks, appointments, suggestedTransfers, suggestedScheduled])
+  }, [hydrated, draftKey, tasks, appointments])
 
   type GoogleEvent = { id: string; title: string; time: string | null; endTime: string | null }
   const [googleEvents, setGoogleEvents] = useState<GoogleEvent[]>([])
@@ -156,6 +164,10 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
 
   const totalItems = tasks.length + appointments.length
   const canSubmit = totalItems > 0 && !brainDumpLoading
+
+  // Google događaji koji još nisu dodati (ni u ovoj sesiji, ni ranije kao termin).
+  const apptNames = new Set(appointments.map(a => a.name))
+  const visibleGoogleEvents = googleEvents.filter(e => !googleAdded.has(e.id) && !apptNames.has(e.title))
 
   const hour = new Date().getHours()
   const dayPart = hour < 5 ? 'Dobro veče' : hour < 12 ? 'Dobro jutro' : hour < 18 ? 'Dobar dan' : 'Dobro veče'
@@ -314,7 +326,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
               </div>
             )}
 
-            {googleEvents.length > 0 && googleEvents.some(e => !googleAdded.has(e.id)) && (
+            {visibleGoogleEvents.length > 0 && (
               <div className="card p-4 flex flex-col gap-3" style={{ border: '1px solid var(--hairline)' }}>
                 <div className="flex items-center gap-2">
                   <svg width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -325,7 +337,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
                   </svg>
                   <span className="section-label">Iz Google Kalendara</span>
                 </div>
-                {googleEvents.filter(e => !googleAdded.has(e.id)).map(event => (
+                {visibleGoogleEvents.map(event => (
                   <div key={event.id} className="flex items-center justify-between gap-3">
                     <div className="flex flex-col">
                       <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>{event.title}</span>
