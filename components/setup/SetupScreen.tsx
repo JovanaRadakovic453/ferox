@@ -95,6 +95,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
     }
     await supabase.from('appointments').delete().eq('user_id', user.id).eq('date_key', dateKey)
     await supabase.from('transferred_tasks').delete().eq('user_id', user.id).eq('for_date', dateKey)
+    await supabase.from('scheduled_tasks').update({ done: false }).eq('user_id', user.id).eq('for_date', dateKey)
     setResetting(false)
     window.location.reload()
   }
