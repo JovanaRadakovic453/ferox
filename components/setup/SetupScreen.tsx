@@ -53,17 +53,28 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
     if (extracted.length) setTasks(prev => [...prev, ...extracted])
     if (extractedAppts.length) setAppointments(prev => [...prev, ...extractedAppts])
   }
+  function clearTransfersFromDB() {
+    if (!profile.id) return
+    createClient().from('transferred_tasks').delete()
+      .eq('user_id', profile.id).eq('for_date', targetDate ?? todayKey())
+      .then(() => {})
+  }
   function addAllSuggested() {
     setTasks(prev => [...prev, ...suggestedTransfers])
     setSuggestedTransfers([])
+    clearTransfersFromDB()
   }
   function addSuggested(index: number) {
     const t = suggestedTransfers[index]
     setTasks(prev => [...prev, t])
-    setSuggestedTransfers(prev => prev.filter((_, i) => i !== index))
+    const remaining = suggestedTransfers.filter((_, i) => i !== index)
+    setSuggestedTransfers(remaining)
+    if (remaining.length === 0) clearTransfersFromDB()
   }
   function dismissSuggested(index: number) {
-    setSuggestedTransfers(prev => prev.filter((_, i) => i !== index))
+    const remaining = suggestedTransfers.filter((_, i) => i !== index)
+    setSuggestedTransfers(remaining)
+    if (remaining.length === 0) clearTransfersFromDB()
   }
 
   async function resetDay() {
