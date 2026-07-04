@@ -19,6 +19,7 @@ export default function TaskEditor({
 }) {
   const [form, setForm] = useState<TaskDraft>({ ...EMPTY_TASK, zone_id: null })
   const [showForm, setShowForm] = useState(false)
+  const zoneById = new Map(zones.map(z => [z.id, z]))
 
   function add() {
     if (!form.name.trim()) return
@@ -43,6 +44,11 @@ export default function TaskEditor({
               </span>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{t.name}</p>
+                {t.zone_id && zoneById.has(t.zone_id) && (
+                  <p className="text-[0.7rem] truncate mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                    {zoneById.get(t.zone_id)!.icon} {zoneById.get(t.zone_id)!.name}
+                  </p>
+                )}
               </div>
               <button onClick={() => onRemove(i)}
                 className="text-xs shrink-0 opacity-40 hover:opacity-80 transition-opacity"
