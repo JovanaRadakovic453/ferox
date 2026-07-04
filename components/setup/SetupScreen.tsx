@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { useChrome } from '@/components/nav/AppChrome'
 import { todayKey, formatDate } from '@/lib/utils'
 import type { Task, TaskType, Priority, Appointment, UserProfile, Zone } from '@/types/ferox'
@@ -54,47 +53,30 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
     if (extracted.length) setTasks(prev => [...prev, ...extracted])
     if (extractedAppts.length) setAppointments(prev => [...prev, ...extractedAppts])
   }
-  function clearTransferredFromDB() {
-    if (!profile.id) return
-    createClient().from('transferred_tasks').delete().eq('user_id', profile.id).eq('for_date', targetDate ?? todayKey()).then(() => {})
-  }
-  function clearScheduledFromDB() {
-    if (!profile.id) return
-    createClient().from('scheduled_tasks').update({ done: true }).eq('user_id', profile.id).eq('for_date', targetDate ?? todayKey()).eq('done', false).then(() => {})
-  }
+  // Predlozi (preneseni + zakazani) su samo lokalni dok se plan ne napravi.
+  // Snimanje/markiranje "done" radi server u createDay (preko scheduledTaskIds),
+  // pa dodavanje/odbacivanje NE dira bazu — inače bi zadaci nestali pre snimanja.
   function addAllSuggested() {
     setTasks(prev => [...prev, ...suggestedTransfers])
     setSuggestedTransfers([])
-    clearTransferredFromDB()
   }
   function addSuggested(index: number) {
-    const t = suggestedTransfers[index]
-    setTasks(prev => [...prev, t])
-    const remaining = suggestedTransfers.filter((_, i) => i !== index)
-    setSuggestedTransfers(remaining)
-    if (remaining.length === 0) clearTransferredFromDB()
+    setTasks(prev => [...prev, suggestedTransfers[index]])
+    setSuggestedTransfers(prev => prev.filter((_, i) => i !== index))
   }
   function dismissSuggested(index: number) {
-    const remaining = suggestedTransfers.filter((_, i) => i !== index)
-    setSuggestedTransfers(remaining)
-    if (remaining.length === 0) clearTransferredFromDB()
+    setSuggestedTransfers(prev => prev.filter((_, i) => i !== index))
   }
   function addAllScheduled() {
     setTasks(prev => [...prev, ...suggestedScheduled])
     setSuggestedScheduled([])
-    clearScheduledFromDB()
   }
   function addScheduled(index: number) {
-    const t = suggestedScheduled[index]
-    setTasks(prev => [...prev, t])
-    const remaining = suggestedScheduled.filter((_, i) => i !== index)
-    setSuggestedScheduled(remaining)
-    if (remaining.length === 0) clearScheduledFromDB()
+    setTasks(prev => [...prev, suggestedScheduled[index]])
+    setSuggestedScheduled(prev => prev.filter((_, i) => i !== index))
   }
   function dismissScheduled(index: number) {
-    const remaining = suggestedScheduled.filter((_, i) => i !== index)
-    setSuggestedScheduled(remaining)
-    if (remaining.length === 0) clearScheduledFromDB()
+    setSuggestedScheduled(prev => prev.filter((_, i) => i !== index))
   }
 
   async function resetDay() {
