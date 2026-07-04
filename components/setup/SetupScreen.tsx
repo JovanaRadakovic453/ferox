@@ -22,6 +22,32 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
   const [resetting, setResetting] = useState(false)
   const [brainDumpLoading, setBrainDumpLoading] = useState(false)
 
+  // Nedovršen plan (draft): zadaci/termini/predlozi se pamte u pregledaču dok se ne
+  // klikne "Napravi plan". Tako preživljavaju odlazak na drugu stranicu i osvežavanje.
+  const draftKey = `ferox-draft-${targetDate ?? todayKey()}`
+  const [hydrated, setHydrated] = useState(false)
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(draftKey)
+      if (raw) {
+        const d = JSON.parse(raw) as { tasks?: Task[]; appointments?: Appointment[]; suggestedTransfers?: Task[]; suggestedScheduled?: Task[] }
+        if (d.tasks) setTasks(d.tasks)
+        if (d.appointments) setAppointments(d.appointments)
+        if (d.suggestedTransfers) setSuggestedTransfers(d.suggestedTransfers)
+        if (d.suggestedScheduled) setSuggestedScheduled(d.suggestedScheduled)
+      }
+    } catch { /* localStorage nedostupan — radi bez drafta */ }
+    setHydrated(true)
+  }, [draftKey])
+
+  useEffect(() => {
+    if (!hydrated) return
+    try {
+      localStorage.setItem(draftKey, JSON.stringify({ tasks, appointments, suggestedTransfers, suggestedScheduled }))
+    } catch { /* ignore */ }
+  }, [hydrated, draftKey, tasks, appointments, suggestedTransfers, suggestedScheduled])
+
   type GoogleEvent = { id: string; title: string; time: string | null; endTime: string | null }
   const [googleEvents, setGoogleEvents] = useState<GoogleEvent[]>([])
   const [googleAdded, setGoogleAdded] = useState<Set<string>>(new Set())
@@ -88,6 +114,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ dateKey }),
     })
+    try { localStorage.removeItem(draftKey) } catch { /* ignore */ }
     window.location.reload()
   }
 
@@ -118,6 +145,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
         return
       }
 
+      try { localStorage.removeItem(draftKey) } catch { /* ignore */ }
       const isToday = dateKey === todayKey()
       window.location.href = isToday ? '/plan' : `/plan?date=${dateKey}`
     } catch (err) {
