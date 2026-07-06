@@ -18,4 +18,10 @@ export const TASK_TYPE_GUIDE = `Tipovi zadataka:
 - exercise — trčanje, teretana, sport, šetnja, fizička aktivnost
 - planning — planiranje projekta, pravljenje liste, organizacija
 - reading — čitanje knjiga ili članaka za razonodu
-- meditation — meditacija, disanje, mindfulness`
+- meditation — meditacija, disanje, mindfulness
+
+Prioritet (biraj po HITNOSTI i POSLEDICAMA, ne po tipu zadatka):
+- high — samo ako tekst jasno pokazuje hitnost: konkretan rok danas/sutra, reči kao "hitno", "mora danas", "poslednji dan", "rok"; ili ozbiljna posledica ako se ne uradi (propušten ispit, neplaćen račun pred istek).
+- medium — PODRAZUMEVANO za većinu običnih obaveza (npr. kupovina namirnica, šetnja psa, sitni poslovi) kada nema znaka hitnosti.
+- low — može mirno da sačeka, ništa se ne dešava ako se preloži ("kad stignem", opciono, sitnica).
+Kad nisi siguran, stavi medium. Ne označavaj sve kao high.`

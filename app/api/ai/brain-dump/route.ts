@@ -24,7 +24,7 @@ const extractTool = {
           properties: {
             name: { type: 'string', description: 'kratko ime na srpskom' },
             type: { type: 'string', enum: [...TASK_TYPES] },
-            priority: { type: 'string', enum: [...PRIORITIES] },
+            priority: { type: 'string', enum: [...PRIORITIES], description: 'high samo uz jasnu hitnost/rok; inače medium; low ako može da čeka. Ne stavljaj sve na high.' },
             note: { type: 'string' },
             estMinutes: { type: 'number', description: 'realna procena trajanja u minutima (sa ADHD bufferom)' },
           },
