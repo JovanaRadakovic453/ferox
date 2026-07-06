@@ -316,7 +316,13 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
               />
             )}
 
-            <TaskEditor tasks={tasks} onAdd={addTask} onRemove={i => setTasks(prev => prev.filter((_, idx) => idx !== i))} zones={zones} />
+            <TaskEditor
+              tasks={tasks}
+              onAdd={addTask}
+              onRemove={i => setTasks(prev => prev.filter((_, idx) => idx !== i))}
+              onUpdate={(i, patch) => setTasks(prev => prev.map((t, idx) => idx === i ? { ...t, ...patch } : t))}
+              zones={zones}
+            />
 
             {googleNeedsReconnect && (
               <div className="card p-4 flex items-center justify-between gap-3" style={{ border: '1px solid var(--hairline)' }}>

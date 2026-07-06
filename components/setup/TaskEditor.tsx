@@ -8,17 +8,20 @@ import { SectionHeader, CountChip, PRIORITY_OPTIONS, EMPTY_TASK } from '@/compon
 
 type Zone = { id: string; name: string; icon: string }
 type TaskDraft = { name: string; note: string; priority: Priority; type: TaskType; zone_id: string | null }
+type TaskPatch = { priority?: Priority; zone_id?: string | null }
 
 export default function TaskEditor({
-  tasks, onAdd, onRemove, zones = [],
+  tasks, onAdd, onRemove, onUpdate, zones = [],
 }: {
   tasks: Task[]
   onAdd: (t: TaskDraft) => void
   onRemove: (index: number) => void
+  onUpdate?: (index: number, patch: TaskPatch) => void
   zones?: Zone[]
 }) {
   const [form, setForm] = useState<TaskDraft>({ ...EMPTY_TASK, zone_id: null })
   const [showForm, setShowForm] = useState(false)
+  const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const zoneById = new Map(zones.map(z => [z.id, z]))
 
   function add() {
@@ -35,24 +38,57 @@ export default function TaskEditor({
       {tasks.length > 0 && (
         <div className="flex flex-col gap-2.5">
           {tasks.map((t, i) => (
-            <div key={i} className="flex items-center gap-3 p-3.5 rounded-[var(--r-md)]" style={{ background: 'var(--surface2)' }}>
-              <span className="text-[0.65rem] font-semibold px-2 py-0.5 rounded-full shrink-0" style={{
-                background: t.priority === 'high' ? 'var(--danger-tint)' : t.priority === 'medium' ? 'var(--warn-tint)' : 'var(--ok-tint)',
-                color: t.priority === 'high' ? 'var(--danger)' : t.priority === 'medium' ? 'var(--warn)' : 'var(--ok)',
-              }}>
-                {t.priority === 'high' ? 'V' : t.priority === 'medium' ? 'S' : 'N'}
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{t.name}</p>
-                {t.zone_id && zoneById.has(t.zone_id) && (
-                  <p className="text-[0.7rem] truncate mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                    {zoneById.get(t.zone_id)!.icon} {zoneById.get(t.zone_id)!.name}
-                  </p>
+            <div key={i} className="flex flex-col gap-3 p-3.5 rounded-[var(--r-md)]" style={{ background: 'var(--surface2)' }}>
+              <div className="flex items-center gap-3">
+                <span className="text-[0.65rem] font-semibold px-2 py-0.5 rounded-full shrink-0" style={{
+                  background: t.priority === 'high' ? 'var(--danger-tint)' : t.priority === 'medium' ? 'var(--warn-tint)' : 'var(--ok-tint)',
+                  color: t.priority === 'high' ? 'var(--danger)' : t.priority === 'medium' ? 'var(--warn)' : 'var(--ok)',
+                }}>
+                  {t.priority === 'high' ? 'V' : t.priority === 'medium' ? 'S' : 'N'}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{t.name}</p>
+                  {t.zone_id && zoneById.has(t.zone_id) && (
+                    <p className="text-[0.7rem] truncate mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                      {zoneById.get(t.zone_id)!.icon} {zoneById.get(t.zone_id)!.name}
+                    </p>
+                  )}
+                </div>
+                {onUpdate && (
+                  <button onClick={() => setEditingIndex(editingIndex === i ? null : i)}
+                    className="text-xs shrink-0 opacity-40 hover:opacity-80 transition-opacity"
+                    style={{ color: editingIndex === i ? 'var(--gold)' : 'var(--text-muted)' }}
+                    aria-label="Izmeni prioritet i oblast">✎</button>
                 )}
+                <button onClick={() => onRemove(i)}
+                  className="text-xs shrink-0 opacity-40 hover:opacity-80 transition-opacity"
+                  style={{ color: 'var(--text-muted)' }}
+                  aria-label="Obriši">✕</button>
               </div>
-              <button onClick={() => onRemove(i)}
-                className="text-xs shrink-0 opacity-40 hover:opacity-80 transition-opacity"
-                style={{ color: 'var(--text-muted)' }}>✕</button>
+
+              {onUpdate && editingIndex === i && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                  <div>
+                    <label className="text-[0.7rem] mb-1 block font-medium" style={{ color: 'var(--text-muted)' }}>Prioritet</label>
+                    <select value={t.priority}
+                      onChange={e => onUpdate(i, { priority: e.target.value as Priority })}
+                      className="field field-select h-10 px-2 text-sm w-full">
+                      {PRIORITY_OPTIONS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+                    </select>
+                  </div>
+                  {zones.length > 0 && (
+                    <div>
+                      <label className="text-[0.7rem] mb-1 block font-medium" style={{ color: 'var(--text-muted)' }}>Oblast</label>
+                      <select value={t.zone_id ?? ''}
+                        onChange={e => onUpdate(i, { zone_id: e.target.value || null })}
+                        className="field field-select h-10 px-2 text-sm w-full">
+                        <option value="">— Bez oblasti</option>
+                        {zones.map(z => <option key={z.id} value={z.id}>{z.icon} {z.name}</option>)}
+                      </select>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>
