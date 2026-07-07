@@ -14,7 +14,6 @@ export const AI = {
   /** max_tokens po ruti (kratke poruke = manji budžet = jeftinije). */
   maxTokens: {
     brainDump: 1024,
-    replan: 1024,
     eod: 200,
   },
   /** Najviše zadataka koje brain-dump izvuče (koristi se i u promptu i u .slice()). */
@@ -51,7 +50,6 @@ export const DEFAULTS = {
  */
 export const RATE_LIMITS = {
   brainDump: { limit: 10, windowSec: 60 },
-  replan: { limit: 10, windowSec: 60 },
   eod: { limit: 10, windowSec: 60 },
   accountDelete: { limit: 3, windowSec: 86400 },
   /** CRUD mutacije (zaštita od DB bloat-a; GET liste ostaju bez limita). */

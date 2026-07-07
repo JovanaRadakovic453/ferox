@@ -5,7 +5,7 @@ import { tomorrowKey } from '@/lib/date'
 // Akcije za plan (sticky rail na desktopu). Navigacija je name-bazirana
 // (window.location.href) da server pročita svež finished_at posle završetka dana.
 export default function ActionRail({
-  dayFinished, isToday, tomorrowPlanned, allDone, savingEod, onFinishDay, onAddTask, onRoutine, onReplan, onResetDay,
+  dayFinished, isToday, tomorrowPlanned, allDone, savingEod, onFinishDay, onAddTask, onRoutine, onResetDay,
 }: {
   dayFinished: boolean
   isToday: boolean
@@ -15,8 +15,6 @@ export default function ActionRail({
   onFinishDay: () => void
   onAddTask: () => void
   onRoutine: () => void
-  /** Prosleđuje se samo kad replan ima smisla (danas + ima nezavršenih zadataka). */
-  onReplan?: () => void
   onResetDay: () => void
 }) {
   return (
@@ -38,11 +36,6 @@ export default function ActionRail({
         {!dayFinished && (
           <Button size="sm" variant="secondary" className="w-full" onClick={onRoutine}>
             📋 Primeni rutinu
-          </Button>
-        )}
-        {!dayFinished && isToday && onReplan && (
-          <Button size="sm" variant="secondary" className="w-full" onClick={onReplan}>
-            🔥 Dan se raspao?
           </Button>
         )}
         {isToday && tomorrowPlanned && (

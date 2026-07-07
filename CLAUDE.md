@@ -48,8 +48,7 @@ kalendar i rokove, i na kraju dana dobije topao rezime. Sve je na srpskom.
 Šta sve ume:
 - **Danas** — uneseš zadatke i termine (možeš i da "izbaciš iz glave" tekst pa
   AI sam izvuče zadatke) → štikliraš ih kroz dan → uveče "Završi dan" (AI ti
-  napiše ohrabrujući rezime, nedovršeno se samo ponudi za sutra). Ako se dan
-  raspao, dugme **"Dan se raspao?"** pita AI da preraspodeli ostatak dana.
+  napiše ohrabrujući rezime, nedovršeno se samo ponudi za sutra).
 - **Kalendar** — zakažeš zadatke unapred, sa rokom i podsetnikom; tog dana se
   sami pojave u planu.
 - **Rutine i Alati** — sačuvani šabloni zadataka + tajmer za pauze.

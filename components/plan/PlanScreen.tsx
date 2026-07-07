@@ -19,7 +19,6 @@ import AppointmentItem from '@/components/plan/AppointmentItem'
 import ActionRail from '@/components/plan/ActionRail'
 import AddTaskModal from '@/components/plan/AddTaskModal'
 import RoutineModal from '@/components/plan/RoutineModal'
-import ReplanModal, { type ReplanResult } from '@/components/plan/ReplanModal'
 import ReminderBanner from '@/components/plan/ReminderBanner'
 import { AnimatePresence } from 'framer-motion'
 import type { Routine } from '@/types/ferox'
@@ -60,7 +59,6 @@ export default function PlanScreen({
   const [dayJustFinished, setDayJustFinished] = useState(false)
   const [showAddTask, setShowAddTask] = useState(false)
   const [showRoutines, setShowRoutines] = useState(false)
-  const [showReplan, setShowReplan] = useState(false)
   const [routines, setRoutines] = useState<Routine[]>([])
   const [activeReminder, setActiveReminder] = useState<{ name: string; time: string; minutesBefore: number } | null>(null)
   // Zone stižu server-side iz plan/page.tsx (force-dynamic → uvek sveže).
@@ -299,54 +297,6 @@ export default function PlanScreen({
     finishDay(unfinished)
   }
 
-  // "Dan se raspao": AI-jeve kante primenjujemo mutacijama PO ID-u —
-  // `sutra` ide u transferred_tasks (merge, ne overwrite), `sutra`+`obrisi`
-  // se brišu iz današnjeg plana. Optimistički, sa rollback-om na grešku.
-  async function applyReplan(result: ReplanResult) {
-    const byName = new Map(tasks.filter(t => !t.done && t.id).map(t => [t.name, t]))
-    const sutraTasks = result.sutra.map(n => byName.get(n)).filter((t): t is Task => !!t)
-    const obrisiTasks = result.obrisi.map(n => byName.get(n)).filter((t): t is Task => !!t)
-    const removeIds = [...new Set([...sutraTasks, ...obrisiTasks].map(t => t.id!))]
-    if (removeIds.length === 0) {
-      toast({ message: result.poruka || 'Plan ostaje kakav jeste — samo napred!', variant: 'success' })
-      return
-    }
-
-    const prevTasks = tasks
-    setTasks(prev => prev.filter(t => !t.id || !removeIds.includes(t.id)))
-
-    try {
-      const supabase = createClient()
-      const { data: authData } = await supabase.auth.getUser()
-      const user = authData?.user
-      if (!user) throw new Error('unauthorized')
-
-      if (sutraTasks.length > 0) {
-        const nextKey = addDays(entry.date_key, 1)
-        const { data: existing } = await supabase.from('transferred_tasks')
-          .select('tasks').eq('user_id', user.id).eq('for_date', nextKey).maybeSingle()
-        const existingTasks = (existing?.tasks ?? []) as Task[]
-        const existingNames = new Set(existingTasks.map(t => t.name))
-        const merged = [
-          ...existingTasks,
-          ...sutraTasks.filter(t => !existingNames.has(t.name)).map(t => ({
-            name: t.name, priority: t.priority, type: t.type, note: t.note ?? '', done: false, zone_id: t.zone_id ?? null,
-          })),
-        ]
-        const { error: upErr } = await supabase.from('transferred_tasks')
-          .upsert({ user_id: user.id, tasks: merged, for_date: nextKey }, { onConflict: 'user_id,for_date' })
-        if (upErr) throw upErr
-      }
-
-      const { error: delErr } = await supabase.from('tasks').delete().in('id', removeIds)
-      if (delErr) throw delErr
-
-      toast({ message: result.poruka || 'Plan je osvežen ✓', variant: 'success' })
-    } catch {
-      setTasks(prevTasks)
-      toast({ message: 'Replan nije primenjen — proveri internet i pokušaj ponovo', variant: 'error' })
-    }
-  }
 
   async function finishDay(tasksToTransfer: Task[]) {
     setSavingEod(true)
@@ -573,7 +523,6 @@ export default function PlanScreen({
           onFinishDay={startFinishDay}
           onAddTask={() => setShowAddTask(true)}
           onRoutine={() => setShowRoutines(true)}
-          onReplan={tasks.some(t => !t.done && t.id) ? () => setShowReplan(true) : undefined}
           onResetDay={resetDay}
         />
       </div>
@@ -591,13 +540,6 @@ export default function PlanScreen({
         onClose={() => setShowRoutines(false)}
         routines={routines}
         onApply={applyRoutine}
-      />
-
-      <ReplanModal
-        open={showReplan}
-        onClose={() => setShowReplan(false)}
-        tasks={tasks}
-        onApply={applyReplan}
       />
     </main>
   )

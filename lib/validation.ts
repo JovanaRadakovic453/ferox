@@ -43,11 +43,6 @@ export const createDaySchema = z.object({
   scheduledTaskIds: z.array(z.string().uuid()).max(50).optional().default([]),
 })
 
-export const replanSchema = z.object({
-  situation: z.string().trim().min(1).max(1000),
-  remainingTasks: z.array(z.string().max(120)).max(50),
-})
-
 export const brainDumpSchema = z.object({
   text: z.string().trim().min(1).max(2000),
 })
@@ -67,12 +62,6 @@ export const aiAppointmentSchema = z.object({
 export const aiBrainDumpResult = z.object({
   tasks: z.array(aiTaskSchema).max(12).default([]),
   appointments: z.array(aiAppointmentSchema).max(12).default([]),
-})
-export const replanResultSchema = z.object({
-  danas: z.array(z.string()).default([]),
-  sutra: z.array(z.string()).default([]),
-  obrisi: z.array(z.string()).default([]),
-  poruka: z.string().default(''),
 })
 
 export type CreateDayBody = z.infer<typeof createDaySchema>

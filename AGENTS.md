@@ -14,7 +14,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 ## Šta je Ferox
 
 **Strukturiran dnevni planer** na srpskom jeziku: dan + mesečni kalendar +
-oblasti života + rutine, uz AI pomoć (brain-dump, EOD rezime, replan).
+oblasti života + rutine, uz AI pomoć (brain-dump, EOD rezime).
 
 > ℹ️ **Istorijska napomena:** projekat je počeo kao "energy-adaptive planer"
 > (raspored po energiji i hronotipu). Taj koncept je **uklonjen iz proizvoda**
@@ -24,8 +24,8 @@ oblasti života + rutine, uz AI pomoć (brain-dump, EOD rezime, replan).
 
 **Glavne celine:**
 - **Danas** — Setup (zadaci + termini + AI brain-dump) → Plan (štikliranje,
-  dodavanje, rutine, "Dan se raspao?" AI replan) → Završi dan (AI rezime,
-  streak, prenos nedovršenog na sutra).
+  dodavanje, rutine) → Završi dan (AI rezime, streak, prenos nedovršenog na
+  sutra).
 - **Kalendar** — zakazani zadaci unapred (`scheduled_tasks`): rok (deadline),
   podsetnik, oblast; na dan zakazivanja ulaze u Setup prefill.
 - **Oblasti (zones)** — korisničke kategorije (Posao, Fakultet…) na zadacima,
@@ -69,7 +69,7 @@ grešku ako var fali, app ne pada).
 |---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` | baza/auth | app ne kreće (env.ts) |
 | `SUPABASE_SERVICE_ROLE_KEY` | brisanje naloga, cron | te rute vraćaju 5xx |
-| `ANTHROPIC_API_KEY` | brain-dump, EOD rezime, replan | AI rute vraćaju fallback/502 |
+| `ANTHROPIC_API_KEY` | brain-dump, EOD rezime | AI rute vraćaju fallback/502 |
 | `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` | Google Calendar OAuth | "Poveži Google" ne radi |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` + `VAPID_PRIVATE_KEY` + `VAPID_SUBJECT` | web push | notifikacije ne rade |
 | `CRON_SECRET` | auth za `/api/cron/reminders` | cron vraća 401 |
@@ -93,7 +93,6 @@ app/
     loading.tsx / error.tsx    — segment fallback-ovi
   api/
     ai/brain-dump/             — POST tool-use: tekst → { tasks[], appointments[] }
-    ai/replan/                 — POST tool-use: "dan se raspao" → { danas, sutra, obrisi, poruka }
     ai/eod/                    — POST: topli EOD rezime (keš u day_entries.eod_recap)
     day/create/                — POST: glavni write path (lib/day/createDay)
     zones/ + zones/[id]        — CRUD oblasti (zod + rate limit)
@@ -112,7 +111,7 @@ components/
   setup/SetupScreen.tsx        — setup (+ TaskEditor, AppointmentEditor, BrainDumpCard,
                                  TransferSuggestions, PreviewRail, primitives)
   plan/PlanScreen.tsx          — plan (+ TaskItem, AppointmentItem, ActionRail,
-                                 AddTaskModal, RoutineModal, ReplanModal, ReminderBanner,
+                                 AddTaskModal, RoutineModal, ReminderBanner,
                                  DayProgress, EodLanding)
   calendar/CalendarView|CalendarGrid|DayPanel|ZonePanel|Add/EditScheduledTaskModal
   extras/ExtrasScreen|RoutinesSection|BreakAlarmOverlay
@@ -169,7 +168,7 @@ legacy.
 ## Ključne konvencije — UVEK POŠTUJ
 
 1. **AI ključ NIKAD na klijentu.** Svi Anthropic pozivi kroz `/api/ai/*`.
-   Strukturiran izlaz → **tool-use** (`tool_choice` forced; brain-dump, replan),
+   Strukturiran izlaz → **tool-use** (`tool_choice` forced; brain-dump),
    slobodan tekst (EOD) → `extractText`. `FEROX_PERSONA` ide kao keširan system
    blok (`cache_control: ephemeral`). Uvek deterministički fallback. Model i
    parametri iz `lib/config.ts` — bump na JEDNOM mestu.

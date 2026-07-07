@@ -2,8 +2,8 @@
 
 **Strukturiran dnevni planer** na srpskom jeziku: plan dana + mesečni kalendar
 (rokovi, podsetnici) + oblasti života + rutine, uz AI pomoć (brain-dump →
-zadaci, topli rezime dana, "dan se raspao" replan). PWA sa jutarnjim push
-podsetnikom i uvozom termina iz Google Kalendara.
+zadaci, topli rezime dana). PWA sa jutarnjim push podsetnikom i uvozom termina
+iz Google Kalendara.
 
 ## Tech stack
 Next.js 16 (App Router) · React 19 · TypeScript · Tailwind v4 · Supabase
