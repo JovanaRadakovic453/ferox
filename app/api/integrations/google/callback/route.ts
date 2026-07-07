@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { appOrigin } from '@/lib/appUrl'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
@@ -9,7 +10,7 @@ export async function GET(request: NextRequest) {
   const state = searchParams.get('state')
   const error = searchParams.get('error')
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
+  const appUrl = appOrigin(request)
 
   if (error || !code) {
     return NextResponse.redirect(`${appUrl}/settings?google=error`)

@@ -1,10 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
 import { ERR } from '@/lib/api'
+import { appOrigin } from '@/lib/appUrl'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 import crypto from 'crypto'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return ERR.unauthorized()
@@ -13,7 +15,7 @@ export async function GET() {
   if (!clientId) return ERR.server('Google OAuth nije konfigurisan')
 
   const state = crypto.randomBytes(16).toString('hex')
-  const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/integrations/google/callback`
+  const redirectUri = `${appOrigin(request)}/api/integrations/google/callback`
 
   const params = new URLSearchParams({
     client_id: clientId,
