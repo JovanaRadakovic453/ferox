@@ -294,35 +294,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
         <div className="flex flex-col gap-7 lg:grid lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-8 lg:items-start">
           <div className="flex flex-col gap-7 stagger">
 
-            {suggestedTransfers.length > 0 && (
-              <TransferSuggestions
-                items={suggestedTransfers}
-                onAddAll={addAllSuggested}
-                onAddOne={addSuggested}
-                onDismiss={dismissSuggested}
-                title="Iz prethodnog dana"
-                icon="📋"
-              />
-            )}
-
-            {suggestedScheduled.length > 0 && (
-              <TransferSuggestions
-                items={suggestedScheduled}
-                onAddAll={addAllScheduled}
-                onAddOne={addScheduled}
-                onDismiss={dismissScheduled}
-                title="Zakazani zadaci"
-                icon="📅"
-              />
-            )}
-
-            <TaskEditor
-              tasks={tasks}
-              onAdd={addTask}
-              onRemove={i => setTasks(prev => prev.filter((_, idx) => idx !== i))}
-              onUpdate={(i, patch) => setTasks(prev => prev.map((t, idx) => idx === i ? { ...t, ...patch } : t))}
-              zones={zones}
-            />
+            <BrainDumpCard onExtracted={onBrainDumpExtracted} onLoadingChange={setBrainDumpLoading} />
 
             {googleNeedsReconnect && (
               <div className="card p-4 flex items-center justify-between gap-3" style={{ border: '1px solid var(--hairline)' }}>
@@ -375,9 +347,37 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
               </div>
             )}
 
-            <AppointmentEditor appointments={appointments} onAdd={addAppointment} onRemove={i => setAppointments(prev => prev.filter((_, idx) => idx !== i))} zones={zones} />
+            {suggestedTransfers.length > 0 && (
+              <TransferSuggestions
+                items={suggestedTransfers}
+                onAddAll={addAllSuggested}
+                onAddOne={addSuggested}
+                onDismiss={dismissSuggested}
+                title="Iz prethodnog dana"
+                icon="📋"
+              />
+            )}
 
-            <BrainDumpCard onExtracted={onBrainDumpExtracted} onLoadingChange={setBrainDumpLoading} />
+            {suggestedScheduled.length > 0 && (
+              <TransferSuggestions
+                items={suggestedScheduled}
+                onAddAll={addAllScheduled}
+                onAddOne={addScheduled}
+                onDismiss={dismissScheduled}
+                title="Zakazani zadaci"
+                icon="📅"
+              />
+            )}
+
+            <TaskEditor
+              tasks={tasks}
+              onAdd={addTask}
+              onRemove={i => setTasks(prev => prev.filter((_, idx) => idx !== i))}
+              onUpdate={(i, patch) => setTasks(prev => prev.map((t, idx) => idx === i ? { ...t, ...patch } : t))}
+              zones={zones}
+            />
+
+            <AppointmentEditor appointments={appointments} onAdd={addAppointment} onRemove={i => setAppointments(prev => prev.filter((_, idx) => idx !== i))} zones={zones} />
 
             {submitError && (
               <div className="rounded-[var(--r-md)] px-4 py-3 text-sm" style={{
