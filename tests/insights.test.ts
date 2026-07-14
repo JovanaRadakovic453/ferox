@@ -18,39 +18,39 @@ describe('computeAggregates', () => {
     expect(a.dayCount).toBe(0)
     expect(a.overallCompletion).toBe(0)
     expect(a.byWeekday).toEqual([])
-    expect(a.byType).toEqual([])
+    expect(a.byZone).toEqual([])
     expect(a.sleepInsight).toBeNull()
   })
 
   it('computes completion + grouped bars for a single day', () => {
     const a = computeAggregates(
       [day({ done: 3, total: 4, weekday: 1 })],
-      [{ type: 'analytical', done: 1, total: 2 }],
+      [{ label: '💼 Posao', done: 1, total: 2 }],
     )
     expect(a.dayCount).toBe(1)
     expect(a.overallCompletion).toBe(75)
     expect(a.byWeekday).toEqual([{ label: 'Pon', rate: 75, n: 1 }])
-    expect(a.byType).toEqual([{ label: '🧠 Analitičko', rate: 50, n: 2 }])
+    expect(a.byZone).toEqual([{ label: '💼 Posao', rate: 50, n: 2 }])
     expect(a.sleepInsight).toBeNull() // needs >=2 low and >=2 high sleep days
   })
 
-  it('drops task types with zero total and sorts by rate desc (srpske labele)', () => {
+  it('drops zones with zero total and sorts by rate desc', () => {
     const a = computeAggregates(
       [day()],
       [
-        { type: 'admin', done: 0, total: 0 }, // dropped
-        { type: 'light', done: 1, total: 4 }, // 25%
-        { type: 'creative', done: 3, total: 4 }, // 75%
+        { label: '📋 Administracija', done: 0, total: 0 }, // dropped
+        { label: '🌿 Lično', done: 1, total: 4 }, // 25%
+        { label: '🎓 Fakultet', done: 3, total: 4 }, // 75%
       ],
     )
-    expect(a.byType.map(b => b.label)).toEqual(['🎨 Kreativno', '🌿 Lagano'])
+    expect(a.byZone.map(b => b.label)).toEqual(['🎓 Fakultet', '🌿 Lično'])
   })
 
-  it('caps byType to the configured top-N', () => {
-    const many = (['creative', 'analytical', 'meetings', 'communication', 'admin', 'light', 'rest', 'learning'] as const)
-      .map((type, i) => ({ type, done: i, total: 8 }))
+  it('caps byZone to the configured top-N', () => {
+    const many = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
+      .map((label, i) => ({ label, done: i, total: 8 }))
     const a = computeAggregates([day()], [...many])
-    expect(a.byType.length).toBeLessThanOrEqual(6)
+    expect(a.byZone.length).toBeLessThanOrEqual(6)
   })
 
   it('surfaces the sleep insight when 7h+ days complete >=10pp more', () => {

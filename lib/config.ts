@@ -38,8 +38,8 @@ export const DEFAULTS = {
   /** History grafik: koliko dana prikazati (mobilni / desktop). */
   historyDaysMobile: 7,
   historyDaysDesktop: 14,
-  /** Insights: koliko najboljih tipova zadatka prikazati u grafiku. */
-  insightsTopTaskTypes: 6,
+  /** Insights: koliko oblasti prikazati u grafiku „Realizacija po oblasti". */
+  insightsTopZones: 6,
 }
 
 /**
