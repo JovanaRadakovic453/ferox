@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useToast } from '@/components/ui/Toast'
 import Button from '@/components/ui/Button'
 import { DEFAULTS } from '@/lib/config'
 import RoutinesSection from '@/components/extras/RoutinesSection'
@@ -15,6 +14,14 @@ import {
   selectBreak,
   resetTimer,
 } from '@/lib/breakTimer'
+import {
+  f,
+  ensureFocusAudioCtx,
+  startFocus,
+  pauseFocus,
+  selectFocus,
+  resetFocus,
+} from '@/lib/focusTimer'
 
 function fmt(s: number) {
   const m = Math.floor(s / 60)
@@ -23,22 +30,47 @@ function fmt(s: number) {
 }
 
 export default function ExtrasScreen({ initialPomodoro, profileId, initialRoutines }: { initialPomodoro: number; profileId: string; initialRoutines: Routine[] }) {
-  const toast = useToast()
+  // — Pomodoro (fokus tajmer) — React state je samo za prikaz; pravo stanje je u lib/focusTimer.ts
+  const [focusMins, setFocusMins] = useState(f.focusMins)
+  const [focusSecs, setFocusSecs] = useState(f.focusSecs)
+  const [focusRunning, setFocusRunning] = useState(f.running)
+  const [focusAlarming, setFocusAlarming] = useState(f.alarming)
 
-  // — Pomodoro —
-  const [pomodoro, setPomodoro] = useState(initialPomodoro)
-  const [saving, setSaving] = useState(false)
+  // Postavi trajanje iz profila jednom po sesiji (da ne pregazi tekuće odbrojavanje).
+  useEffect(() => {
+    if (!f.initialized) {
+      selectFocus(initialPomodoro)
+      f.initialized = true
+      setFocusMins(f.focusMins); setFocusSecs(f.focusSecs)
+    }
+  }, [initialPomodoro])
 
-  async function save() {
-    setSaving(true)
-    const supabase = createClient()
-    const { error } = await supabase.from('profiles').update({
-      pomodoro_minutes: Math.min(DEFAULTS.pomodoroMax, Math.max(DEFAULTS.pomodoroMin, pomodoro)),
-      updated_at: new Date().toISOString(),
-    }).eq('id', profileId)
-    setSaving(false)
-    if (error) toast({ message: 'Nije sačuvano — pokušaj ponovo', variant: 'error' })
-    else toast({ message: 'Sačuvano ✓', variant: 'success' })
+  function persistFocusMinutes(mins: number) {
+    const clamped = Math.min(DEFAULTS.pomodoroMax, Math.max(DEFAULTS.pomodoroMin, mins))
+    createClient().from('profiles')
+      .update({ pomodoro_minutes: clamped, updated_at: new Date().toISOString() })
+      .eq('id', profileId).then(() => {})
+  }
+
+  function handleFocusStartPause() {
+    if (f.running) {
+      pauseFocus()
+      setFocusRunning(false)
+    } else {
+      startFocus()
+      setFocusRunning(true)
+      persistFocusMinutes(f.focusMins) // zapamti izabrano trajanje kao podrazumevano
+    }
+  }
+
+  function handleSelectFocus(mins: number) {
+    selectFocus(mins)
+    setFocusRunning(false); setFocusMins(mins); setFocusSecs(mins * 60); setFocusAlarming(false)
+  }
+
+  function handleFocusReset() {
+    resetFocus()
+    setFocusRunning(false); setFocusSecs(f.focusSecs); setFocusAlarming(false)
   }
 
   // — Tajmer odmora — React state je samo za prikaz; pravo stanje je u lib/breakTimer.ts
@@ -48,21 +80,25 @@ export default function ExtrasScreen({ initialPomodoro, profileId, initialRoutin
   const [alarming, setAlarming] = useState(t.alarming)
 
   useEffect(() => {
-    const ensureAudio = () => ensureAudioCtx()
+    const ensureAudio = () => { ensureAudioCtx(); ensureFocusAudioCtx() }
     document.addEventListener('click', ensureAudio)
 
-    // Display interval — čita shared state i ažurira UI svakih 500ms
+    // Display interval — čita shared state (oba tajmera) i ažurira UI svakih 500ms
     const displayId = setInterval(() => {
       setSecondsLeft(t.breakSecs)
       setRunning(t.running)
       setAlarming(t.alarming)
       setBreakMinsState(t.breakMins)
+      setFocusSecs(f.focusSecs)
+      setFocusRunning(f.running)
+      setFocusAlarming(f.alarming)
+      setFocusMins(f.focusMins)
     }, 500)
 
     return () => {
       document.removeEventListener('click', ensureAudio)
       clearInterval(displayId)
-      // t.tickId i t.alarmId ostaju — nastavljaju kad korisnik navigira dalje
+      // t/f tickId i alarmId ostaju — nastavljaju kad korisnik navigira dalje
     }
   }, [])
 
@@ -89,6 +125,9 @@ export default function ExtrasScreen({ initialPomodoro, profileId, initialRoutin
   const totalSecs = breakMins * 60
   const circumference = 427.3
   const progress = totalSecs > 0 ? (secondsLeft / totalSecs) : 0
+
+  const focusTotalSecs = focusMins * 60
+  const focusProgress = focusTotalSecs > 0 ? (focusSecs / focusTotalSecs) : 0
 
   return (
     <main className="flex flex-col gap-6 lg:gap-7 pb-2">
@@ -177,11 +216,11 @@ export default function ExtrasScreen({ initialPomodoro, profileId, initialRoutin
         </div>
       </section>
 
-      {/* Pomodoro */}
+      {/* Pomodoro — fokus tajmer */}
       <section className="card p-6 flex flex-col items-center gap-6">
         <div className="self-start">
           <p className="font-medium text-sm">🍅 Pomodoro</p>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Koliko minuta traje jedna fokus sesija</p>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Odbrojava fokus sesiju i javi ti alarmom kad je kraj</p>
         </div>
 
         <div className="relative w-40 h-40">
@@ -190,41 +229,63 @@ export default function ExtrasScreen({ initialPomodoro, profileId, initialRoutin
             <circle
               cx="80" cy="80" r="68"
               fill="none"
-              stroke="var(--gold)"
+              stroke={focusAlarming || focusSecs === 0 ? 'var(--gold)' : focusRunning ? '#60a5fa' : 'var(--gold)'}
               strokeWidth="12"
               strokeLinecap="round"
-              strokeDasharray={`${(pomodoro / 90) * circumference} ${circumference}`}
+              strokeDasharray={`${focusProgress * circumference} ${circumference}`}
               transform="rotate(-90 80 80)"
-              style={{ transition: 'stroke-dasharray 0.25s ease' }}
+              style={{ transition: focusRunning ? 'stroke-dasharray 1s linear' : 'stroke-dasharray 0.25s ease' }}
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
-            <span className="display text-5xl leading-none tabular-nums" style={{ color: 'var(--text)' }}>{pomodoro}</span>
-            <span className="text-[0.65rem] font-semibold tracking-widest uppercase" style={{ color: 'var(--text-muted)' }}>min</span>
+            <span
+              className={`display text-4xl leading-none tabular-nums${focusAlarming ? ' animate-pulse' : ''}`}
+              style={{ color: focusAlarming ? 'var(--gold)' : 'var(--text)' }}
+            >
+              {fmt(focusSecs)}
+            </span>
+            <span className="text-[0.65rem] font-semibold tracking-widest uppercase" style={{ color: 'var(--text-muted)' }}>
+              {focusAlarming ? 'alarm!' : focusSecs === 0 ? 'gotovo' : focusRunning ? 'fokus' : 'spreman'}
+            </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button type="button" onClick={() => setPomodoro(Math.max(DEFAULTS.pomodoroMin, pomodoro - 5))}
-            className="w-11 h-11 rounded-full text-xl font-bold flex items-center justify-center transition-colors"
-            style={{ background: 'var(--surface2)', color: 'var(--text-muted)' }}>−</button>
-          <div className="flex gap-2">
-            {[15, 25, 45, 60].map(p => (
-              <button key={p} type="button" onClick={() => setPomodoro(p)}
-                className="text-xs px-3 py-2 rounded-[var(--r-md)] transition-colors"
-                style={{
-                  background: pomodoro === p ? 'var(--gold-tint)' : 'var(--surface2)',
-                  border: `1px solid ${pomodoro === p ? 'var(--gold)' : 'var(--border)'}`,
-                  color: pomodoro === p ? 'var(--gold)' : 'var(--text-muted)',
-                }}>{p}</button>
-            ))}
+        {!focusRunning && !focusAlarming && (
+          <div className="flex items-center gap-3">
+            <button type="button" onClick={() => handleSelectFocus(Math.max(DEFAULTS.pomodoroMin, focusMins - 5))}
+              className="w-11 h-11 rounded-full text-xl font-bold flex items-center justify-center transition-colors"
+              style={{ background: 'var(--surface2)', color: 'var(--text-muted)' }}>−</button>
+            <div className="flex gap-2">
+              {[15, 25, 45, 60].map(p => (
+                <button key={p} type="button" onClick={() => handleSelectFocus(p)}
+                  className="text-xs px-3 py-2 rounded-[var(--r-md)] transition-colors"
+                  style={{
+                    background: focusMins === p ? 'var(--gold-tint)' : 'var(--surface2)',
+                    border: `1px solid ${focusMins === p ? 'var(--gold)' : 'var(--border)'}`,
+                    color: focusMins === p ? 'var(--gold)' : 'var(--text-muted)',
+                  }}>{p}</button>
+              ))}
+            </div>
+            <button type="button" onClick={() => handleSelectFocus(Math.min(DEFAULTS.pomodoroMax, focusMins + 5))}
+              className="w-11 h-11 rounded-full text-xl font-bold flex items-center justify-center transition-colors"
+              style={{ background: 'var(--surface2)', color: 'var(--text-muted)' }}>+</button>
           </div>
-          <button type="button" onClick={() => setPomodoro(Math.min(DEFAULTS.pomodoroMax, pomodoro + 5))}
-            className="w-11 h-11 rounded-full text-xl font-bold flex items-center justify-center transition-colors"
-            style={{ background: 'var(--surface2)', color: 'var(--text-muted)' }}>+</button>
-        </div>
+        )}
 
-        <Button size="lg" className="w-full max-w-xs" onClick={save} loading={saving}>Sačuvaj</Button>
+        <div className="flex gap-3 w-full max-w-xs">
+          {focusAlarming ? (
+            <Button size="lg" className="flex-1" onClick={handleFocusReset}
+              style={{ background: 'var(--gold)', color: 'white' }}>
+              ⏹ Zaustavi alarm
+            </Button>
+          ) : (
+            <Button size="lg" className="flex-1" onClick={handleFocusStartPause} disabled={focusSecs === 0}>
+              {focusRunning ? 'Pauziraj' : 'Kreni'}
+            </Button>
+          )}
+          <button type="button" onClick={handleFocusReset} className="px-4 rounded-[var(--r-md)] text-sm font-medium transition-colors"
+            style={{ background: 'var(--surface2)', color: 'var(--text-muted)' }}>Resetuj</button>
+        </div>
       </section>
     </main>
   )
