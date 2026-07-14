@@ -37,8 +37,8 @@ export async function GET(request: NextRequest) {
 
   const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
       code,
       client_id: clientId,
       client_secret: clientSecret,
@@ -48,6 +48,8 @@ export async function GET(request: NextRequest) {
   })
 
   if (!tokenRes.ok) {
+    const detail = await tokenRes.text().catch(() => '')
+    console.error('google callback: token exchange nije uspeo', tokenRes.status, detail)
     return NextResponse.redirect(`${appUrl}/settings?google=error`)
   }
 
