@@ -7,10 +7,9 @@ import AddScheduledTaskModal from './AddScheduledTaskModal'
 import EditScheduledTaskModal from './EditScheduledTaskModal'
 
 type Entry = { id: string; date_key: string; finished_at: string | null }
-type Appointment = { id: string; date_key: string; name: string; time: string; done: boolean; zone_id?: string | null }
-type ScheduledTask = { id: string; for_date: string; name: string; priority: string; note: string; remind_before_minutes: number | null; deadline_date: string | null; zone_id?: string | null }
-type Zone = { id: string; name: string; icon: string; position: number }
-type LoadedTask = { id: string; name: string; priority: string; done: boolean; note: string; zone_id?: string | null }
+type Appointment = { id: string; date_key: string; name: string; time: string; done: boolean }
+type ScheduledTask = { id: string; for_date: string; name: string; priority: string; note: string; remind_before_minutes: number | null; deadline_date: string | null }
+type LoadedTask = { id: string; name: string; priority: string; done: boolean; note: string }
 
 const PRIORITY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 }
 const PRIORITY_DOT: Record<string, string> = { high: '🔴', medium: '🟡', low: '🟢' }
@@ -56,8 +55,6 @@ export default function DayPanel({
   onAddTask,
   onRemoveTask,
   onUpdateTask,
-  zones = [],
-  selectedZoneId = null,
   googleConnected = false,
 }: {
   date: string
@@ -68,8 +65,6 @@ export default function DayPanel({
   onAddTask: (task: ScheduledTask) => void
   onRemoveTask: (id: string) => void
   onUpdateTask: (updated: ScheduledTask) => void
-  zones?: Zone[]
-  selectedZoneId?: string | null
   googleConnected?: boolean
 }) {
   const entry = entries.find(e => e.date_key === date)
@@ -101,7 +96,7 @@ export default function DayPanel({
     const supabase = createClient()
     supabase
       .from('tasks')
-      .select('id, name, priority, done, note, zone_id')
+      .select('id, name, priority, done, note')
       .eq('entry_id', entry.id)
       .order('position')
       .then(({ data }) => {
@@ -110,10 +105,9 @@ export default function DayPanel({
       })
   }, [entry?.id, entry?.finished_at])
 
-  const visibleTasks = selectedZoneId ? tasks.filter(t => t.zone_id === selectedZoneId) : tasks
   const sortedAppts = [...appointments].sort((a, b) => a.time.localeCompare(b.time))
   const sortedScheduled = sortByPriority(scheduled)
-  const sortedTasks = sortByPriority(visibleTasks)
+  const sortedTasks = sortByPriority(tasks)
 
   async function handleRemove(id: string) {
     setRemoving(id)
@@ -354,7 +348,6 @@ export default function DayPanel({
         onClose={() => setAddOpen(false)}
         onAdd={task => { onAddTask(task); setAddOpen(false) }}
         date={date}
-        zones={zones}
       />
 
       <EditScheduledTaskModal
@@ -362,7 +355,6 @@ export default function DayPanel({
         onClose={() => setEditingTask(null)}
         onUpdate={updated => { handleUpdate(updated); setEditingTask(null) }}
         onDelete={id => { onRemoveTask(id); setEditingTask(null) }}
-        zones={zones}
       />
     </div>
   )

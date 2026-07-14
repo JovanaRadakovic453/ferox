@@ -19,17 +19,14 @@ export default function AddScheduledTaskModal({
   onClose,
   onAdd,
   date,
-  zones = [],
 }: {
   open: boolean
   onClose: () => void
   onAdd: (task: ScheduledTask) => void
   date: string
-  zones?: { id: string; name: string; icon: string }[]
 }) {
   const [name, setName] = useState('')
   const [priority, setPriority] = useState('medium')
-  const [zoneId, setZoneId] = useState<string | null>(null)
   const [reminderValue, setReminderValue] = useState(1)
   const [reminderUnit, setReminderUnit] = useState<'dana' | 'sati' | 'minuta'>('dana')
   const [reminderEnabled, setReminderEnabled] = useState(false)
@@ -42,7 +39,6 @@ export default function AddScheduledTaskModal({
     if (open) {
       setName('')
       setPriority('medium')
-      setZoneId(null)
       setReminderValue(1)
       setReminderUnit('dana')
       setReminderEnabled(false)
@@ -76,7 +72,6 @@ export default function AddScheduledTaskModal({
           for_date: date,
           remind_before_minutes,
           deadline_date: deadlineEnabled ? deadlineDate : null,
-          zone_id: zoneId,
           note: '',
         }),
       })
@@ -135,22 +130,6 @@ export default function AddScheduledTaskModal({
           <option value="low">🟢 Nizak</option>
         </select>
       </div>
-
-      {zones.length > 0 && (
-        <div>
-          <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Oblast</label>
-          <select
-            value={zoneId ?? ''}
-            onChange={e => setZoneId(e.target.value || null)}
-            className="field field-select h-11 px-2 text-sm"
-          >
-            <option value="">— Bez oblasti</option>
-            {zones.map(z => (
-              <option key={z.id} value={z.id}>{z.icon} {z.name}</option>
-            ))}
-          </select>
-        </div>
-      )}
 
       {/* Podsetnik toggle + unos */}
       <div>

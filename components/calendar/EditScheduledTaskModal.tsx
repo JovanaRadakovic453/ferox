@@ -12,7 +12,6 @@ type ScheduledTask = {
   note: string
   remind_before_minutes: number | null
   deadline_date: string | null
-  zone_id?: string | null
 }
 
 function initReminder(mins: number | null): { enabled: boolean; value: number; unit: 'dana' | 'sati' | 'minuta' } {
@@ -27,19 +26,16 @@ export default function EditScheduledTaskModal({
   onClose,
   onUpdate,
   onDelete,
-  zones = [],
 }: {
   task: ScheduledTask | null
   onClose: () => void
   onUpdate: (updated: ScheduledTask) => void
   onDelete: (id: string) => void
-  zones?: { id: string; name: string; icon: string }[]
 }) {
   const open = task !== null
 
   const [name, setName] = useState('')
   const [priority, setPriority] = useState('medium')
-  const [zoneId, setZoneId] = useState<string | null>(null)
   const [reminderEnabled, setReminderEnabled] = useState(false)
   const [reminderValue, setReminderValue] = useState(1)
   const [reminderUnit, setReminderUnit] = useState<'dana' | 'sati' | 'minuta'>('dana')
@@ -53,7 +49,6 @@ export default function EditScheduledTaskModal({
     if (task) {
       setName(task.name)
       setPriority(task.priority)
-      setZoneId(task.zone_id ?? null)
       const r = initReminder(task.remind_before_minutes)
       setReminderEnabled(r.enabled)
       setReminderValue(r.value)
@@ -86,7 +81,6 @@ export default function EditScheduledTaskModal({
           note: task.note ?? '',
           remind_before_minutes,
           deadline_date: deadlineEnabled ? deadlineDate : null,
-          zone_id: zoneId,
         }),
       })
       if (!res.ok) { setError('Nije sačuvano — pokušaj ponovo'); return }
@@ -148,22 +142,6 @@ export default function EditScheduledTaskModal({
           <option value="low">🟢 Nizak</option>
         </select>
       </div>
-
-      {zones.length > 0 && (
-        <div>
-          <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Oblast</label>
-          <select
-            value={zoneId ?? ''}
-            onChange={e => setZoneId(e.target.value || null)}
-            className="field field-select h-11 px-2 text-sm"
-          >
-            <option value="">— Bez oblasti</option>
-            {zones.map(z => (
-              <option key={z.id} value={z.id}>{z.icon} {z.name}</option>
-            ))}
-          </select>
-        </div>
-      )}
 
       {/* Podsetnik */}
       <div>

@@ -9,19 +9,17 @@ import { DEFAULTS } from '@/lib/config'
 // Dodavanje zadatka ili termina. Forma drži sopstveno stanje; roditelj radi
 // DB upis preko onAddTask/onAddAppointment (vraćaju true na uspeh).
 export default function AddTaskModal({
-  open, onClose, onAddTask, onAddAppointment, zones = [],
+  open, onClose, onAddTask, onAddAppointment,
 }: {
   open: boolean
   onClose: () => void
-  onAddTask: (t: { name: string; type: TaskType; priority: Priority; note: string; zone_id: string | null }) => Promise<boolean>
+  onAddTask: (t: { name: string; type: TaskType; priority: Priority; note: string }) => Promise<boolean>
   onAddAppointment: (a: { name: string; time: string; reminder: number }) => Promise<boolean>
-  zones?: { id: string; name: string; icon: string }[]
 }) {
   const [name, setName] = useState('')
   const [note, setNote] = useState('')
   const [type, setType] = useState<TaskType>('light')
   const [priority, setPriority] = useState<Priority>('medium')
-  const [zoneId, setZoneId] = useState<string | null>(null)
   const [isAppt, setIsAppt] = useState(false)
   const [time, setTime] = useState('09:00')
   const [reminderValue, setReminderValue] = useState(DEFAULTS.reminderMinutes)
@@ -31,7 +29,7 @@ export default function AddTaskModal({
   // Reset forme svaki put kad se modal otvori (čista forma pri svakom otvaranju).
   useEffect(() => {
     if (open) {
-      setName(''); setNote(''); setType('light'); setPriority('medium'); setZoneId(null); setIsAppt(false); setTime('09:00')
+      setName(''); setNote(''); setType('light'); setPriority('medium'); setIsAppt(false); setTime('09:00')
       setReminderValue(DEFAULTS.reminderMinutes); setReminderUnit('min'); setSubmitting(false)
     }
   }, [open])
@@ -42,7 +40,7 @@ export default function AddTaskModal({
     const reminder = reminderUnit === 'sat' ? reminderValue * 60 : reminderValue
     const ok = isAppt
       ? await onAddAppointment({ name: name.trim(), time, reminder })
-      : await onAddTask({ name: name.trim(), type, priority, note: note.trim(), zone_id: zoneId })
+      : await onAddTask({ name: name.trim(), type, priority, note: note.trim() })
     setSubmitting(false)
     if (ok) onClose()
   }
@@ -124,22 +122,6 @@ export default function AddTaskModal({
               <option value="low">🟢 Nizak</option>
             </select>
           </div>
-
-          {zones.length > 0 && (
-            <div>
-              <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Oblast</label>
-              <select
-                value={zoneId ?? ''}
-                onChange={e => setZoneId(e.target.value || null)}
-                className="field field-select h-11 px-2 text-sm"
-              >
-                <option value="">— Bez oblasti</option>
-                {zones.map(z => (
-                  <option key={z.id} value={z.id}>{z.icon} {z.name}</option>
-                ))}
-              </select>
-            </div>
-          )}
         </>
       )}
 

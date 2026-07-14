@@ -1,5 +1,3 @@
-import { DEFAULTS } from '@/lib/config'
-
 // Pure, testable aggregation over recent days.
 
 export interface DayAgg {
@@ -16,7 +14,6 @@ export interface Aggregates {
   dayCount: number
   overallCompletion: number
   byWeekday: Bar[]
-  byZone: Bar[]
   sleepInsight: string | null
 }
 
@@ -26,10 +23,7 @@ function rate(done: number, total: number): number {
   return total > 0 ? Math.round((done / total) * 100) : 0
 }
 
-export function computeAggregates(
-  days: DayAgg[],
-  zoneStats: { label: string; done: number; total: number }[],
-): Aggregates {
+export function computeAggregates(days: DayAgg[]): Aggregates {
   const totalDone = days.reduce((s, d) => s + d.done, 0)
   const totalTasks = days.reduce((s, d) => s + d.total, 0)
 
@@ -46,13 +40,6 @@ export function computeAggregates(
     }
   }
 
-  // By zone / oblast (label već sadrži ikonu+ime, top N po realizaciji)
-  const byZone: Bar[] = zoneStats
-    .filter(z => z.total > 0)
-    .map(z => ({ label: z.label, rate: rate(z.done, z.total), n: z.total }))
-    .sort((a, b) => b.rate - a.rate)
-    .slice(0, DEFAULTS.insightsTopZones)
-
   // Sleep vs completion
   const lowSleep = days.filter(d => d.sleep_hours != null && d.sleep_hours < 7)
   const highSleep = days.filter(d => d.sleep_hours != null && d.sleep_hours >= 7)
@@ -67,7 +54,6 @@ export function computeAggregates(
     dayCount: days.length,
     overallCompletion: rate(totalDone, totalTasks),
     byWeekday,
-    byZone,
     sleepInsight,
   }
 }

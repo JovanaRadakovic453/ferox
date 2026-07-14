@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { isValidDayKey } from '@/lib/date'
+import { isValidDayKey, todayKey } from '@/lib/date'
 import { DEFAULTS } from '@/lib/config'
 import { TASK_TYPES, PRIORITIES } from '@/types/ferox'
 
@@ -21,7 +21,6 @@ export const zTaskInput = z.object({
   done: z.boolean().optional().default(false),
   position: z.number().int().optional(),
   block_index: z.number().int().min(0).max(3).nullable().optional(),
-  zone_id: z.string().uuid().nullable().optional(),
 })
 
 export const zAppointmentInput = z.object({
@@ -29,7 +28,6 @@ export const zAppointmentInput = z.object({
   time: zTime,
   reminder: z.number().int().min(0).max(1440).optional().default(DEFAULTS.reminderMinutes),
   done: z.boolean().optional().default(false),
-  zone_id: z.string().uuid().nullable().optional(),
 })
 
 export const createDaySchema = z.object({
@@ -48,20 +46,37 @@ export const brainDumpSchema = z.object({
 })
 
 // ---- Izlazne sheme (AI parsiranje / tool-use) — tolerantne, sa fallback-om ----
+// dayOffset = na koji dan AI raspoređuje stavku: 0 = danas … 6 = za 6 dana.
+// reason = kratko objašnjenje zašto baš taj dan.
+const zDayOffset = z.number().int().min(0).max(6).catch(0)
 export const aiTaskSchema = z.object({
   name: z.string().trim().min(1).max(120),
   type: zTaskType.catch('light'),
   priority: zPriority.catch('medium'),
   note: z.string().max(500).catch(''),
   estMinutes: z.number().int().min(0).max(600).optional(),
+  dayOffset: zDayOffset,
+  reason: z.string().max(160).catch(''),
 })
 export const aiAppointmentSchema = z.object({
   name: z.string().trim().min(1).max(120),
   time: zTime,
+  dayOffset: zDayOffset,
 })
 export const aiBrainDumpResult = z.object({
-  tasks: z.array(aiTaskSchema).max(12).default([]),
-  appointments: z.array(aiAppointmentSchema).max(12).default([]),
+  tasks: z.array(aiTaskSchema).max(30).default([]),
+  appointments: z.array(aiAppointmentSchema).max(30).default([]),
+})
+
+// Batch upis zakazanih zadataka (potvrđen nedeljni plan iz brain dump-a).
+export const scheduledBatchSchema = z.object({
+  tasks: z.array(z.object({
+    name: z.string().trim().min(1).max(120),
+    priority: zPriority.default('medium'),
+    type: zTaskType.default('light'),
+    note: z.string().max(500).default(''),
+    for_date: zStrictDate.refine(d => d >= todayKey(), 'Datum ne može biti u prošlosti'),
+  })).min(1).max(60),
 })
 
 export type CreateDayBody = z.infer<typeof createDaySchema>

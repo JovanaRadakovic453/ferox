@@ -6,28 +6,25 @@ import Button from '@/components/ui/Button'
 import type { Task, TaskType, Priority } from '@/types/ferox'
 import { SectionHeader, CountChip, PRIORITY_OPTIONS, EMPTY_TASK } from '@/components/setup/primitives'
 
-type Zone = { id: string; name: string; icon: string }
-type TaskDraft = { name: string; note: string; priority: Priority; type: TaskType; zone_id: string | null }
-type TaskPatch = { priority?: Priority; zone_id?: string | null }
+type TaskDraft = { name: string; note: string; priority: Priority; type: TaskType }
+type TaskPatch = { priority?: Priority }
 
 export default function TaskEditor({
-  tasks, onAdd, onRemove, onUpdate, zones = [],
+  tasks, onAdd, onRemove, onUpdate,
 }: {
   tasks: Task[]
   onAdd: (t: TaskDraft) => void
   onRemove: (index: number) => void
   onUpdate?: (index: number, patch: TaskPatch) => void
-  zones?: Zone[]
 }) {
-  const [form, setForm] = useState<TaskDraft>({ ...EMPTY_TASK, zone_id: null })
+  const [form, setForm] = useState<TaskDraft>({ ...EMPTY_TASK })
   const [showForm, setShowForm] = useState(false)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
-  const zoneById = new Map(zones.map(z => [z.id, z]))
 
   function add() {
     if (!form.name.trim()) return
     onAdd(form)
-    setForm({ ...EMPTY_TASK, zone_id: null })
+    setForm({ ...EMPTY_TASK })
     setShowForm(false)
   }
 
@@ -48,17 +45,12 @@ export default function TaskEditor({
                 </span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{t.name}</p>
-                  {t.zone_id && zoneById.has(t.zone_id) && (
-                    <p className="text-[0.7rem] truncate mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                      {zoneById.get(t.zone_id)!.icon} {zoneById.get(t.zone_id)!.name}
-                    </p>
-                  )}
                 </div>
                 {onUpdate && (
                   <button onClick={() => setEditingIndex(editingIndex === i ? null : i)}
                     className="text-xs shrink-0 opacity-40 hover:opacity-80 transition-opacity"
                     style={{ color: editingIndex === i ? 'var(--gold)' : 'var(--text-muted)' }}
-                    aria-label="Izmeni prioritet i oblast">✎</button>
+                    aria-label="Izmeni prioritet">✎</button>
                 )}
                 <button onClick={() => onRemove(i)}
                   className="text-xs shrink-0 opacity-40 hover:opacity-80 transition-opacity"
@@ -67,26 +59,13 @@ export default function TaskEditor({
               </div>
 
               {onUpdate && editingIndex === i && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                  <div>
-                    <label className="text-[0.7rem] mb-1 block font-medium" style={{ color: 'var(--text-muted)' }}>Prioritet</label>
-                    <select value={t.priority}
-                      onChange={e => onUpdate(i, { priority: e.target.value as Priority })}
-                      className="field field-select h-10 px-2 text-sm w-full">
-                      {PRIORITY_OPTIONS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
-                    </select>
-                  </div>
-                  {zones.length > 0 && (
-                    <div>
-                      <label className="text-[0.7rem] mb-1 block font-medium" style={{ color: 'var(--text-muted)' }}>Oblast</label>
-                      <select value={t.zone_id ?? ''}
-                        onChange={e => onUpdate(i, { zone_id: e.target.value || null })}
-                        className="field field-select h-10 px-2 text-sm w-full">
-                        <option value="">— Bez oblasti</option>
-                        {zones.map(z => <option key={z.id} value={z.id}>{z.icon} {z.name}</option>)}
-                      </select>
-                    </div>
-                  )}
+                <div className="pt-1">
+                  <label className="text-[0.7rem] mb-1 block font-medium" style={{ color: 'var(--text-muted)' }}>Prioritet</label>
+                  <select value={t.priority}
+                    onChange={e => onUpdate(i, { priority: e.target.value as Priority })}
+                    className="field field-select h-10 px-2 text-sm w-full">
+                    {PRIORITY_OPTIONS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+                  </select>
                 </div>
               )}
             </div>
@@ -110,20 +89,9 @@ export default function TaskEditor({
               {PRIORITY_OPTIONS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
             </select>
           </div>
-          {zones.length > 0 && (
-            <div>
-              <label className="text-xs mb-1.5 block font-medium" style={{ color: 'var(--text-muted)' }}>Oblast</label>
-              <select value={form.zone_id ?? ''}
-                onChange={e => setForm(f => ({ ...f, zone_id: e.target.value || null }))}
-                className="field field-select h-11 px-3 text-sm">
-                <option value="">— Bez oblasti</option>
-                {zones.map(z => <option key={z.id} value={z.id}>{z.icon} {z.name}</option>)}
-              </select>
-            </div>
-          )}
           <div className="flex gap-2">
             <Button size="sm" onClick={add} disabled={!form.name.trim()} className="flex-1">Dodaj</Button>
-            <Button size="sm" variant="ghost" onClick={() => { setShowForm(false); setForm({ ...EMPTY_TASK, zone_id: null }) }}>Otkaži</Button>
+            <Button size="sm" variant="ghost" onClick={() => { setShowForm(false); setForm({ ...EMPTY_TASK }) }}>Otkaži</Button>
           </div>
         </div>
       ) : (

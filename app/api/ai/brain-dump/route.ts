@@ -3,17 +3,19 @@ import { createClient } from '@/lib/supabase/server'
 import type { NextRequest } from 'next/server'
 import { apiOk, ERR } from '@/lib/api'
 import { brainDumpSchema, aiBrainDumpResult, TASK_TYPES, PRIORITIES } from '@/lib/validation'
-import { TASK_TYPE_GUIDE } from '@/lib/ai/prompts'
+import { TASK_TYPE_GUIDE, PLAN_METHOD_GUIDE } from '@/lib/ai/prompts'
+import { buildBrainDumpContext } from '@/lib/ai/userContext'
 import { AI, RATE_LIMITS } from '@/lib/config'
 import { checkRateLimit } from '@/lib/rateLimit'
 
 export const maxDuration = 60
 
 // Forced tool-use: the SDK guarantees valid JSON and enums can't be wrong.
-// Concrete times become appointments; everything else is a task.
+// Concrete times become appointments; everything else is a task. AI raspoređuje
+// svaku stavku po danu (dayOffset).
 const extractTool = {
   name: 'extract_plan',
-  description: 'Izdvoji zadatke i zakazane termine iz korisnikovog teksta na srpskom.',
+  description: 'Izdvoji zadatke i termine iz teksta na srpskom i rasporedi ih po danima (Eisenhower + 1-3-5 + rokovi).',
   input_schema: {
     type: 'object' as const,
     properties: {
@@ -26,9 +28,11 @@ const extractTool = {
             type: { type: 'string', enum: [...TASK_TYPES] },
             priority: { type: 'string', enum: [...PRIORITIES], description: 'high samo uz jasnu hitnost/rok; inače medium; low ako može da čeka. Ne stavljaj sve na high.' },
             note: { type: 'string' },
-            estMinutes: { type: 'number', description: 'realna procena trajanja u minutima (sa ADHD bufferom)' },
+            estMinutes: { type: 'number', description: 'realna procena trajanja u minutima' },
+            dayOffset: { type: 'number', description: 'na koji dan ide: 0 = danas, 1 = sutra … najviše 6' },
+            reason: { type: 'string', description: 'jedna kratka rečenica na srpskom: zašto baš taj dan' },
           },
-          required: ['name', 'type', 'priority'],
+          required: ['name', 'type', 'priority', 'dayOffset'],
         },
       },
       appointments: {
@@ -38,8 +42,9 @@ const extractTool = {
           properties: {
             name: { type: 'string' },
             time: { type: 'string', description: 'HH:MM, 24h' },
+            dayOffset: { type: 'number', description: '0 = danas, 1 = sutra … najviše 6' },
           },
-          required: ['name', 'time'],
+          required: ['name', 'time', 'dayOffset'],
         },
       },
     },
@@ -62,6 +67,9 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) return ERR.invalidInput(parsed.error.issues)
   const { text } = parsed.data
 
+  // Kontekst: koliko je već zakazano po danima (da AI ne pretrpa dan).
+  const { contextText } = await buildBrainDumpContext(supabase, user.id)
+
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
   let message
@@ -71,13 +79,17 @@ export async function POST(request: NextRequest) {
       max_tokens: AI.maxTokens.brainDump,
       tools: [extractTool],
       tool_choice: { type: 'tool', name: 'extract_plan' },
-      system: TASK_TYPE_GUIDE,
+      system: `${TASK_TYPE_GUIDE}\n\n${PLAN_METHOD_GUIDE}`,
       messages: [{
         role: 'user',
         content:
-          `Izdvoji najviše ${AI.brainDumpMaxTasks} zadataka i sve zakazane termine iz teksta. ` +
-          `Ako tekst pominje konkretno vreme (npr. "u 14h", "sastanak u 9", "zubar u 11:30"), to je TERMIN sa time u HH:MM; inače je zadatak. ` +
-          `Tekst: "${text}"`,
+          `Izdvoji najviše ${AI.brainDumpMaxTasks} zadataka i sve termine iz teksta, pa ih rasporedi po danima (dayOffset 0-6, danas je dayOffset 0). ` +
+          `Ako korisnik pomene vremenski okvir (npr. "narednih 7 dana", "ove nedelje", "do petka"), OBAVEZNO rasprostri zadatke kroz te dane — NEMOJ sve staviti na danas. ` +
+          `Za ponavljajuće zadatke ("2x nedeljno", "svaki dan") napravi više stavki na različite dane. ` +
+          `Predloži prioritet za svaki zadatak (visok/srednji/nizak) po hitnosti, rokovima i po tome kako korisnik obično prioritetizuje slične zadatke (vidi dole) — nemoj sve staviti na srednji. ` +
+          `Ako tekst pominje konkretno vreme (npr. "u 14h", "sastanak u 9", "zubar u 11:30"), to je TERMIN sa "time" u HH:MM; inače je zadatak. ` +
+          (contextText ? `\n\n${contextText}\n` : '') +
+          `\nTekst korisnika: "${text}"`,
       }],
     })
   } catch (err) {

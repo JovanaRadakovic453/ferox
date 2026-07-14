@@ -49,11 +49,10 @@ export async function createDay(
     entry_id: entryId, user_id: userId, name: t.name, done: t.done ?? false,
     priority: t.priority, type: t.type, note: t.note ?? '',
     position: t.position ?? i, block_index: t.block_index ?? null,
-    zone_id: t.zone_id ?? null,
   }))
   if (taskRows.length > 0) {
     const { data, error } = await supabase.from('tasks').insert(taskRows)
-      .select('id, name, done, priority, type, note, position, block_index, zone_id')
+      .select('id, name, done, priority, type, note, position, block_index')
     if (error) return { ok: false, code: 'DB_INSERT_TASKS', message: 'Greška pri ubacivanju zadataka', detail: error.message }
     inserted = (data ?? []) as Task[]
     if (inserted.length !== taskRows.length) {
@@ -66,7 +65,7 @@ export async function createDay(
   if (delApptErr) return { ok: false, code: 'DB_DEL_APPT', message: 'Greška pri brisanju termina', detail: delApptErr.message }
   if (appointments && appointments.length > 0) {
     const { error } = await supabase.from('appointments').insert(appointments.map(a => ({
-      user_id: userId, date_key: dateKey, name: a.name, time: a.time, reminder: a.reminder || DEFAULTS.reminderMinutes, done: a.done ?? false, zone_id: a.zone_id ?? null,
+      user_id: userId, date_key: dateKey, name: a.name, time: a.time, reminder: a.reminder || DEFAULTS.reminderMinutes, done: a.done ?? false,
     })))
     if (error) return { ok: false, code: 'DB_INSERT_APPT', message: 'Greška pri čuvanju termina', detail: error.message }
   }

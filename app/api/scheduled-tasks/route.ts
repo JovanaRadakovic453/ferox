@@ -17,7 +17,6 @@ const createSchema = z.object({
   for_date: zStrictDate.refine(d => d >= todayKey(), 'Datum ne može biti u prošlosti'),
   remind_before_minutes: z.number().int().min(1).max(REMIND_MAX_MINUTES).nullable().default(null),
   deadline_date: zStrictDate.nullable().default(null),
-  zone_id: z.string().uuid().nullable().default(null),
 })
 
 export async function GET(request: NextRequest) {

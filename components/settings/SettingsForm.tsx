@@ -9,7 +9,7 @@ import Input from '@/components/ui/Input'
 import Modal from '@/components/ui/Modal'
 import ThemeToggle from '@/components/ui/ThemeToggle'
 import LogoutButton from '@/components/LogoutButton'
-import type { UserProfile, Zone } from '@/types/ferox'
+import type { UserProfile } from '@/types/ferox'
 
 const WEEKDAYS = ['Ned', 'Pon', 'Uto', 'Sre', 'Čet', 'Pet', 'Sub']
 
@@ -30,7 +30,7 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
   )
 }
 
-export default function SettingsForm({ profile, email, zones: initialZones = [] }: { profile: UserProfile; email: string; zones?: Zone[] }) {
+export default function SettingsForm({ profile, email }: { profile: UserProfile; email: string }) {
   const router = useRouter()
   const toast = useToast()
 
@@ -45,42 +45,12 @@ export default function SettingsForm({ profile, email, zones: initialZones = [] 
   const [showDelete, setShowDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
-  const [zones, setZones] = useState<Zone[]>(initialZones)
-  const [newZoneName, setNewZoneName] = useState('')
-
   const [notifActive, setNotifActive] = useState(!!profile.push_subscription)
   const [notifLoading, setNotifLoading] = useState(false)
   const [testLoading, setTestLoading] = useState(false)
 
   const [googleConnected, setGoogleConnected] = useState(!!profile.google_refresh_token)
   const [googleDisconnecting, setGoogleDisconnecting] = useState(false)
-
-  async function addZone() {
-    if (!newZoneName.trim()) return
-    const name = newZoneName.trim()
-    setNewZoneName('')
-    const res = await fetch('/api/zones', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, icon: '📁', position: zones.length }),
-    })
-    if (res.ok) {
-      const json = await res.json()
-      setZones(prev => [...prev, json])
-    } else {
-      toast({ message: 'Oblast nije dodana — pokušaj ponovo', variant: 'error' })
-    }
-  }
-
-  async function deleteZone(id: string) {
-    const deleted = zones.find(z => z.id === id)
-    setZones(prev => prev.filter(z => z.id !== id))
-    const res = await fetch(`/api/zones/${id}`, { method: 'DELETE' })
-    if (!res.ok) {
-      if (deleted) setZones(prev => [...prev, deleted].sort((a, b) => a.position - b.position))
-      toast({ message: 'Oblast nije obrisana — pokušaj ponovo', variant: 'error' })
-    }
-  }
 
   function toggle<T>(arr: T[], v: T, set: (x: T[]) => void) {
     set(arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v])
@@ -215,53 +185,6 @@ export default function SettingsForm({ profile, email, zones: initialZones = [] 
           <div className="flex flex-wrap gap-2">
             {WEEKDAYS.map((d, i) => <Chip key={i} active={restDays.includes(i)} onClick={() => toggle(restDays, i, setRestDays)}>{d}</Chip>)}
           </div>
-        </div>
-      </section>
-
-      {/* Oblasti */}
-      <section className="card p-5 flex flex-col gap-4">
-        <p className="section-label">Oblasti</p>
-
-        <div className="flex flex-col gap-2">
-          {zones.length === 0 && (
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Nema oblasti — dodaj neku ispod.</p>
-          )}
-          {zones.map(z => (
-            <div
-              key={z.id}
-              className="flex items-center gap-2 px-3.5 py-2.5 rounded-[var(--r-md)] border"
-              style={{ borderColor: 'var(--border)', background: 'var(--surface2)' }}
-            >
-              <span className="text-lg shrink-0">{z.icon}</span>
-              <span className="flex-1 text-sm font-medium" style={{ color: 'var(--text)' }}>{z.name}</span>
-              <button
-                type="button"
-                onClick={() => deleteZone(z.id)}
-                aria-label={`Obriši ${z.name}`}
-                className="text-xs opacity-40 hover:opacity-80 transition-opacity shrink-0"
-                style={{ color: 'var(--text-muted)' }}
-              >✕</button>
-            </div>
-          ))}
-        </div>
-
-        <div className="flex gap-2">
-          <input
-            value={newZoneName}
-            onChange={e => setNewZoneName(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') addZone() }}
-            placeholder="Dodaj oblast..."
-            className="field h-10 px-3 text-sm flex-1"
-          />
-          <button
-            type="button"
-            disabled={!newZoneName.trim()}
-            onClick={addZone}
-            className="px-4 h-10 rounded-[var(--r-md)] text-sm font-medium transition-colors disabled:opacity-40"
-            style={{ background: 'var(--surface2)', color: 'var(--text)', border: '1px solid var(--border)' }}
-          >
-            + Dodaj
-          </button>
         </div>
       </section>
 

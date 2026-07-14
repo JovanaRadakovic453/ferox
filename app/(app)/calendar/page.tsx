@@ -2,7 +2,6 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { todayKey, addDays } from '@/lib/date'
 import CalendarView from '@/components/calendar/CalendarView'
-import type { Zone } from '@/types/ferox'
 
 function monthBounds(month: string): { from: string; to: string } {
   const [year, m] = month.split('-').map(Number)
@@ -36,7 +35,6 @@ export default async function CalendarPage({
     { data: entries },
     { data: appointments },
     { data: scheduled },
-    { data: zones },
     { data: profile },
   ] = await Promise.all([
     supabase
@@ -48,20 +46,19 @@ export default async function CalendarPage({
       .order('date_key'),
     supabase
       .from('appointments')
-      .select('id, date_key, name, time, done, zone_id')
+      .select('id, date_key, name, time, done')
       .eq('user_id', user.id)
       .gte('date_key', expandedFrom)
       .lte('date_key', expandedTo)
       .order('date_key'),
     supabase
       .from('scheduled_tasks')
-      .select('id, for_date, name, priority, note, remind_before_minutes, deadline_date, zone_id')
+      .select('id, for_date, name, priority, note, remind_before_minutes, deadline_date')
       .eq('user_id', user.id)
       .gte('for_date', expandedFrom)
       .lte('for_date', expandedTo)
       .eq('done', false)
       .order('for_date'),
-    supabase.from('zones').select('*').eq('user_id', user.id).order('position'),
     supabase.from('profiles').select('google_refresh_token').eq('id', user.id).single(),
   ])
 
@@ -91,9 +88,8 @@ export default async function CalendarPage({
       today={today}
       entries={entryRows as { id: string; date_key: string; finished_at: string | null }[]}
       taskCountByDate={taskCountByDate}
-      appointments={(appointments ?? []) as { id: string; date_key: string; name: string; time: string; done: boolean; zone_id?: string | null }[]}
-      scheduled={(scheduled ?? []) as { id: string; for_date: string; name: string; priority: string; note: string; remind_before_minutes: number | null; deadline_date: string | null; zone_id?: string | null }[]}
-      zones={(zones ?? []) as Zone[]}
+      appointments={(appointments ?? []) as { id: string; date_key: string; name: string; time: string; done: boolean }[]}
+      scheduled={(scheduled ?? []) as { id: string; for_date: string; name: string; priority: string; note: string; remind_before_minutes: number | null; deadline_date: string | null }[]}
       googleConnected={!!profile?.google_refresh_token}
     />
   )

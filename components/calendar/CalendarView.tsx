@@ -4,12 +4,10 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import CalendarGrid from './CalendarGrid'
 import DayPanel from './DayPanel'
-import ZonePanel from './ZonePanel'
 
 type Entry = { id: string; date_key: string; finished_at: string | null }
-type Appointment = { id: string; date_key: string; name: string; time: string; done: boolean; zone_id?: string | null }
-type ScheduledTask = { id: string; for_date: string; name: string; priority: string; note: string; remind_before_minutes: number | null; deadline_date: string | null; zone_id?: string | null }
-type Zone = { id: string; name: string; icon: string; position: number }
+type Appointment = { id: string; date_key: string; name: string; time: string; done: boolean }
+type ScheduledTask = { id: string; for_date: string; name: string; priority: string; note: string; remind_before_minutes: number | null; deadline_date: string | null }
 
 const MONTH_NAMES = [
   'Januar', 'Februar', 'Mart', 'April', 'Maj', 'Jun',
@@ -29,7 +27,6 @@ export default function CalendarView({
   taskCountByDate,
   appointments,
   scheduled,
-  zones = [],
   googleConnected = false,
 }: {
   initialMonth: string
@@ -38,13 +35,11 @@ export default function CalendarView({
   taskCountByDate: Record<string, number>
   appointments: Appointment[]
   scheduled: ScheduledTask[]
-  zones?: Zone[]
   googleConnected?: boolean
 }) {
   const router = useRouter()
   const [view, setView] = useState<'month' | 'week'>('month')
   const [selectedDate, setSelectedDate] = useState<string>(today)
-  const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null)
   // Optimistic list — updated immediately on add/remove without waiting for re-fetch
   const [panelScheduled, setPanelScheduled] = useState<ScheduledTask[]>(scheduled)
 
@@ -66,14 +61,6 @@ export default function CalendarView({
   function updateTask(updated: ScheduledTask) {
     setPanelScheduled(prev => prev.map(t => t.id === updated.id ? updated : t))
   }
-
-  const filteredScheduled = selectedZoneId
-    ? panelScheduled.filter(t => t.zone_id === selectedZoneId)
-    : panelScheduled
-
-  const filteredAppointments = selectedZoneId
-    ? appointments.filter(a => a.zone_id === selectedZoneId)
-    : appointments
 
   return (
     <main className="flex flex-col gap-5 pb-2">
@@ -115,35 +102,6 @@ export default function CalendarView({
         </div>
       </div>
 
-      {/* Filter po oblastima */}
-      {zones.length > 0 && (
-        <div className="flex items-center gap-2 flex-wrap">
-          <button
-            onClick={() => setSelectedZoneId(null)}
-            className="px-3 py-1 rounded-full text-xs font-semibold transition-all"
-            style={{
-              background: selectedZoneId === null ? 'var(--gold)' : 'var(--surface2)',
-              color: selectedZoneId === null ? '#fff' : 'var(--text-muted)',
-            }}
-          >
-            Sve
-          </button>
-          {zones.map(z => (
-            <button
-              key={z.id}
-              onClick={() => setSelectedZoneId(prev => prev === z.id ? null : z.id)}
-              className="px-3 py-1 rounded-full text-xs font-semibold transition-all"
-              style={{
-                background: selectedZoneId === z.id ? 'var(--gold)' : 'var(--surface2)',
-                color: selectedZoneId === z.id ? '#fff' : 'var(--text-muted)',
-              }}
-            >
-              {z.icon} {z.name}
-            </button>
-          ))}
-        </div>
-      )}
-
       {/* Grid + panel side by side on desktop */}
       <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[1fr_300px] lg:gap-5 lg:items-start">
         <CalendarGrid
@@ -152,36 +110,23 @@ export default function CalendarView({
           today={today}
           entries={entries}
           taskCountByDate={taskCountByDate}
-          appointments={filteredAppointments}
-          scheduled={filteredScheduled}
+          appointments={appointments}
+          scheduled={panelScheduled}
           selectedDate={selectedDate}
           onSelectDate={setSelectedDate}
         />
 
-        {selectedZoneId ? (
-          <ZonePanel
-            zone={zones.find(z => z.id === selectedZoneId)!}
-            scheduled={filteredScheduled}
-            appointments={filteredAppointments}
-            today={today}
-            onUpdateTask={updateTask}
-            onDeleteTask={removeTask}
-          />
-        ) : (
-          <DayPanel
-            date={selectedDate}
-            today={today}
-            entries={entries}
-            appointments={filteredAppointments.filter(a => a.date_key === selectedDate)}
-            scheduled={filteredScheduled.filter(t => t.for_date === selectedDate)}
-            onAddTask={addTask}
-            onRemoveTask={removeTask}
-            onUpdateTask={updateTask}
-            zones={zones}
-            selectedZoneId={selectedZoneId}
-            googleConnected={googleConnected}
-          />
-        )}
+        <DayPanel
+          date={selectedDate}
+          today={today}
+          entries={entries}
+          appointments={appointments.filter(a => a.date_key === selectedDate)}
+          scheduled={panelScheduled.filter(t => t.for_date === selectedDate)}
+          onAddTask={addTask}
+          onRemoveTask={removeTask}
+          onUpdateTask={updateTask}
+          googleConnected={googleConnected}
+        />
       </div>
     </main>
   )

@@ -13,7 +13,7 @@ export default async function InsightsPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [{ data: entries }, { data: profile }, { data: finishedRows }, { data: zones }] = await Promise.all([
+  const [{ data: entries }, { data: profile }, { data: finishedRows }] = await Promise.all([
     supabase
       .from('day_entries')
       .select('id, date_key, sleep_hours')
@@ -28,38 +28,20 @@ export default async function InsightsPage() {
       .not('finished_at', 'is', null)
       .order('date_key', { ascending: false })
       .limit(60),
-    supabase.from('zones').select('id, name, icon').eq('user_id', user.id),
   ])
 
   const list = entries ?? []
   const ids = list.map(e => e.id)
 
   const perEntry = new Map<string, { done: number; total: number }>()
-  const zoneAgg = new Map<string, { done: number; total: number }>() // ključ = zone_id ili '__none__'
   if (ids.length > 0) {
-    const { data: tasks } = await supabase.from('tasks').select('entry_id, zone_id, done').in('entry_id', ids)
+    const { data: tasks } = await supabase.from('tasks').select('entry_id, done').in('entry_id', ids)
     for (const t of tasks ?? []) {
       const c = perEntry.get(t.entry_id) ?? { done: 0, total: 0 }
       c.total += 1; if (t.done) c.done += 1
       perEntry.set(t.entry_id, c)
-      const key = t.zone_id ?? '__none__'
-      const za = zoneAgg.get(key) ?? { done: 0, total: 0 }
-      za.total += 1; if (t.done) za.done += 1
-      zoneAgg.set(key, za)
     }
   }
-
-  // Prevedi zone_id → "ikona ime"; obrisane zone i zadaci bez oblasti idu u "Bez oblasti".
-  const zoneById = new Map((zones ?? []).map(z => [z.id as string, z]))
-  const byLabel = new Map<string, { done: number; total: number }>()
-  for (const [key, v] of zoneAgg) {
-    const z = key === '__none__' ? null : zoneById.get(key)
-    const label = z ? `${z.icon} ${z.name}` : 'Bez oblasti'
-    const cur = byLabel.get(label) ?? { done: 0, total: 0 }
-    cur.done += v.done; cur.total += v.total
-    byLabel.set(label, cur)
-  }
-  const zoneStats = [...byLabel.entries()].map(([label, v]) => ({ label, ...v }))
 
   const days: DayAgg[] = list.map(e => {
     const c = perEntry.get(e.id) ?? { done: 0, total: 0 }
@@ -93,7 +75,7 @@ export default async function InsightsPage() {
     )
   }
 
-  const agg = computeAggregates(loggedDays, zoneStats)
+  const agg = computeAggregates(loggedDays)
 
   const finishedSet = new Set((finishedRows ?? []).map(r => r.date_key as string))
   const streak = computeStreak(finishedSet, profile?.rest_days ?? [0, 6], todayKey())

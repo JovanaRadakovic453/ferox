@@ -15,7 +15,6 @@ const updateSchema = z.object({
   note: z.string().max(500).optional(),
   remind_before_minutes: z.number().int().min(1).max(REMIND_MAX_MINUTES).nullable().optional(),
   deadline_date: zStrictDate.nullable().optional(),
-  zone_id: z.string().uuid().nullable().optional(),
 })
 
 export async function PATCH(

@@ -6,17 +6,14 @@ import Button from '@/components/ui/Button'
 import type { Appointment } from '@/types/ferox'
 import { SectionHeader, CountChip, EMPTY_APPT, EMPTY_APPT_REMINDER } from '@/components/setup/primitives'
 
-type Zone = { id: string; name: string; icon: string }
-
 export default function AppointmentEditor({
-  appointments, onAdd, onRemove, zones = [],
+  appointments, onAdd, onRemove,
 }: {
   appointments: Appointment[]
-  onAdd: (a: { name: string; time: string; reminder: number; zone_id: string | null }) => void
+  onAdd: (a: { name: string; time: string; reminder: number }) => void
   onRemove: (index: number) => void
-  zones?: Zone[]
 }) {
-  const [form, setForm] = useState({ ...EMPTY_APPT, zone_id: null as string | null })
+  const [form, setForm] = useState({ ...EMPTY_APPT })
   const [reminderInput, setReminderInput] = useState(EMPTY_APPT_REMINDER)
   const [showForm, setShowForm] = useState(false)
 
@@ -25,8 +22,8 @@ export default function AppointmentEditor({
     const reminderMinutes = reminderInput.unit === 'sat'
       ? (reminderInput.value || 0) * 60
       : (reminderInput.value || 0)
-    onAdd({ name: form.name, time: form.time, reminder: reminderMinutes, zone_id: form.zone_id })
-    setForm({ ...EMPTY_APPT, zone_id: null })
+    onAdd({ name: form.name, time: form.time, reminder: reminderMinutes })
+    setForm({ ...EMPTY_APPT })
     setReminderInput(EMPTY_APPT_REMINDER)
     setShowForm(false)
   }
@@ -78,20 +75,9 @@ export default function AppointmentEditor({
               </div>
             </div>
           </div>
-          {zones.length > 0 && (
-            <div>
-              <label className="text-xs mb-1.5 block font-medium" style={{ color: 'var(--text-muted)' }}>Oblast</label>
-              <select value={form.zone_id ?? ''}
-                onChange={e => setForm(f => ({ ...f, zone_id: e.target.value || null }))}
-                className="field field-select h-11 px-3 text-sm">
-                <option value="">— Bez oblasti</option>
-                {zones.map(z => <option key={z.id} value={z.id}>{z.icon} {z.name}</option>)}
-              </select>
-            </div>
-          )}
           <div className="flex gap-2">
             <Button size="sm" onClick={add} disabled={!form.name.trim()} className="flex-1">Dodaj</Button>
-            <Button size="sm" variant="ghost" onClick={() => { setShowForm(false); setForm({ ...EMPTY_APPT, zone_id: null }); setReminderInput(EMPTY_APPT_REMINDER) }}>Otkaži</Button>
+            <Button size="sm" variant="ghost" onClick={() => { setShowForm(false); setForm({ ...EMPTY_APPT }); setReminderInput(EMPTY_APPT_REMINDER) }}>Otkaži</Button>
           </div>
         </div>
       ) : (

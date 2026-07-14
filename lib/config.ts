@@ -13,11 +13,15 @@ export const AI = {
   model: 'claude-sonnet-4-6',
   /** max_tokens po ruti (kratke poruke = manji budžet = jeftinije). */
   maxTokens: {
-    brainDump: 1024,
+    // Brain dump sada pravi ceo nedeljni plan (više stavki + kratka objašnjenja),
+    // pa mu treba veći budžet nego za jednodnevni izvor.
+    brainDump: 2048,
     eod: 200,
   },
   /** Najviše zadataka koje brain-dump izvuče (koristi se i u promptu i u .slice()). */
-  brainDumpMaxTasks: 8,
+  brainDumpMaxTasks: 25,
+  /** Koliko dana unapred brain dump raspoređuje (danas + narednih 6). */
+  brainDumpHorizonDays: 7,
 } as const
 
 /**
@@ -38,8 +42,6 @@ export const DEFAULTS = {
   /** History grafik: koliko dana prikazati (mobilni / desktop). */
   historyDaysMobile: 7,
   historyDaysDesktop: 14,
-  /** Insights: koliko oblasti prikazati u grafiku „Realizacija po oblasti". */
-  insightsTopZones: 6,
 }
 
 /**
@@ -53,7 +55,6 @@ export const RATE_LIMITS = {
   eod: { limit: 10, windowSec: 60 },
   accountDelete: { limit: 3, windowSec: 86400 },
   /** CRUD mutacije (zaštita od DB bloat-a; GET liste ostaju bez limita). */
-  zonesWrite: { limit: 30, windowSec: 60 },
   scheduledWrite: { limit: 30, windowSec: 60 },
   notifications: { limit: 10, windowSec: 60 },
   /** Google Calendar proxy — štiti Google API kvotu aplikacije. */
@@ -63,9 +64,9 @@ export const RATE_LIMITS = {
 /** Statički identitet aplikacije / metapodaci. */
 export const APP = {
   name: 'Ferox',
-  tagline: 'Organizuj dan po oblastima svog života.',
+  tagline: 'Organizuj svoj dan i prati napredak.',
   title: 'Ferox — Tvoj lični planer',
   description:
-    'Tvoj lični planer dana. Organizuj zadatke po oblastima svog života i prati napredak svakog dana.',
+    'Tvoj lični planer dana. Organizuj zadatke i prati napredak svakog dana.',
   url: process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000',
 } as const

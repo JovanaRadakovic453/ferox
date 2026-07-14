@@ -14,22 +14,6 @@ interface FormData {
   reason: Reason | null
 }
 
-const ZONE_PRESETS = {
-  entrepreneur: [
-    { name: 'Posao', icon: '💼' },
-    { name: 'Finansije', icon: '💰' },
-    { name: 'Zdravlje', icon: '💪' },
-    { name: 'Sport', icon: '🏃' },
-    { name: 'Lično', icon: '🌱' },
-  ],
-  student: [
-    { name: 'Fakultet', icon: '🎓' },
-    { name: 'Projekti', icon: '📝' },
-    { name: 'Sport', icon: '🏃' },
-    { name: 'Lično', icon: '🌱' },
-  ],
-}
-
 const slideVariants = {
   enter: (dir: number) => ({ x: dir > 0 ? 60 : -60, opacity: 0 }),
   center: { x: 0, opacity: 1 },
@@ -91,8 +75,6 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
     name: initialName,
     reason: null,
   })
-  const [zones, setZones] = useState<Array<{ name: string; icon: string }>>([])
-  const [newZoneName, setNewZoneName] = useState('')
   const [notifLoading, setNotifLoading] = useState(false)
 
   function next() {
@@ -105,7 +87,7 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
     setStep(s => s - 1)
   }
 
-  async function saveProfileAndZones() {
+  async function saveProfile() {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
@@ -115,22 +97,11 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
       reason: form.reason,
       completed_once: true,
     }).eq('id', user.id)
-
-    const validZones = zones.filter(z => z.name.trim())
-    await Promise.all(
-      validZones.map((z, i) =>
-        fetch('/api/zones', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: z.name.trim(), icon: z.icon, position: i }),
-        })
-      )
-    )
   }
 
   async function finish() {
     setLoading(true)
-    await saveProfileAndZones()
+    await saveProfile()
     router.push('/')
     router.refresh()
   }
@@ -175,7 +146,7 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
             Dobrodošla u Ferox
           </h1>
           <p className="text-sm leading-relaxed max-w-[280px]" style={{ color: 'var(--text-muted)' }}>
-            Organizuj dan po oblastima svog života i prati šta si zaista uradila.
+            Isplaniraj svoj dan i prati šta si zaista uradila.
           </p>
         </div>
         <Button size="lg" className="w-full max-w-[280px]" onClick={next}>
@@ -226,94 +197,13 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
           <OptionCard emoji="💼" title="Posao" desc="Projekti, rokovi, poslovni zadaci" selected={form.reason === 'work'} onClick={() => setForm(f => ({ ...f, reason: 'work' }))} />
           <OptionCard emoji="🎓" title="Fakultet" desc="Učenje, ispiti, predavanja" selected={form.reason === 'school'} onClick={() => setForm(f => ({ ...f, reason: 'school' }))} />
         </div>
-        <Button size="lg" className="w-full" onClick={() => {
-          setZones(form.reason === 'work' ? ZONE_PRESETS.entrepreneur : ZONE_PRESETS.student)
-          next()
-        }} disabled={!form.reason}>
+        <Button size="lg" className="w-full" onClick={next} disabled={!form.reason}>
           Dalje →
         </Button>
       </div>
     ),
 
     4: (
-      <div className="flex flex-col gap-5">
-        <div>
-          <h2 className="title-serif text-3xl mb-1" style={{ color: 'var(--text)' }}>
-            Tvoje oblasti
-          </h2>
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            Koje oblasti svog života pratiš? Svaki zadatak ćeš moći da rasporediš u oblast.
-          </p>
-        </div>
-
-        {/* Lista zona */}
-        <div className="flex flex-col gap-2">
-          {zones.map((z, i) => (
-            <div
-              key={i}
-              className="flex items-center gap-2 px-3.5 py-2.5 rounded-[var(--r-md)] border"
-              style={{ borderColor: 'var(--border)', background: 'var(--surface2)' }}
-            >
-              <span className="text-lg shrink-0">{z.icon}</span>
-              <input
-                value={z.name}
-                onChange={e => setZones(prev => prev.map((zz, ii) => ii === i ? { ...zz, name: e.target.value } : zz))}
-                className="flex-1 bg-transparent text-sm font-medium outline-none"
-                style={{ color: 'var(--text)' }}
-              />
-              <button
-                type="button"
-                onClick={() => setZones(prev => prev.filter((_, ii) => ii !== i))}
-                className="text-xs opacity-40 hover:opacity-80 transition-opacity shrink-0"
-                style={{ color: 'var(--text-muted)' }}
-                aria-label="Obriši oblast"
-              >✕</button>
-            </div>
-          ))}
-        </div>
-
-        {/* Dodaj novu oblast */}
-        <div className="flex gap-2">
-          <input
-            value={newZoneName}
-            onChange={e => setNewZoneName(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter' && newZoneName.trim()) {
-                setZones(prev => [...prev, { name: newZoneName.trim(), icon: '📁' }])
-                setNewZoneName('')
-              }
-            }}
-            placeholder="Dodaj oblast..."
-            className="field h-10 px-3 text-sm flex-1"
-          />
-          <button
-            type="button"
-            disabled={!newZoneName.trim()}
-            onClick={() => {
-              if (newZoneName.trim()) {
-                setZones(prev => [...prev, { name: newZoneName.trim(), icon: '📁' }])
-                setNewZoneName('')
-              }
-            }}
-            className="px-4 h-10 rounded-[var(--r-md)] text-sm font-medium transition-colors disabled:opacity-40"
-            style={{ background: 'var(--surface2)', color: 'var(--text)', border: '1px solid var(--border)' }}
-          >
-            + Dodaj
-          </button>
-        </div>
-
-        <Button
-          size="lg"
-          className="w-full"
-          onClick={next}
-          disabled={zones.filter(z => z.name.trim()).length === 0}
-        >
-          Dalje →
-        </Button>
-      </div>
-    ),
-
-    5: (
       <div className="flex flex-col gap-6">
         <div>
           <h2 className="title-serif text-3xl mb-1" style={{ color: 'var(--text)' }}>
@@ -369,10 +259,10 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
         </div>
         <div>
           <h2 className="title-serif text-[2.6rem] leading-[1.1]" style={{ color: 'var(--text)' }}>
-            Tvoje obaveze,<br /><span className="foil">tvoje oblasti.</span>
+            Tvoje obaveze,<br /><span className="foil">tvoj dan.</span>
           </h2>
           <p className="text-base mt-6 max-w-[44ch]" style={{ color: 'var(--text-muted)' }}>
-            Organizuj dan po oblastima svog života — posao, zdravlje, lično. Sve na jednom mestu.
+            Isplaniraj svoj dan i prati napredak. Sve na jednom mestu.
           </p>
         </div>
       </aside>
@@ -390,7 +280,7 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
             </button>
           )}
 
-          <StepDots total={5} current={step} />
+          <StepDots total={4} current={step} />
 
           <AnimatePresence mode="wait" custom={dir}>
             <motion.div

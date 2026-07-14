@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import PlanScreen from '@/components/plan/PlanScreen'
 import { todayKey, tomorrowKey, isValidDayKey, addDays } from '@/lib/date'
 import { computeStreak } from '@/lib/streak'
-import type { Task, Appointment, DayEntry, UserProfile, Zone } from '@/types/ferox'
+import type { Task, Appointment, DayEntry, UserProfile } from '@/types/ferox'
 
 export const dynamic = 'force-dynamic'
 
@@ -35,7 +35,7 @@ export default async function PlanPage({
   // finished_at je izvor istine da je dan završen (više se ne oslanjamo na cookie).
   const dayFinished = !!entry.finished_at
 
-  const [{ data: tasks }, { data: appointments }, { data: tomorrowEntry }, { data: finishedRows }, { data: tomorrowScheduled }, { data: overdueDeadlines }, { data: zones }] = await Promise.all([
+  const [{ data: tasks }, { data: appointments }, { data: tomorrowEntry }, { data: finishedRows }, { data: tomorrowScheduled }, { data: overdueDeadlines }] = await Promise.all([
     supabase.from('tasks').select('*').eq('entry_id', entry.id).order('position'),
     supabase.from('appointments').select('*').eq('user_id', user.id).eq('date_key', viewDate).order('time'),
     supabase.from('day_entries').select('id').eq('user_id', user.id).eq('date_key', tomorrowKey()).maybeSingle(),
@@ -46,7 +46,6 @@ export default async function PlanPage({
     isToday
       ? supabase.from('scheduled_tasks').select('id').eq('user_id', user.id).eq('done', false).not('deadline_date', 'is', null).lte('deadline_date', today)
       : Promise.resolve({ data: [] }),
-    supabase.from('zones').select('*').eq('user_id', user.id).order('position'),
   ])
 
   const finishedSet = new Set((finishedRows ?? []).map(r => r.date_key as string))
@@ -68,7 +67,6 @@ export default async function PlanPage({
           return addDays(today, days) === t.for_date
         }).length}
       overdueDeadlineCount={(overdueDeadlines ?? []).length}
-      zones={(zones ?? []) as Zone[]}
     />
   )
 }

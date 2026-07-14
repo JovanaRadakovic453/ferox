@@ -88,7 +88,6 @@ export default function InsightsView({
       {/* Grafici */}
       <div className="grid gap-5 lg:grid-cols-2 lg:gap-6 items-start" style={{ ['--i' as string]: 4 }}>
         <ChartCard title="Realizacija po danu u nedelji" bars={agg.byWeekday} />
-        <ChartCard title="Realizacija po oblasti" bars={agg.byZone} />
       </div>
     </main>
   )

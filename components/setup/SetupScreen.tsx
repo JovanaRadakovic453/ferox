@@ -3,16 +3,19 @@
 import { useState, useEffect } from 'react'
 import { useChrome } from '@/components/nav/AppChrome'
 import { todayKey, formatDate } from '@/lib/utils'
-import type { Task, TaskType, Priority, Appointment, UserProfile, Zone } from '@/types/ferox'
+import { addDays } from '@/lib/date'
+import { DEFAULTS } from '@/lib/config'
+import type { Task, TaskType, Priority, Appointment, UserProfile } from '@/types/ferox'
 import Link from 'next/link'
 import Button from '@/components/ui/Button'
 import TransferSuggestions from '@/components/setup/TransferSuggestions'
 import BrainDumpCard from '@/components/setup/BrainDumpCard'
+import BrainDumpPlanModal, { type BrainDumpPlan, type PlanTask, type PlanAppt } from '@/components/setup/BrainDumpPlanModal'
 import TaskEditor from '@/components/setup/TaskEditor'
 import AppointmentEditor from '@/components/setup/AppointmentEditor'
 import PreviewRail from '@/components/setup/PreviewRail'
 
-export default function SetupScreen({ profile, targetDate, transferredTasks = [], scheduledSuggestions = [], initialAppointments = [], showTransferBanner = false, scheduledTaskIds = [], streak = 0, zones = [] }: { profile: UserProfile; targetDate?: string; transferredTasks?: Task[]; scheduledSuggestions?: Task[]; initialAppointments?: Appointment[]; showTransferBanner?: boolean; scheduledTaskIds?: string[]; streak?: number; zones?: Zone[] }) {
+export default function SetupScreen({ profile, targetDate, transferredTasks = [], scheduledSuggestions = [], initialAppointments = [], showTransferBanner = false, scheduledTaskIds = [], streak = 0 }: { profile: UserProfile; targetDate?: string; transferredTasks?: Task[]; scheduledSuggestions?: Task[]; initialAppointments?: Appointment[]; showTransferBanner?: boolean; scheduledTaskIds?: string[]; streak?: number }) {
   const [tasks, setTasks] = useState<Task[]>(showTransferBanner ? [] : transferredTasks)
   const [suggestedTransfers, setSuggestedTransfers] = useState<Task[]>(showTransferBanner ? transferredTasks : [])
   const [suggestedScheduled, setSuggestedScheduled] = useState<Task[]>(showTransferBanner ? scheduledSuggestions : [])
@@ -21,6 +24,8 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [resetting, setResetting] = useState(false)
   const [brainDumpLoading, setBrainDumpLoading] = useState(false)
+  const [plan, setPlan] = useState<BrainDumpPlan | null>(null)
+  const [savingPlan, setSavingPlan] = useState(false)
 
   // Nedovršen plan (draft): pamte se SAMO korisnikovi zadaci i termini (njegov rad),
   // da prežive odlazak na drugu stranicu / osvežavanje. Predlozi (preneseni i zakazani)
@@ -77,15 +82,68 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
   const { setHidden } = useChrome()
   useEffect(() => { setHidden(true); return () => setHidden(false) }, [setHidden])
 
-  function addTask(draft: { name: string; note: string; priority: Priority; type: TaskType; zone_id: string | null }) {
+  function addTask(draft: { name: string; note: string; priority: Priority; type: TaskType }) {
     setTasks(prev => [...prev, { ...draft, done: false }])
   }
-  function addAppointment(a: { name: string; time: string; reminder: number; zone_id: string | null }) {
+  function addAppointment(a: { name: string; time: string; reminder: number }) {
     setAppointments(prev => [...prev, { ...a, done: false }])
   }
-  function onBrainDumpExtracted(extracted: Task[], extractedAppts: Appointment[]) {
-    if (extracted.length) setTasks(prev => [...prev, ...extracted])
-    if (extractedAppts.length) setAppointments(prev => [...prev, ...extractedAppts])
+  // Potvrđen predlog plana iz brain dump-a: stavke za DANAŠNJI (tj. prikazani)
+  // dan idu u editor; sve ostalo se zakaže za svoj dan (scheduled_tasks) i pojaviće
+  // se tog jutra. Ništa se ne čuva dok korisnik ne klikne "Potvrdi plan".
+  async function confirmPlan(planTasks: PlanTask[], planAppts: PlanAppt[]) {
+    const today = todayKey()
+    const base = targetDate ?? today
+
+    const todayTasks: Task[] = []
+    const todayAppts: Appointment[] = []
+    const scheduled: { name: string; priority: Priority; type: TaskType; note: string; for_date: string }[] = []
+
+    for (const t of planTasks) {
+      const forDate = addDays(today, t.dayOffset)
+      if (forDate === base) {
+        todayTasks.push({ name: t.name, note: t.note, priority: t.priority, type: t.type, done: false })
+      } else {
+        scheduled.push({ name: t.name, priority: t.priority, type: t.type, note: t.note, for_date: forDate })
+      }
+    }
+    for (const a of planAppts) {
+      const forDate = addDays(today, a.dayOffset)
+      if (forDate === base) {
+        todayAppts.push({ name: a.name, time: a.time, reminder: DEFAULTS.reminderMinutes, done: false })
+      } else {
+        // v1: budući termin ide kao zakazan zadatak, sa vremenom u nazivu.
+        scheduled.push({ name: `${a.name} (${a.time})`, priority: 'medium', type: 'light', note: '', for_date: forDate })
+      }
+    }
+
+    setSavingPlan(true)
+    try {
+      if (scheduled.length > 0) {
+        const res = await fetch('/api/scheduled-tasks/batch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tasks: scheduled }),
+        })
+        if (!res.ok) {
+          setSubmitError('Nešto nije sačuvano — pokušaj ponovo')
+          return
+        }
+      }
+      if (todayTasks.length) setTasks(prev => [...prev, ...todayTasks])
+      if (todayAppts.length) setAppointments(prev => [...prev, ...todayAppts])
+      setPlan(null)
+      const parts: string[] = []
+      const todayCount = todayTasks.length + todayAppts.length
+      if (todayCount) parts.push(`${todayCount} u današnjoj listi`)
+      if (scheduled.length) parts.push(`${scheduled.length} zakazano za naredne dane`)
+      setSubmitError(`✅ Raspoređeno — ${parts.join(' · ')}`)
+      setTimeout(() => setSubmitError(null), 5000)
+    } catch {
+      setSubmitError('Greška pri čuvanju — pokušaj ponovo')
+    } finally {
+      setSavingPlan(false)
+    }
   }
   // Predlozi (preneseni + zakazani) su samo lokalni dok se plan ne napravi.
   // Snimanje/markiranje "done" radi server u createDay (preko scheduledTaskIds),
@@ -294,7 +352,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
         <div className="flex flex-col gap-7 lg:grid lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-8 lg:items-start">
           <div className="flex flex-col gap-7 stagger">
 
-            <BrainDumpCard onExtracted={onBrainDumpExtracted} onLoadingChange={setBrainDumpLoading} />
+            <BrainDumpCard onPlan={setPlan} onLoadingChange={setBrainDumpLoading} />
 
             {googleNeedsReconnect && (
               <div className="card p-4 flex items-center justify-between gap-3" style={{ border: '1px solid var(--hairline)' }}>
@@ -334,7 +392,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
                     </div>
                     <button
                       onClick={() => {
-                        addAppointment({ name: event.title, time: event.time ?? '09:00', reminder: 0, zone_id: null })
+                        addAppointment({ name: event.title, time: event.time ?? '09:00', reminder: 0 })
                         setGoogleAdded(prev => new Set([...prev, event.id]))
                       }}
                       className="shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full transition-opacity hover:opacity-80"
@@ -374,10 +432,9 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
               onAdd={addTask}
               onRemove={i => setTasks(prev => prev.filter((_, idx) => idx !== i))}
               onUpdate={(i, patch) => setTasks(prev => prev.map((t, idx) => idx === i ? { ...t, ...patch } : t))}
-              zones={zones}
             />
 
-            <AppointmentEditor appointments={appointments} onAdd={addAppointment} onRemove={i => setAppointments(prev => prev.filter((_, idx) => idx !== i))} zones={zones} />
+            <AppointmentEditor appointments={appointments} onAdd={addAppointment} onRemove={i => setAppointments(prev => prev.filter((_, idx) => idx !== i))} />
 
             {submitError && (
               <div className="rounded-[var(--r-md)] px-4 py-3 text-sm" style={{
@@ -425,6 +482,16 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
           )}
         </div>
       </div>
+
+      {plan && (
+        <BrainDumpPlanModal
+          open={!!plan}
+          plan={plan}
+          saving={savingPlan}
+          onCancel={() => { if (!savingPlan) setPlan(null) }}
+          onConfirm={confirmPlan}
+        />
+      )}
     </>
   )
 }

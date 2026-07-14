@@ -4,7 +4,7 @@ import SetupScreen from '@/components/setup/SetupScreen'
 import EodLanding from '@/components/plan/EodLanding'
 import { todayKey, tomorrowKey } from '@/lib/date'
 import { computeStreak } from '@/lib/streak'
-import type { UserProfile, Task, Appointment, Zone } from '@/types/ferox'
+import type { UserProfile, Task, Appointment } from '@/types/ferox'
 
 export default async function SetupPage({
   searchParams,
@@ -76,21 +76,14 @@ export default async function SetupPage({
     )
   }
 
-  // Streak + zone za SetupScreen (zone idu server-side — bez klijentskog waterfall-a)
-  const [{ data: finishedForStreak }, { data: zoneRows }] = await Promise.all([
-    supabase
-      .from('day_entries')
-      .select('date_key')
-      .eq('user_id', user.id)
-      .not('finished_at', 'is', null)
-      .order('date_key', { ascending: false })
-      .limit(60),
-    supabase
-      .from('zones')
-      .select('id, name, icon, position')
-      .eq('user_id', user.id)
-      .order('position'),
-  ])
+  // Streak za SetupScreen
+  const { data: finishedForStreak } = await supabase
+    .from('day_entries')
+    .select('date_key')
+    .eq('user_id', user.id)
+    .not('finished_at', 'is', null)
+    .order('date_key', { ascending: false })
+    .limit(60)
   const finishedSetForStreak = new Set((finishedForStreak ?? []).map(r => r.date_key as string))
   const streak = computeStreak(finishedSetForStreak, profile.rest_days ?? [0, 6], todayKey())
 
@@ -106,19 +99,19 @@ export default async function SetupPage({
     const [{ data: existingTasks }, { data: existingAppts }, { data: pendingScheduled }] = await Promise.all([
       supabase
         .from('tasks')
-        .select('name, note, priority, type, done, position, zone_id')
+        .select('name, note, priority, type, done, position')
         .eq('entry_id', entry.id)
         .eq('user_id', user.id)
         .order('position'),
       supabase
         .from('appointments')
-        .select('id, name, time, reminder, done, zone_id')
+        .select('id, name, time, reminder, done')
         .eq('user_id', user.id)
         .eq('date_key', targetDate)
         .order('time'),
       supabase
         .from('scheduled_tasks')
-        .select('id, name, priority, type, note, zone_id')
+        .select('id, name, priority, type, note')
         .eq('user_id', user.id)
         .eq('for_date', targetDate)
         .eq('done', false),
@@ -130,7 +123,7 @@ export default async function SetupPage({
     if (pending.length > 0) {
       initialTasks = [
         ...initialTasks,
-        ...pending.map(t => ({ name: t.name, priority: t.priority, type: t.type ?? 'light', note: t.note ?? '', done: false, zone_id: t.zone_id ?? null })),
+        ...pending.map(t => ({ name: t.name, priority: t.priority, type: t.type ?? 'light', note: t.note ?? '', done: false })),
       ]
       scheduledTaskIds = pending.map(t => t.id)
     }
@@ -144,14 +137,14 @@ export default async function SetupPage({
         .maybeSingle(),
       supabase
         .from('scheduled_tasks')
-        .select('id, name, priority, type, note, zone_id')
+        .select('id, name, priority, type, note')
         .eq('user_id', user.id)
         .eq('for_date', targetDate)
         .eq('done', false),
     ])
     const filtered = ((transferred?.tasks ?? []) as Task[]).filter((t: Task) => !t.done)
     const scheduled = (scheduledRows ?? []) as (Task & { id: string })[]
-    const scheduledMapped = scheduled.map(t => ({ name: t.name, priority: t.priority, type: t.type ?? 'light', note: t.note ?? '', done: false, zone_id: t.zone_id ?? null }))
+    const scheduledMapped = scheduled.map(t => ({ name: t.name, priority: t.priority, type: t.type ?? 'light', note: t.note ?? '', done: false }))
     initialTasks = filtered
     scheduledTaskIds = scheduled.map(t => t.id)
     showTransferBanner = filtered.length > 0 || scheduledMapped.length > 0
@@ -165,7 +158,6 @@ export default async function SetupPage({
         showTransferBanner={showTransferBanner}
         scheduledTaskIds={scheduledTaskIds}
         streak={streak}
-        zones={(zoneRows ?? []) as Zone[]}
       />
     )
   }
@@ -179,7 +171,6 @@ export default async function SetupPage({
       showTransferBanner={showTransferBanner}
       scheduledTaskIds={scheduledTaskIds}
       streak={streak}
-      zones={(zoneRows ?? []) as Zone[]}
     />
   )
 }
