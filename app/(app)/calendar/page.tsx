@@ -37,6 +37,7 @@ export default async function CalendarPage({
     { data: appointments },
     { data: scheduled },
     { data: zones },
+    { data: profile },
   ] = await Promise.all([
     supabase
       .from('day_entries')
@@ -61,6 +62,7 @@ export default async function CalendarPage({
       .eq('done', false)
       .order('for_date'),
     supabase.from('zones').select('*').eq('user_id', user.id).order('position'),
+    supabase.from('profiles').select('google_refresh_token').eq('id', user.id).single(),
   ])
 
   // Count tasks per date (via day_entry → tasks)
@@ -92,6 +94,7 @@ export default async function CalendarPage({
       appointments={(appointments ?? []) as { id: string; date_key: string; name: string; time: string; done: boolean; zone_id?: string | null }[]}
       scheduled={(scheduled ?? []) as { id: string; for_date: string; name: string; priority: string; note: string; remind_before_minutes: number | null; deadline_date: string | null; zone_id?: string | null }[]}
       zones={(zones ?? []) as Zone[]}
+      googleConnected={!!profile?.google_refresh_token}
     />
   )
 }

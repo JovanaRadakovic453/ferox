@@ -30,6 +30,7 @@ export default function CalendarView({
   appointments,
   scheduled,
   zones = [],
+  googleConnected = false,
 }: {
   initialMonth: string
   today: string
@@ -38,6 +39,7 @@ export default function CalendarView({
   appointments: Appointment[]
   scheduled: ScheduledTask[]
   zones?: Zone[]
+  googleConnected?: boolean
 }) {
   const router = useRouter()
   const [view, setView] = useState<'month' | 'week'>('month')
@@ -177,6 +179,7 @@ export default function CalendarView({
             onUpdateTask={updateTask}
             zones={zones}
             selectedZoneId={selectedZoneId}
+            googleConnected={googleConnected}
           />
         )}
       </div>
