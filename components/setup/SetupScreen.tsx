@@ -257,16 +257,16 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
             >
               <span
                 className="display"
-                style={{ color: '#fff', fontSize: '3rem', textShadow: '0 2px 10px rgba(0,0,0,0.18)' }}
+                style={{ color: '#fff', fontSize: '3.4rem', textShadow: '0 2px 10px rgba(0,0,0,0.18)' }}
               >
-                F
+                f
               </span>
             </div>
 
             {/* Ferox wordmark */}
             <span
               className="display foil"
-              style={{ fontSize: '2.1rem', letterSpacing: '0.1em' }}
+              style={{ fontSize: '2.1rem', letterSpacing: '0.1em', fontWeight: 200 }}
             >
               Ferox
             </span>
@@ -295,7 +295,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
         )}
         <header className="flex flex-col gap-5 pt-2 animate-fade-slide">
           <div className="flex items-center justify-between lg:hidden">
-            <span className="display foil text-2xl tracking-[0.06em]">Ferox</span>
+            <span className="display foil text-2xl tracking-[0.06em]" style={{ fontWeight: 200 }}>Ferox</span>
             <div className="flex items-center gap-2">
               <span
                 className="text-xs font-semibold px-2.5 py-1.5 rounded-full whitespace-nowrap"
@@ -332,7 +332,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
                 </span>
               )}
             </div>
-            <h1 className="title-serif text-[2.15rem] lg:text-[2.9rem] leading-[1.08]" style={{ color: 'var(--text)' }}>
+            <h1 className="title-serif text-[2.15rem] lg:text-[2.9rem] leading-[1.08]" style={{ color: 'var(--text)', fontWeight: 200 }}>
               {heroTitle},<br />
               <span className="foil">{profile.name}</span>
             </h1>

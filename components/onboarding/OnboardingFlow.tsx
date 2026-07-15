@@ -138,8 +138,8 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
   const steps: Record<number, React.ReactNode> = {
     1: (
       <div className="flex flex-col items-center text-center gap-6">
-        <div className="animate-fade-slide display foil text-8xl tracking-widest">
-          F
+        <div className="animate-fade-slide display foil text-8xl tracking-widest" style={{ fontWeight: 200 }}>
+          f
         </div>
         <div>
           <h1 className="title-serif text-4xl mb-2" style={{ color: 'var(--text)' }}>
@@ -254,8 +254,8 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
         style={{ background: 'color-mix(in srgb, var(--gold-tint) 55%, var(--surface))', borderRight: '1px solid var(--hairline)' }}
       >
         <div className="flex items-center gap-3">
-          <span className="grid place-items-center w-11 h-11 rounded-[14px] text-white title-serif text-2xl" style={{ backgroundImage: 'linear-gradient(135deg, var(--gold-light), var(--gold-deep))', boxShadow: 'var(--sh-gold)' }} aria-hidden>F</span>
-          <span className="title-serif text-3xl foil">Ferox</span>
+          <span className="grid place-items-center w-11 h-11 rounded-[14px] text-white title-serif text-3xl" style={{ backgroundImage: 'linear-gradient(135deg, var(--gold-light), var(--gold-deep))', boxShadow: 'var(--sh-gold)' }} aria-hidden>f</span>
+          <span className="title-serif text-3xl foil" style={{ fontWeight: 200 }}>Ferox</span>
         </div>
         <div>
           <h2 className="title-serif text-[2.6rem] leading-[1.1]" style={{ color: 'var(--text)' }}>

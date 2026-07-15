@@ -8,7 +8,7 @@ import { APP } from '@/lib/config'
 // Outfit. Bez serifa — svedeno, moderno, „ozbiljan alat" izgled.
 const outfit = Outfit({
   subsets: ['latin', 'latin-ext'],
-  weight: ['300', '400', '500', '600', '700'],
+  weight: ['200', '300', '400', '500', '600', '700'],
   variable: '--font-outfit',
   display: 'swap',
 })
