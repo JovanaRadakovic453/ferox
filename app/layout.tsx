@@ -1,19 +1,11 @@
 import type { Metadata, Viewport } from 'next'
-import { Source_Serif_4, Outfit } from 'next/font/google'
+import { Outfit } from 'next/font/google'
 import './globals.css'
 import Providers from './providers'
 import { APP } from '@/lib/config'
 
-// Serif za naslove i „Ferox" logo: Source Serif 4 — čist, neutralan, profesionalan
-// serif bez „ukrasa", a kvalitetno izrađen (ne deluje basic). Ide uz Outfit sans.
-const sourceSerif = Source_Serif_4({
-  subsets: ['latin', 'latin-ext'],
-  weight: ['400', '500', '600', '700'],
-  style: ['normal', 'italic'],
-  variable: '--font-cormorant',
-  display: 'swap',
-})
-
+// Jedan čist, neutralan sans za celu aplikaciju (naslovi, „Ferox" logo i telo):
+// Outfit. Bez serifa — svedeno, moderno, „ozbiljan alat" izgled.
 const outfit = Outfit({
   subsets: ['latin', 'latin-ext'],
   weight: ['300', '400', '500', '600', '700'],
@@ -47,7 +39,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="sr" suppressHydrationWarning className={`${sourceSerif.variable} ${outfit.variable}`}>
+    <html lang="sr" suppressHydrationWarning className={`${outfit.variable}`}>
       <body className="min-h-dvh antialiased">
         <Providers>{children}</Providers>
       </body>
