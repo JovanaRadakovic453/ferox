@@ -86,6 +86,7 @@ export async function POST(request: NextRequest) {
           `Izdvoji najviše ${AI.brainDumpMaxTasks} zadataka i sve termine iz teksta, pa ih rasporedi po danima (dayOffset 0-6, danas je dayOffset 0). ` +
           `Ako korisnik pomene vremenski okvir (npr. "narednih 7 dana", "ove nedelje", "do petka"), OBAVEZNO rasprostri zadatke kroz te dane — NEMOJ sve staviti na danas. ` +
           `Za ponavljajuće zadatke ("2x nedeljno", "svaki dan") napravi više stavki na različite dane. ` +
+          `Kad korisnik pomene dan u nedelji (npr. "u četvrtak", "za petak"), pronađi taj dan u listi dana ispod i koristi TAČAN dayOffset za njega — ne pogađaj datum napamet. ` +
           `Predloži prioritet za svaki zadatak (visok/srednji/nizak) po hitnosti, rokovima i po tome kako korisnik obično prioritetizuje slične zadatke (vidi dole) — nemoj sve staviti na srednji. ` +
           `Ako tekst pominje konkretno vreme (npr. "u 14h", "sastanak u 9", "zubar u 11:30"), to je TERMIN sa "time" u HH:MM; inače je zadatak. ` +
           (contextText ? `\n\n${contextText}\n` : '') +

@@ -45,16 +45,23 @@ export function summarizePriorityHistory(tasks: TaskLite[]): string {
   return `Kako korisnik obično određuje prioritet (uči iz ovoga kad predlažeš prioritet za slične zadatke):\n${lines.join('\n')}`
 }
 
-/** Koliko je već zakazano po danima u horizontu — da AI ne pretrpa dan. */
+// Nazivi dana (getUTCDay: 0=nedelja … 6=subota). Sidrimo na podne UTC da granica
+// ponoći ne pomeri dan.
+const WEEKDAYS_SR = ['nedelja', 'ponedeljak', 'utorak', 'sreda', 'četvrtak', 'petak', 'subota']
+export function weekdayName(key: string): string {
+  return WEEKDAYS_SR[new Date(`${key}T12:00:00Z`).getUTCDay()]
+}
+
+/** Mapa dan-u-nedelji → dayOffset + opterećenje, da AI tačno mapira "u četvrtak". */
 export function formatScheduledLoad(counts: Record<string, number>, horizonDays: number): string {
   const today = todayKey()
   const lines: string[] = []
   for (let i = 0; i < horizonDays; i++) {
     const key = addDays(today, i)
     const label = i === 0 ? 'danas' : i === 1 ? 'sutra' : `za ${i} dana`
-    lines.push(`- dayOffset ${i} (${label}, ${key}): već ${counts[key] ?? 0} zakazano`)
+    lines.push(`- dayOffset ${i} = ${weekdayName(key)} (${label}, ${key}): već ${counts[key] ?? 0} zakazano`)
   }
-  return `Već zakazani zadaci po danima (uzmi u obzir da ne pretrpaš dan):\n${lines.join('\n')}`
+  return `Dani u horizontu (kad korisnik pomene dan u nedelji, npr. "u četvrtak", koristi TAČAN dayOffset za taj dan; uzmi u obzir opterećenje da ne pretrpaš dan):\n${lines.join('\n')}`
 }
 
 /**

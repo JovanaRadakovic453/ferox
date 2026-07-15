@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatScheduledLoad, summarizePriorityHistory } from '@/lib/ai/userContext'
+import { formatScheduledLoad, summarizePriorityHistory, weekdayName } from '@/lib/ai/userContext'
 import { aiTaskSchema, aiAppointmentSchema } from '@/lib/validation'
 
 describe('summarizePriorityHistory', () => {
@@ -27,13 +27,23 @@ describe('summarizePriorityHistory', () => {
   })
 })
 
+describe('weekdayName', () => {
+  it('vraća tačan srpski naziv dana', () => {
+    expect(weekdayName('2026-07-16')).toBe('četvrtak') // Thu
+    expect(weekdayName('2026-07-21')).toBe('utorak')   // Tue
+    expect(weekdayName('2026-07-19')).toBe('nedelja')  // Sun
+  })
+})
+
 describe('formatScheduledLoad', () => {
-  it('nabraja svaki dan horizonta sa brojem zakazanih', () => {
+  it('nabraja svaki dan horizonta sa danom u nedelji i brojem zakazanih', () => {
     const out = formatScheduledLoad({}, 7)
-    expect(out).toContain('dayOffset 0 (danas')
-    expect(out).toContain('dayOffset 1 (sutra')
-    expect(out).toContain('dayOffset 6 (za 6 dana')
+    expect(out).toContain('dayOffset 0 = ')
+    expect(out).toContain('(danas,')
+    expect(out).toContain('dayOffset 6 = ')
     expect(out).toContain('već 0 zakazano')
+    // svaki red ima validan naziv dana
+    expect(out).toMatch(/dayOffset 0 = (ponedeljak|utorak|sreda|četvrtak|petak|subota|nedelja)/)
   })
 })
 
