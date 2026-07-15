@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useChrome } from '@/components/nav/AppChrome'
 import { todayKey, formatDate } from '@/lib/utils'
 import { addDays } from '@/lib/date'
 import { DEFAULTS } from '@/lib/config'
@@ -78,9 +77,6 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
       .catch(() => {})
   }, [targetDate, profile.google_refresh_token])
   const isSutraMode = targetDate !== undefined && targetDate !== todayKey()
-
-  const { setHidden } = useChrome()
-  useEffect(() => { setHidden(true); return () => setHidden(false) }, [setHidden])
 
   function addTask(draft: { name: string; note: string; priority: Priority; type: TaskType }) {
     setTasks(prev => [...prev, { ...draft, done: false }])
@@ -294,7 +290,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
         </div>
       )}
 
-      <main className="flex flex-col gap-7 pb-44 lg:pb-12">
+      <main className="flex flex-col gap-7 pb-6 lg:pb-12">
         {targetDate && targetDate !== todayKey() && (
           <Link href="/plan" className="flex items-center gap-1.5 text-sm font-medium -mb-3" style={{ color: 'var(--text-muted)' }}>
             ← Danas
@@ -445,6 +441,18 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
               </div>
             )}
 
+            {/* Mobilni „Napravi plan" — u toku sadržaja, iznad donje navigacije (desktop koristi PreviewRail) */}
+            <div className="lg:hidden flex flex-col gap-2">
+              <Button size="lg" className="w-full" disabled={!canSubmit} loading={loading} onClick={handleSubmit}>
+                {totalItems > 0 ? `Napravi plan · ${totalItems} ${totalWord} →` : 'Napravi moj plan →'}
+              </Button>
+              {!canSubmit && !loading && (
+                <p className="text-center text-xs" style={{ color: 'var(--text-muted)' }}>
+                  📋 Dodaj bar jedan zadatak ili termin
+                </p>
+              )}
+            </div>
+
             <div className="h-px" style={{ background: 'var(--hairline)' }} />
             <button
               onClick={resetDay}
@@ -469,19 +477,6 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
           />
         </div>
       </main>
-
-      <div className="lg:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[540px] z-40">
-        <div className="glass px-5 min-[540px]:px-9 pt-3.5 pb-safe" style={{ borderTop: '1px solid var(--hairline)' }}>
-          <Button size="lg" className="w-full" disabled={!canSubmit} loading={loading} onClick={handleSubmit}>
-            {totalItems > 0 ? `Napravi plan · ${totalItems} ${totalWord} →` : 'Napravi moj plan →'}
-          </Button>
-          {!canSubmit && !loading && (
-            <p className="text-center text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
-              📋 Dodaj bar jedan zadatak ili termin
-            </p>
-          )}
-        </div>
-      </div>
 
       {plan && (
         <BrainDumpPlanModal
