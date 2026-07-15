@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Outfit, Sacramento } from 'next/font/google'
+import { Outfit, Cormorant_Garamond } from 'next/font/google'
 import './globals.css'
 import Providers from './providers'
 import { APP } from '@/lib/config'
@@ -13,10 +13,11 @@ const outfit = Outfit({
   display: 'swap',
 })
 
-// Tanak, rukopisni (kurzivni) font samo za „f" u logo bedžu.
-const sacramento = Sacramento({
+// Tanak, kurzivni serifni font samo za „f" u logo bedžu (elegantan italik „f").
+const scriptSerif = Cormorant_Garamond({
   subsets: ['latin'],
-  weight: '400',
+  weight: ['300', '400'],
+  style: ['italic'],
   variable: '--font-script',
   display: 'swap',
 })
@@ -47,7 +48,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="sr" suppressHydrationWarning className={`${outfit.variable} ${sacramento.variable}`}>
+    <html lang="sr" suppressHydrationWarning className={`${outfit.variable} ${scriptSerif.variable}`}>
       <body className="min-h-dvh antialiased">
         <Providers>{children}</Providers>
       </body>
