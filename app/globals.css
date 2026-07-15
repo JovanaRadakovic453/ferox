@@ -320,14 +320,14 @@ body > * {
 
 .title-serif {
   font-family: var(--font-serif);
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-weight: 400;
+  letter-spacing: -0.005em;
 }
 .display {
   font-family: var(--font-serif);
-  font-weight: 600;
+  font-weight: 300;
   line-height: 1;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
 }
 
 /* ─────────────────────────────────────────────
