@@ -1,12 +1,14 @@
 import type { Metadata, Viewport } from 'next'
-import { Cormorant_Garamond, Outfit } from 'next/font/google'
+import { Fraunces, Outfit } from 'next/font/google'
 import './globals.css'
 import Providers from './providers'
 import { APP } from '@/lib/config'
 
-const cormorant = Cormorant_Garamond({
+// Serif za naslove i „Ferox" logo: Fraunces — topao, ozbiljan editorial serif
+// (komercijalniji od tankog Garamonda), lepo se slaže sa Outfit sans-om.
+const fraunces = Fraunces({
   subsets: ['latin', 'latin-ext'],
-  weight: ['300', '400', '500', '600', '700'],
+  weight: ['400', '500', '600', '700'],
   style: ['normal', 'italic'],
   variable: '--font-cormorant',
   display: 'swap',
@@ -45,7 +47,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="sr" suppressHydrationWarning className={`${cormorant.variable} ${outfit.variable}`}>
+    <html lang="sr" suppressHydrationWarning className={`${fraunces.variable} ${outfit.variable}`}>
       <body className="min-h-dvh antialiased">
         <Providers>{children}</Providers>
       </body>

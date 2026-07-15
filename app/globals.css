@@ -98,7 +98,7 @@
   --color-ferox-text: var(--text);
   --color-muted: var(--text-muted);
   --color-border: var(--border);
-  --font-serif: var(--font-cormorant), 'Cormorant Garamond', Georgia, serif;
+  --font-serif: var(--font-cormorant), 'Fraunces', Georgia, serif;
   --font-sans: var(--font-outfit), 'Outfit', system-ui, sans-serif;
 }
 
@@ -319,13 +319,14 @@ body > * {
 
 .title-serif {
   font-family: var(--font-serif);
-  font-weight: 300;
-  letter-spacing: 0.01em;
+  font-weight: 400;
+  letter-spacing: 0.005em;
 }
 .display {
   font-family: var(--font-serif);
-  font-weight: 300;
+  font-weight: 500;
   line-height: 1;
+  letter-spacing: -0.005em;
 }
 
 /* ─────────────────────────────────────────────

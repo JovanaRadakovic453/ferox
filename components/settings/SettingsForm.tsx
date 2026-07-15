@@ -18,7 +18,7 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
     <button
       type="button"
       onClick={onClick}
-      className="text-xs px-3 py-2 rounded-[var(--r-md)] transition-colors"
+      className="w-full text-center text-xs font-medium py-2 rounded-[var(--r-md)] transition-colors"
       style={{
         background: active ? 'var(--gold-tint)' : 'var(--surface2)',
         border: `1px solid ${active ? 'var(--gold)' : 'var(--border)'}`,
@@ -171,6 +171,7 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
       </header>
 
       <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
+      <div className="flex flex-col gap-5">
       {/* Profil */}
       <section className="card p-5 flex flex-col gap-4">
         <p className="section-label">Profil</p>
@@ -182,12 +183,14 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
         <p className="section-label">Slobodni dani</p>
         <div>
           <label className="text-xs mb-1.5 block font-medium" style={{ color: 'var(--text-muted)' }}>Ne lome streak</label>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-7 gap-1.5">
             {WEEKDAYS.map((d, i) => <Chip key={i} active={restDays.includes(i)} onClick={() => toggle(restDays, i, setRestDays)}>{d}</Chip>)}
           </div>
         </div>
       </section>
 
+      </div>
+      <div className="flex flex-col gap-5">
       {/* Aplikacija */}
       <section className="card p-5 flex flex-col gap-4">
         <p className="section-label">Aplikacija</p>
@@ -296,6 +299,7 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
           )}
         </div>
       </section>
+      </div>
       </div>
 
       <div className="lg:flex lg:justify-center">

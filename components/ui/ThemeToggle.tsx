@@ -42,7 +42,7 @@ export default function ThemeToggle({ onChange, compact }: { onChange?: (v: stri
   }
 
   return (
-    <div className="flex gap-2">
+    <div className="grid grid-cols-2 gap-2">
       {OPTIONS.map(o => {
         const active = (theme ?? 'system') === o.value
         return (
@@ -50,7 +50,7 @@ export default function ThemeToggle({ onChange, compact }: { onChange?: (v: stri
             key={o.value}
             onClick={() => { setTheme(o.value); onChange?.(o.value) }}
             aria-pressed={active}
-            className="text-xs px-3 py-2 rounded-[var(--r-md)] transition-colors"
+            className="w-full text-center text-xs font-medium px-3 py-2 rounded-[var(--r-md)] transition-colors"
             style={{
               background: active ? 'var(--gold-tint)' : 'var(--surface2)',
               border: `1px solid ${active ? 'var(--gold)' : 'var(--border)'}`,
