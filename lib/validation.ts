@@ -48,7 +48,7 @@ export const brainDumpSchema = z.object({
 // ---- Izlazne sheme (AI parsiranje / tool-use) — tolerantne, sa fallback-om ----
 // dayOffset = na koji dan AI raspoređuje stavku: 0 = danas … 6 = za 6 dana.
 // reason = kratko objašnjenje zašto baš taj dan.
-const zDayOffset = z.number().int().min(0).max(6).catch(0)
+const zDayOffset = z.number().int().min(0).max(7).catch(0)
 export const aiTaskSchema = z.object({
   name: z.string().trim().min(1).max(120),
   type: zTaskType.catch('light'),

@@ -20,8 +20,10 @@ export const AI = {
   },
   /** Najviše zadataka koje brain-dump izvuče (koristi se i u promptu i u .slice()). */
   brainDumpMaxTasks: 25,
-  /** Koliko dana unapred brain dump raspoređuje (danas + narednih 6). */
-  brainDumpHorizonDays: 7,
+  /** Koliko dana unapred brain dump raspoređuje (danas + narednih 7 = 8 dana).
+   *  8 dana da svaki dan u nedelji ima NAREDNU pojavu u rasponu (npr. "u četvrtak"
+   *  kad je danas četvrtak → sledeći četvrtak, dayOffset 7). */
+  brainDumpHorizonDays: 8,
 } as const
 
 /**

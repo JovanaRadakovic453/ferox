@@ -29,7 +29,7 @@ const extractTool = {
             priority: { type: 'string', enum: [...PRIORITIES], description: 'high samo uz jasnu hitnost/rok; inače medium; low ako može da čeka. Ne stavljaj sve na high.' },
             note: { type: 'string' },
             estMinutes: { type: 'number', description: 'realna procena trajanja u minutima' },
-            dayOffset: { type: 'number', description: 'na koji dan ide: 0 = danas, 1 = sutra … najviše 6' },
+            dayOffset: { type: 'number', description: 'na koji dan ide: 0 = danas, 1 = sutra … najviše 7' },
             reason: { type: 'string', description: 'jedna kratka rečenica na srpskom: zašto baš taj dan' },
           },
           required: ['name', 'type', 'priority', 'dayOffset'],
@@ -42,7 +42,7 @@ const extractTool = {
           properties: {
             name: { type: 'string' },
             time: { type: 'string', description: 'HH:MM, 24h' },
-            dayOffset: { type: 'number', description: '0 = danas, 1 = sutra … najviše 6' },
+            dayOffset: { type: 'number', description: '0 = danas, 1 = sutra … najviše 7' },
           },
           required: ['name', 'time', 'dayOffset'],
         },
@@ -87,6 +87,7 @@ export async function POST(request: NextRequest) {
           `Ako korisnik pomene vremenski okvir (npr. "narednih 7 dana", "ove nedelje", "do petka"), OBAVEZNO rasprostri zadatke kroz te dane — NEMOJ sve staviti na danas. ` +
           `Za ponavljajuće zadatke ("2x nedeljno", "svaki dan") napravi više stavki na različite dane. ` +
           `Kad korisnik pomene dan u nedelji (npr. "u četvrtak", "za petak"), pronađi taj dan u listi dana ispod i koristi TAČAN dayOffset za njega — ne pogađaj datum napamet. ` +
+          `Ako se taj dan u nedelji pojavljuje više puta u listi (jednom kao danas, jednom sledeće nedelje), izaberi PRVU NAREDNU pojavu (ne danas), osim ako korisnik izričito kaže "danas". ` +
           `Predloži prioritet za svaki zadatak (visok/srednji/nizak) po hitnosti, rokovima i po tome kako korisnik obično prioritetizuje slične zadatke (vidi dole) — nemoj sve staviti na srednji. ` +
           `Ako tekst pominje konkretno vreme (npr. "u 14h", "sastanak u 9", "zubar u 11:30"), to je TERMIN sa "time" u HH:MM; inače je zadatak. ` +
           (contextText ? `\n\n${contextText}\n` : '') +
