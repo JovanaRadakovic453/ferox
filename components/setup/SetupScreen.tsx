@@ -18,7 +18,9 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
   const [tasks, setTasks] = useState<Task[]>(showTransferBanner ? [] : transferredTasks)
   const [suggestedTransfers, setSuggestedTransfers] = useState<Task[]>(showTransferBanner ? transferredTasks : [])
   const [suggestedScheduled, setSuggestedScheduled] = useState<Task[]>(showTransferBanner ? scheduledSuggestions : [])
-  const [appointments, setAppointments] = useState<Appointment[]>(showTransferBanner ? [] : initialAppointments)
+  // Termini su stvarni podaci (ne predlog) — uvek kreni od učitanih, i u transfer režimu,
+  // da već sačuvan termin (npr. iz brain dump-a za taj dan) ne bude obrisan pri "Napravi plan".
+  const [appointments, setAppointments] = useState<Appointment[]>(initialAppointments)
   const [loading, setLoading] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [resetting, setResetting] = useState(false)
@@ -94,6 +96,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
     const todayTasks: Task[] = []
     const todayAppts: Appointment[] = []
     const scheduled: { name: string; priority: Priority; type: TaskType; note: string; for_date: string }[] = []
+    const futureAppts: { name: string; time: string; date_key: string; reminder: number }[] = []
 
     for (const t of planTasks) {
       const forDate = addDays(today, t.dayOffset)
@@ -108,29 +111,29 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
       if (forDate === base) {
         todayAppts.push({ name: a.name, time: a.time, reminder: DEFAULTS.reminderMinutes, done: false })
       } else {
-        // Budući termin: čuva se kao zakazan zadatak (preživljava, vidi se u Kalendaru),
-        // sa vremenom u nazivu da se ne izgubi.
-        scheduled.push({ name: `${a.name} — ${a.time}`, priority: 'medium', type: 'light', note: '', for_date: forDate })
+        // Budući termin sa satnicom → pravi termin sa podsetnikom (zvončić), za svoj dan.
+        futureAppts.push({ name: a.name, time: a.time, date_key: forDate, reminder: DEFAULTS.reminderMinutes })
       }
     }
 
     const todayCount = todayTasks.length + todayAppts.length
+    const futureCount = scheduled.length + futureAppts.length
     try {
-      if (scheduled.length > 0) {
+      if (futureCount > 0) {
         const res = await fetch('/api/scheduled-tasks/batch', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tasks: scheduled }),
+          body: JSON.stringify({ tasks: scheduled, appointments: futureAppts }),
         })
         if (!res.ok) {
           const body = await res.json().catch(() => ({}))
-          return { ok: false, todayCount: 0, futureCount: 0, error: body.error?.message ?? 'Zadaci za naredne dane nisu sačuvani — pokušaj ponovo' }
+          return { ok: false, todayCount: 0, futureCount: 0, error: body.error?.message ?? 'Stavke za naredne dane nisu sačuvane — pokušaj ponovo' }
         }
       }
       // Tek kad je budući deo sigurno sačuvan, ubaci današnje u editor.
       if (todayTasks.length) setTasks(prev => [...prev, ...todayTasks])
       if (todayAppts.length) setAppointments(prev => [...prev, ...todayAppts])
-      return { ok: true, todayCount, futureCount: scheduled.length }
+      return { ok: true, todayCount, futureCount }
     } catch {
       return { ok: false, todayCount: 0, futureCount: 0, error: 'Greška mreže pri čuvanju — pokušaj ponovo' }
     }

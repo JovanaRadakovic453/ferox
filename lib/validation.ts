@@ -68,7 +68,8 @@ export const aiBrainDumpResult = z.object({
   appointments: z.array(aiAppointmentSchema).max(30).default([]),
 })
 
-// Batch upis zakazanih zadataka (potvrđen nedeljni plan iz brain dump-a).
+// Batch upis budućeg dela plana iz brain dump-a: zakazani zadaci + termini
+// (stavke sa satnicom postaju pravi termini sa podsetnikom).
 export const scheduledBatchSchema = z.object({
   tasks: z.array(z.object({
     name: z.string().trim().min(1).max(120),
@@ -76,8 +77,14 @@ export const scheduledBatchSchema = z.object({
     type: zTaskType.default('light'),
     note: z.string().max(500).default(''),
     for_date: zStrictDate.refine(d => d >= todayKey(), 'Datum ne može biti u prošlosti'),
-  })).min(1).max(60),
-})
+  })).max(60).default([]),
+  appointments: z.array(z.object({
+    name: z.string().trim().min(1).max(120),
+    time: zTime,
+    date_key: zStrictDate.refine(d => d >= todayKey(), 'Datum ne može biti u prošlosti'),
+    reminder: z.number().int().min(0).max(1440).default(DEFAULTS.reminderMinutes),
+  })).max(60).default([]),
+}).refine(d => d.tasks.length + d.appointments.length > 0, { message: 'Plan je prazan' })
 
 export type CreateDayBody = z.infer<typeof createDaySchema>
 export type TaskInput = z.infer<typeof zTaskInput>

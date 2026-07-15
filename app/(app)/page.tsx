@@ -128,7 +128,7 @@ export default async function SetupPage({
       scheduledTaskIds = pending.map(t => t.id)
     }
   } else {
-    const [{ data: transferred }, { data: scheduledRows }] = await Promise.all([
+    const [{ data: transferred }, { data: scheduledRows }, { data: apptRows }] = await Promise.all([
       supabase
         .from('transferred_tasks')
         .select('tasks')
@@ -141,7 +141,15 @@ export default async function SetupPage({
         .eq('user_id', user.id)
         .eq('for_date', targetDate)
         .eq('done', false),
+      // Već sačuvani termini za taj dan (npr. iz brain dump-a) — da se učitaju i prežive.
+      supabase
+        .from('appointments')
+        .select('id, name, time, reminder, done')
+        .eq('user_id', user.id)
+        .eq('date_key', targetDate)
+        .order('time'),
     ])
+    initialAppointments = (apptRows ?? []) as Appointment[]
     const filtered = ((transferred?.tasks ?? []) as Task[]).filter((t: Task) => !t.done)
     const scheduled = (scheduledRows ?? []) as (Task & { id: string })[]
     const scheduledMapped = scheduled.map(t => ({ name: t.name, priority: t.priority, type: t.type ?? 'light', note: t.note ?? '', done: false }))

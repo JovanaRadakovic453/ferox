@@ -1,6 +1,6 @@
 // Minimal, versioned service worker — app-shell cache + offline navigation fallback.
 // Kept intentionally small so it never serves a stale app shell for long.
-const CACHE = 'ferox-v2'
+const CACHE = 'ferox-v3'
 
 self.addEventListener('install', (e) => {
   self.skipWaiting()
@@ -19,8 +19,8 @@ self.addEventListener('push', (e) => {
   e.waitUntil(
     self.registration.showNotification(data.title ?? 'Ferox', {
       body: data.body ?? 'Vreme je da napraviš plan za danas.',
-      icon: '/icon-192.png',
-      badge: '/icon-192.png',
+      icon: '/icon.svg',
+      badge: '/icon.svg',
       tag: 'daily-reminder',
       renotify: false,
     })

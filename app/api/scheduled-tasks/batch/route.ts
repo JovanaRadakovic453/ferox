@@ -5,8 +5,9 @@ import { scheduledBatchSchema } from '@/lib/validation'
 import { RATE_LIMITS } from '@/lib/config'
 import { checkRateLimit } from '@/lib/rateLimit'
 
-// Batch upis zakazanih zadataka — koristi ga potvrđeni nedeljni plan iz brain
-// dump-a (svi budući dani odjednom, jedan zahtev umesto N).
+// Batch upis budućeg dela plana iz brain dump-a: zakazani zadaci u
+// scheduled_tasks, a stavke sa satnicom kao pravi termini (appointments,
+// sa podsetnikom). Jedan zahtev umesto N.
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -19,9 +20,19 @@ export async function POST(request: NextRequest) {
   const parsed = scheduledBatchSchema.safeParse(json)
   if (!parsed.success) return ERR.invalidInput(parsed.error.issues)
 
-  const rows = parsed.data.tasks.map(t => ({ user_id: user.id, ...t }))
-  const { data, error } = await supabase.from('scheduled_tasks').insert(rows).select()
-  if (error) return ERR.server(error.message)
+  const { tasks, appointments } = parsed.data
 
-  return apiOk(data ?? [], 201)
+  if (tasks.length > 0) {
+    const rows = tasks.map(t => ({ user_id: user.id, ...t }))
+    const { error } = await supabase.from('scheduled_tasks').insert(rows)
+    if (error) return ERR.server(error.message)
+  }
+
+  if (appointments.length > 0) {
+    const rows = appointments.map(a => ({ user_id: user.id, ...a }))
+    const { error } = await supabase.from('appointments').insert(rows)
+    if (error) return ERR.server(error.message)
+  }
+
+  return apiOk({ tasks: tasks.length, appointments: appointments.length }, 201)
 }
