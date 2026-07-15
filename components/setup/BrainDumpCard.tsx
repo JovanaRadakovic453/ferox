@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Button from '@/components/ui/Button'
 import type { PlanTask, PlanAppt, BrainDumpPlan } from '@/components/setup/BrainDumpPlanModal'
 import { SectionHeader } from '@/components/setup/primitives'
+import { useSpeechToText } from '@/lib/useSpeechToText'
 
 type ApiTask = { name: string; type?: PlanTask['type']; priority?: PlanTask['priority']; note?: string; dayOffset?: number; reason?: string }
 type ApiAppt = { name: string; time: string; dayOffset?: number }
@@ -50,12 +51,29 @@ export default function BrainDumpCard({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Govor → tekst (srpski). Izgovoreno se dopisuje u polje; korisnik zatim potvrdi.
+  const { supported: micSupported, listening, start: startMic, stop: stopMic } = useSpeechToText({
+    onResult: chunk => setText(prev => (prev ? prev.trim() + ' ' : '') + chunk),
+    onError: code => setError(
+      code === 'not-allowed' || code === 'service-not-allowed'
+        ? 'Mikrofon nije dozvoljen — uključi dozvolu za mikrofon u pregledaču.'
+        : 'Glasovni unos trenutno ne radi — probaj da otkucaš.'
+    ),
+  })
+
+  function beginVoice() {
+    setError(null)
+    setShow(true)
+    startMic()
+  }
+
   function setBusy(v: boolean) {
     setLoading(v)
     onLoadingChange?.(v)
   }
 
   async function handle() {
+    if (listening) stopMic()
     if (!text.trim()) return
     setBusy(true)
     setError(null)
@@ -90,7 +108,7 @@ export default function BrainDumpCard({
         }
       />
       <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-        Napiši sve što ti je na umu — za danas ili narednih dana. AI će izvući zadatke i rasporediti ih po danima, a ti potvrdiš.
+        Napiši ili <b>izgovori</b> sve što ti je na umu — za danas ili narednih dana. AI će izvući zadatke i rasporediti ih po danima, a ti potvrdiš.
       </p>
       {show ? (
         <div className="flex flex-col gap-3">
@@ -102,6 +120,21 @@ export default function BrainDumpCard({
             autoFocus
             className="field p-3.5 text-sm resize-none"
           />
+          {micSupported && (
+            <button
+              onClick={() => (listening ? stopMic() : beginVoice())}
+              className="flex items-center justify-center gap-2 h-10 rounded-[var(--r-md)] text-sm font-medium transition-colors"
+              style={
+                listening
+                  ? { background: 'var(--danger-tint)', color: 'var(--danger)', border: '1px solid var(--danger)' }
+                  : { background: 'var(--surface2)', color: 'var(--text)', border: '1px solid var(--border)' }
+              }
+            >
+              {listening
+                ? <><span className="w-2 h-2 rounded-full animate-pulse" style={{ background: 'var(--danger)' }} /> Slušam… dodirni da završiš</>
+                : <>🎤 Reci naglas</>}
+            </button>
+          )}
           {error && (
             <p className="text-xs px-1" style={{ color: 'var(--danger)' }}>Greška: {error}</p>
           )}
@@ -110,17 +143,26 @@ export default function BrainDumpCard({
               disabled={!text.trim()} className="flex-1">
               {loading ? 'Pravim plan...' : '✨ Napravi plan'}
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => { setShow(false); setText(''); setError(null) }}>
+            <Button size="sm" variant="ghost" onClick={() => { if (listening) stopMic(); setShow(false); setText(''); setError(null) }}>
               Otkaži
             </Button>
           </div>
         </div>
       ) : (
-        <button onClick={() => setShow(true)}
-          className="flex items-center gap-2 p-4 rounded-[var(--r-md)] border-[1.5px] border-dashed text-sm w-full transition-colors"
-          style={{ borderColor: 'color-mix(in srgb, var(--gold) 40%, var(--border))', color: 'var(--gold)' }}>
-          <span>✨</span> Piši slobodno, AI izvlači zadatke
-        </button>
+        <div className="flex flex-col gap-2.5">
+          <button onClick={() => setShow(true)}
+            className="flex items-center gap-2 p-4 rounded-[var(--r-md)] border-[1.5px] border-dashed text-sm w-full transition-colors"
+            style={{ borderColor: 'color-mix(in srgb, var(--gold) 40%, var(--border))', color: 'var(--gold)' }}>
+            <span>✨</span> Piši slobodno, AI izvlači zadatke
+          </button>
+          {micSupported && (
+            <button onClick={beginVoice}
+              className="flex items-center gap-2 p-4 rounded-[var(--r-md)] border-[1.5px] border-dashed text-sm w-full transition-colors"
+              style={{ borderColor: 'color-mix(in srgb, var(--gold) 40%, var(--border))', color: 'var(--gold)' }}>
+              <span>🎤</span> Reci naglas, AI zapisuje umesto tebe
+            </button>
+          )}
+        </div>
       )}
     </section>
   )
