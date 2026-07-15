@@ -256,8 +256,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
               }}
             >
               <span
-                className="display"
-                style={{ color: '#fff', fontSize: '3.4rem', textShadow: '0 2px 10px rgba(0,0,0,0.18)' }}
+                style={{ color: '#fff', fontSize: '3.8rem', lineHeight: 1, textShadow: '0 2px 10px rgba(0,0,0,0.18)', fontFamily: 'var(--font-script), cursive' }}
               >
                 f
               </span>

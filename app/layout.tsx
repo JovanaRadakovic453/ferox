@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Outfit } from 'next/font/google'
+import { Outfit, Sacramento } from 'next/font/google'
 import './globals.css'
 import Providers from './providers'
 import { APP } from '@/lib/config'
@@ -10,6 +10,14 @@ const outfit = Outfit({
   subsets: ['latin', 'latin-ext'],
   weight: ['200', '300', '400', '500', '600', '700'],
   variable: '--font-outfit',
+  display: 'swap',
+})
+
+// Tanak, rukopisni (kurzivni) font samo za „f" u logo bedžu.
+const sacramento = Sacramento({
+  subsets: ['latin'],
+  weight: '400',
+  variable: '--font-script',
   display: 'swap',
 })
 
@@ -39,7 +47,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="sr" suppressHydrationWarning className={`${outfit.variable}`}>
+    <html lang="sr" suppressHydrationWarning className={`${outfit.variable} ${sacramento.variable}`}>
       <body className="min-h-dvh antialiased">
         <Providers>{children}</Providers>
       </body>
