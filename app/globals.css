@@ -98,7 +98,7 @@
   --color-ferox-text: var(--text);
   --color-muted: var(--text-muted);
   --color-border: var(--border);
-  --font-serif: var(--font-cormorant), 'Spectral', Georgia, serif;
+  --font-serif: var(--font-cormorant), 'Source Serif 4', Georgia, serif;
   --font-sans: var(--font-outfit), 'Outfit', system-ui, sans-serif;
 }
 

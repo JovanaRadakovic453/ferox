@@ -9,7 +9,7 @@ import Link from 'next/link'
 import Button from '@/components/ui/Button'
 import TransferSuggestions from '@/components/setup/TransferSuggestions'
 import BrainDumpCard from '@/components/setup/BrainDumpCard'
-import BrainDumpPlanModal, { type BrainDumpPlan, type PlanTask, type PlanAppt } from '@/components/setup/BrainDumpPlanModal'
+import BrainDumpPlanModal, { type BrainDumpPlan, type PlanTask, type PlanAppt, type ConfirmResult } from '@/components/setup/BrainDumpPlanModal'
 import TaskEditor from '@/components/setup/TaskEditor'
 import AppointmentEditor from '@/components/setup/AppointmentEditor'
 import PreviewRail from '@/components/setup/PreviewRail'
@@ -24,7 +24,6 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
   const [resetting, setResetting] = useState(false)
   const [brainDumpLoading, setBrainDumpLoading] = useState(false)
   const [plan, setPlan] = useState<BrainDumpPlan | null>(null)
-  const [savingPlan, setSavingPlan] = useState(false)
 
   // Nedovršen plan (draft): pamte se SAMO korisnikovi zadaci i termini (njegov rad),
   // da prežive odlazak na drugu stranicu / osvežavanje. Predlozi (preneseni i zakazani)
@@ -86,8 +85,9 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
   }
   // Potvrđen predlog plana iz brain dump-a: stavke za DANAŠNJI (tj. prikazani)
   // dan idu u editor; sve ostalo se zakaže za svoj dan (scheduled_tasks) i pojaviće
-  // se tog jutra. Ništa se ne čuva dok korisnik ne klikne "Potvrdi plan".
-  async function confirmPlan(planTasks: PlanTask[], planAppts: PlanAppt[]) {
+  // se tog jutra u Kalendaru. Vraća rezultat — modal prikazuje poruku/grešku i
+  // NE zatvara se dok čuvanje ne uspe (da ništa ne "nestane").
+  async function confirmPlan(planTasks: PlanTask[], planAppts: PlanAppt[]): Promise<ConfirmResult> {
     const today = todayKey()
     const base = targetDate ?? today
 
@@ -108,12 +108,13 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
       if (forDate === base) {
         todayAppts.push({ name: a.name, time: a.time, reminder: DEFAULTS.reminderMinutes, done: false })
       } else {
-        // v1: budući termin ide kao zakazan zadatak, sa vremenom u nazivu.
-        scheduled.push({ name: `${a.name} (${a.time})`, priority: 'medium', type: 'light', note: '', for_date: forDate })
+        // Budući termin: čuva se kao zakazan zadatak (preživljava, vidi se u Kalendaru),
+        // sa vremenom u nazivu da se ne izgubi.
+        scheduled.push({ name: `${a.name} — ${a.time}`, priority: 'medium', type: 'light', note: '', for_date: forDate })
       }
     }
 
-    setSavingPlan(true)
+    const todayCount = todayTasks.length + todayAppts.length
     try {
       if (scheduled.length > 0) {
         const res = await fetch('/api/scheduled-tasks/batch', {
@@ -122,23 +123,16 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
           body: JSON.stringify({ tasks: scheduled }),
         })
         if (!res.ok) {
-          setSubmitError('Nešto nije sačuvano — pokušaj ponovo')
-          return
+          const body = await res.json().catch(() => ({}))
+          return { ok: false, todayCount: 0, futureCount: 0, error: body.error?.message ?? 'Zadaci za naredne dane nisu sačuvani — pokušaj ponovo' }
         }
       }
+      // Tek kad je budući deo sigurno sačuvan, ubaci današnje u editor.
       if (todayTasks.length) setTasks(prev => [...prev, ...todayTasks])
       if (todayAppts.length) setAppointments(prev => [...prev, ...todayAppts])
-      setPlan(null)
-      const parts: string[] = []
-      const todayCount = todayTasks.length + todayAppts.length
-      if (todayCount) parts.push(`${todayCount} u današnjoj listi`)
-      if (scheduled.length) parts.push(`${scheduled.length} zakazano za naredne dane`)
-      setSubmitError(`✅ Raspoređeno — ${parts.join(' · ')}`)
-      setTimeout(() => setSubmitError(null), 5000)
+      return { ok: true, todayCount, futureCount: scheduled.length }
     } catch {
-      setSubmitError('Greška pri čuvanju — pokušaj ponovo')
-    } finally {
-      setSavingPlan(false)
+      return { ok: false, todayCount: 0, futureCount: 0, error: 'Greška mreže pri čuvanju — pokušaj ponovo' }
     }
   }
   // Predlozi (preneseni + zakazani) su samo lokalni dok se plan ne napravi.
@@ -482,8 +476,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
         <BrainDumpPlanModal
           open={!!plan}
           plan={plan}
-          saving={savingPlan}
-          onCancel={() => { if (!savingPlan) setPlan(null) }}
+          onClose={() => setPlan(null)}
           onConfirm={confirmPlan}
         />
       )}
