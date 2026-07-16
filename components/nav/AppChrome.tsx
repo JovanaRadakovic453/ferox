@@ -66,13 +66,13 @@ function Sidebar({ pathname, streak }: { pathname: string; streak: number }) {
     <aside className="app-sidebar">
       <Link href="/" aria-label="Ferox — početna" className="flex items-center gap-2.5 px-2 mb-7">
         <span
-          className="grid place-items-center w-9 h-9 rounded-[12px] text-white text-[1.85rem] leading-none shrink-0"
-          style={{ backgroundImage: 'linear-gradient(135deg, var(--gold-light), var(--gold-deep))', boxShadow: 'var(--sh-gold)', fontFamily: 'var(--font-script), serif', fontStyle: 'italic', fontWeight: 300 }}
+          className="grid place-items-center w-9 h-9 rounded-[12px] text-white logo text-xl shrink-0"
+          style={{ backgroundImage: 'linear-gradient(135deg, var(--gold-light), var(--gold-deep))', boxShadow: 'var(--sh-gold)' }}
           aria-hidden
         >
-          f
+          F
         </span>
-        <span className="title-serif text-[1.65rem] leading-none foil" style={{ fontWeight: 200 }}>Ferox</span>
+        <span className="logo text-[1.65rem] leading-none foil">Ferox</span>
       </Link>
 
       <nav aria-label="Glavna navigacija" className="flex flex-col gap-1">

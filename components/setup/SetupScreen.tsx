@@ -256,16 +256,17 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
               }}
             >
               <span
-                style={{ color: '#fff', fontSize: '4.2rem', lineHeight: 1, textShadow: '0 2px 10px rgba(0,0,0,0.18)', fontFamily: 'var(--font-script), serif', fontStyle: 'italic', fontWeight: 300 }}
+                className="logo"
+                style={{ color: '#fff', fontSize: '3rem', textShadow: '0 2px 10px rgba(0,0,0,0.18)' }}
               >
-                f
+                F
               </span>
             </div>
 
             {/* Ferox wordmark */}
             <span
-              className="display foil"
-              style={{ fontSize: '2.1rem', letterSpacing: '0.1em', fontWeight: 200 }}
+              className="logo foil"
+              style={{ fontSize: '2.1rem', letterSpacing: '0.1em' }}
             >
               Ferox
             </span>
@@ -294,7 +295,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
         )}
         <header className="flex flex-col gap-5 pt-2 animate-fade-slide">
           <div className="flex items-center justify-between lg:hidden">
-            <span className="display foil text-2xl tracking-[0.06em]" style={{ fontWeight: 200 }}>Ferox</span>
+            <span className="logo foil text-2xl tracking-[0.06em]">Ferox</span>
             <div className="flex items-center gap-2">
               <span
                 className="text-xs font-semibold px-2.5 py-1.5 rounded-full whitespace-nowrap"

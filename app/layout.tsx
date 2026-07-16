@@ -13,12 +13,11 @@ const outfit = Outfit({
   display: 'swap',
 })
 
-// Tanak, kurzivni serifni font samo za „f" u logo bedžu (elegantan italik „f").
-const scriptSerif = Cormorant_Garamond({
-  subsets: ['latin'],
-  weight: ['300', '400'],
-  style: ['italic'],
-  variable: '--font-script',
+// Cormorant Garamond — samo za „Ferox" logo (elegantan tanak serif, stari izgled).
+const cormorant = Cormorant_Garamond({
+  subsets: ['latin', 'latin-ext'],
+  weight: ['300', '400', '500', '600'],
+  variable: '--font-logo',
   display: 'swap',
 })
 
@@ -48,7 +47,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="sr" suppressHydrationWarning className={`${outfit.variable} ${scriptSerif.variable}`}>
+    <html lang="sr" suppressHydrationWarning className={`${outfit.variable} ${cormorant.variable}`}>
       <body className="min-h-dvh antialiased">
         <Providers>{children}</Providers>
       </body>
