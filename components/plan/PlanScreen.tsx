@@ -7,7 +7,7 @@ import confetti from 'canvas-confetti'
 // Van komponente — preživljava navigaciju unutar istog tab-a
 let _audioCtx: AudioContext | null = null
 import { createClient } from '@/lib/supabase/client'
-import { addDays } from '@/lib/date'
+import { addDays, todayKey, tomorrowKey } from '@/lib/date'
 import { formatDate } from '@/lib/utils'
 import type { Task, Appointment, DayEntry, UserProfile, TaskType, Priority } from '@/types/ferox'
 import Button from '@/components/ui/Button'
@@ -22,6 +22,14 @@ import RoutineModal from '@/components/plan/RoutineModal'
 import ReminderBanner from '@/components/plan/ReminderBanner'
 import { AnimatePresence } from 'framer-motion'
 import type { Routine } from '@/types/ferox'
+
+// Spaja "prenesene" zadatke bez dupliranja (po imenu, case-insensitive).
+// Čuva već postojeće (npr. ranije odložene) i dodaje samo nove.
+type TransferItem = { name: string; priority: Priority; type: TaskType; note: string; done: boolean }
+function mergeTransferred(existing: TransferItem[], incoming: TransferItem[]): TransferItem[] {
+  const seen = new Set(existing.map(t => t.name.trim().toLowerCase()))
+  return [...existing, ...incoming.filter(t => !seen.has(t.name.trim().toLowerCase()))]
+}
 
 function Divider() {
   return (
@@ -245,6 +253,66 @@ export default function PlanScreen({
     }
   }
 
+  // "Odloži" — premesti JEDAN zadatak na drugi dan tokom dana (bez čekanja na "Završi dan").
+  // Ako ciljni dan već ima plan → ubaci pravo u njega; ako ne → dodaj u "prenesene"
+  // (isti mehanizam kao "Završi dan"), pa se pojavi kad se taj dan otvori.
+  async function snoozeTask(taskId: string, targetDateKey: string) {
+    const task = tasks.find(t => t.id === taskId)
+    if (!task) return
+
+    const label = targetDateKey === tomorrowKey()
+      ? 'sutra'
+      : targetDateKey === addDays(todayKey(), 2)
+        ? 'prekosutra'
+        : formatDate(targetDateKey)
+
+    // Optimistički: skloni zadatak sa današnjeg spiska odmah.
+    setTasks(prev => prev.filter(t => t.id !== taskId))
+
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      setTasks(prev => [...prev, task])
+      toast({ message: 'Odlaganje nije uspelo — pokušaj ponovo', variant: 'error' })
+      return
+    }
+
+    const moved: TransferItem = { name: task.name, priority: task.priority, type: task.type, note: task.note ?? '', done: false }
+
+    try {
+      const { data: targetEntry } = await supabase
+        .from('day_entries').select('id')
+        .eq('user_id', user.id).eq('date_key', targetDateKey).maybeSingle()
+
+      if (targetEntry) {
+        // Ciljni dan već postoji → ubaci zadatak pravo u njegov spisak.
+        const { error } = await supabase.from('tasks').insert({
+          entry_id: targetEntry.id, user_id: user.id, name: task.name, done: false,
+          priority: task.priority, type: task.type, note: task.note ?? '', position: 9999,
+        })
+        if (error) throw error
+      } else {
+        // Ciljni dan još ne postoji → dodaj u "prenesene" (spoji, ne pregazi).
+        const { data: existing } = await supabase
+          .from('transferred_tasks').select('tasks')
+          .eq('user_id', user.id).eq('for_date', targetDateKey).maybeSingle()
+        const merged = mergeTransferred((existing?.tasks ?? []) as TransferItem[], [moved])
+        const { error } = await supabase.from('transferred_tasks')
+          .upsert({ user_id: user.id, tasks: merged, for_date: targetDateKey }, { onConflict: 'user_id,for_date' })
+        if (error) throw error
+      }
+
+      // Tek kad je bezbedno smešten na ciljni dan — ukloni ga sa današnjeg.
+      const { error: delErr } = await supabase.from('tasks').delete().eq('id', taskId)
+      if (delErr) throw delErr
+
+      toast({ message: `Odloženo za ${label} ✓`, variant: 'success' })
+    } catch {
+      setTasks(prev => [...prev, task])
+      toast({ message: 'Odlaganje nije uspelo — pokušaj ponovo', variant: 'error' })
+    }
+  }
+
   async function toggleAppointment(apptId: string) {
     const appt = appts.find(a => a.id === apptId)
     if (!appt) return
@@ -307,13 +375,16 @@ export default function PlanScreen({
 
       if (user && tasksToTransfer.length > 0) {
         // Nedovršene zadatke prenosimo na dan POSLE prikazanog dana.
+        // Spajamo sa postojećim "prenesenim" (npr. ranije odloženim) da se ništa ne pregazi.
         const nextKey = addDays(entry.date_key, 1)
+        const { data: existing } = await supabase.from('transferred_tasks')
+          .select('tasks').eq('user_id', user.id).eq('for_date', nextKey).maybeSingle()
+        const incoming: TransferItem[] = tasksToTransfer.map(t => ({
+          name: t.name, priority: t.priority, type: t.type, note: t.note ?? '', done: false,
+        }))
+        const merged = mergeTransferred((existing?.tasks ?? []) as TransferItem[], incoming)
         await supabase.from('transferred_tasks').upsert({
-          user_id: user.id,
-          tasks: tasksToTransfer.map(t => ({
-            name: t.name, priority: t.priority, type: t.type, note: t.note ?? '', done: false,
-          })),
-          for_date: nextKey,
+          user_id: user.id, tasks: merged, for_date: nextKey,
         }, { onConflict: 'user_id,for_date' })
       }
     } catch {
@@ -498,7 +569,12 @@ export default function PlanScreen({
                 .sort((a, b) => ({ high: 0, medium: 1, low: 2 }[a.priority] ?? 1) - ({ high: 0, medium: 1, low: 2 }[b.priority] ?? 1))
                 .map((task, idx, arr) => (
                   <div key={task.id ?? task.name}>
-                    <TaskItem task={task} onToggle={() => task.id && toggleTask(task.id)} onDelete={() => task.id && deleteTask(task.id)} />
+                    <TaskItem
+                      task={task}
+                      onToggle={() => task.id && toggleTask(task.id)}
+                      onDelete={() => task.id && deleteTask(task.id)}
+                      onSnooze={isToday && !dayFinished ? (target) => task.id && snoozeTask(task.id, target) : undefined}
+                    />
                     {idx < arr.length - 1 && <Divider />}
                   </div>
                 ))
