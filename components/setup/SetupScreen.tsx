@@ -287,13 +287,13 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
         </div>
       )}
 
-      <main className="flex flex-col gap-7 pb-6 lg:pb-12">
+      <main className="flex flex-col gap-9 pb-6 lg:pb-12">
         {targetDate && targetDate !== todayKey() && (
           <Link href="/plan" className="flex items-center gap-1.5 text-sm font-medium -mb-3" style={{ color: 'var(--text-muted)' }}>
             ← Danas
           </Link>
         )}
-        <header className="flex flex-col gap-5 pt-2 animate-fade-slide">
+        <header className="flex flex-col gap-6 pt-3 animate-fade-slide">
           <div className="flex items-center justify-between lg:hidden">
             <span className="logo foil text-2xl tracking-[0.06em]">Ferox</span>
             <div className="flex items-center gap-2">
@@ -336,14 +336,14 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
               {heroTitle},<br />
               <span className="foil">{profile.name}</span>
             </h1>
-            <p className="text-sm mt-3 max-w-[42ch]" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-sm mt-4 max-w-[42ch]" style={{ color: 'var(--text-muted)' }}>
               {heroSub}
             </p>
           </div>
         </header>
 
-        <div className="flex flex-col gap-7 lg:grid lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-8 lg:items-start">
-          <div className="flex flex-col gap-7 stagger">
+        <div className="flex flex-col gap-9 lg:grid lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-10 lg:items-start">
+          <div className="flex flex-col gap-9 stagger">
 
             <BrainDumpCard onPlan={setPlan} onLoadingChange={setBrainDumpLoading} />
 
