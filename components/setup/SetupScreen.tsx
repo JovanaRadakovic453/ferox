@@ -14,10 +14,12 @@ import TaskEditor from '@/components/setup/TaskEditor'
 import AppointmentEditor from '@/components/setup/AppointmentEditor'
 import PreviewRail from '@/components/setup/PreviewRail'
 
-export default function SetupScreen({ profile, targetDate, transferredTasks = [], scheduledSuggestions = [], initialAppointments = [], showTransferBanner = false, streak = 0 }: { profile: UserProfile; targetDate?: string; transferredTasks?: Task[]; scheduledSuggestions?: Task[]; initialAppointments?: Appointment[]; showTransferBanner?: boolean; streak?: number }) {
-  const [tasks, setTasks] = useState<Task[]>(showTransferBanner ? [] : transferredTasks)
+export default function SetupScreen({ profile, targetDate, transferredTasks = [], autoTasks = [], initialAppointments = [], showTransferBanner = false, streak = 0 }: { profile: UserProfile; targetDate?: string; transferredTasks?: Task[]; autoTasks?: Task[]; initialAppointments?: Appointment[]; showTransferBanner?: boolean; streak?: number }) {
+  // autoTasks = zakazani zadaci za ovaj dan. Idu PRAVO u plan (korisnik je u
+  // kalendaru već odlučio da ih radi tog dana) — ne kao predlog koji treba dodati.
+  // Ako ih ne želi, izbaci ih iz liste i tada ostaju u kalendaru.
+  const [tasks, setTasks] = useState<Task[]>([...(showTransferBanner ? [] : transferredTasks), ...autoTasks])
   const [suggestedTransfers, setSuggestedTransfers] = useState<Task[]>(showTransferBanner ? transferredTasks : [])
-  const [suggestedScheduled, setSuggestedScheduled] = useState<Task[]>(showTransferBanner ? scheduledSuggestions : [])
   // Termini su stvarni podaci (ne predlog) — uvek kreni od učitanih, i u transfer režimu,
   // da već sačuvan termin (npr. iz brain dump-a za taj dan) ne bude obrisan pri "Napravi plan".
   const [appointments, setAppointments] = useState<Appointment[]>(initialAppointments)
@@ -47,7 +49,6 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
         const taskNames = new Set(dTasks.map(t => t.name))
         if (taskNames.size) {
           setSuggestedTransfers(prev => prev.filter(t => !taskNames.has(t.name)))
-          setSuggestedScheduled(prev => prev.filter(t => !taskNames.has(t.name)))
         }
       }
     } catch { /* localStorage nedostupan — radi bez drafta */ }
@@ -154,17 +155,6 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
   }
   function dismissSuggested(index: number) {
     setSuggestedTransfers(prev => prev.filter((_, i) => i !== index))
-  }
-  function addAllScheduled() {
-    setTasks(prev => [...prev, ...suggestedScheduled])
-    setSuggestedScheduled([])
-  }
-  function addScheduled(index: number) {
-    setTasks(prev => [...prev, suggestedScheduled[index]])
-    setSuggestedScheduled(prev => prev.filter((_, i) => i !== index))
-  }
-  function dismissScheduled(index: number) {
-    setSuggestedScheduled(prev => prev.filter((_, i) => i !== index))
   }
 
   async function resetDay() {
@@ -418,16 +408,6 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
               />
             )}
 
-            {suggestedScheduled.length > 0 && (
-              <TransferSuggestions
-                items={suggestedScheduled}
-                onAddAll={addAllScheduled}
-                onAddOne={addScheduled}
-                onDismiss={dismissScheduled}
-                title="Zakazani zadaci"
-                icon="📅"
-              />
-            )}
 
             <TaskEditor
               tasks={tasks}

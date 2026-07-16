@@ -150,17 +150,19 @@ export default async function SetupPage({
     initialAppointments = (apptRows ?? []) as Appointment[]
     const filtered = ((transferred?.tasks ?? []) as Task[]).filter((t: Task) => !t.done)
     const scheduled = (scheduledRows ?? []) as (Task & { id: string })[]
-    // scheduledId putuje sa predlogom — pri snimanju se označe SAMO oni koji su
-    // stvarno završili u planu (ranije su se svi gutali, pa su nestajali).
+    // Zakazani za ovaj dan idu PRAVO u plan (korisnik ih je u kalendaru već
+    // zakazao za taj dan) — ne kao predlog. scheduledId putuje s njima da bi se
+    // pri snimanju označili SAMO oni koji su stvarno ostali u planu.
     const scheduledMapped = scheduled.map(t => ({ name: t.name, priority: t.priority, type: t.type ?? 'light', note: t.note ?? '', done: false, deadline_date: t.deadline_date ?? null, scheduledId: t.id }))
     initialTasks = filtered
-    showTransferBanner = filtered.length > 0 || scheduledMapped.length > 0
+    // Baner/predlozi su samo za PRENESENE zadatke (tu korisnik bira).
+    showTransferBanner = filtered.length > 0
     return (
       <SetupScreen
         profile={profile as UserProfile}
         targetDate={targetDate}
         transferredTasks={initialTasks}
-        scheduledSuggestions={scheduledMapped}
+        autoTasks={scheduledMapped}
         initialAppointments={initialAppointments}
         showTransferBanner={showTransferBanner}
         streak={streak}
