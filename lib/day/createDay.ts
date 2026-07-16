@@ -49,10 +49,11 @@ export async function createDay(
     entry_id: entryId, user_id: userId, name: t.name, done: t.done ?? false,
     priority: t.priority, type: t.type, note: t.note ?? '',
     position: t.position ?? i, block_index: t.block_index ?? null,
+    deadline_date: t.deadline_date ?? null,
   }))
   if (taskRows.length > 0) {
     const { data, error } = await supabase.from('tasks').insert(taskRows)
-      .select('id, name, done, priority, type, note, position, block_index')
+      .select('id, name, done, priority, type, note, position, block_index, deadline_date')
     if (error) return { ok: false, code: 'DB_INSERT_TASKS', message: 'Greška pri ubacivanju zadataka', detail: error.message }
     inserted = (data ?? []) as Task[]
     if (inserted.length !== taskRows.length) {

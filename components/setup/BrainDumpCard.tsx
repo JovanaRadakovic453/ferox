@@ -6,7 +6,7 @@ import type { PlanTask, PlanAppt, BrainDumpPlan } from '@/components/setup/Brain
 import { SectionHeader } from '@/components/setup/primitives'
 import { useSpeechToText } from '@/lib/useSpeechToText'
 
-type ApiTask = { name: string; type?: PlanTask['type']; priority?: PlanTask['priority']; note?: string; dayOffset?: number; reason?: string }
+type ApiTask = { name: string; type?: PlanTask['type']; priority?: PlanTask['priority']; note?: string; dayOffset?: number; deadlineDayOffset?: number | null; reason?: string }
 type ApiAppt = { name: string; time: string; dayOffset?: number }
 
 async function fetchBrainDump(text: string): Promise<BrainDumpPlan> {
@@ -27,6 +27,7 @@ async function fetchBrainDump(text: string): Promise<BrainDumpPlan> {
       priority: t.priority ?? 'medium',
       type: t.type ?? 'light',
       dayOffset: t.dayOffset ?? 0,
+      deadlineDayOffset: t.deadlineDayOffset ?? null,
       reason: t.reason ?? '',
     })),
     appointments: (appointments ?? []).map((a: ApiAppt): PlanAppt => ({
@@ -108,7 +109,7 @@ export default function BrainDumpCard({
         }
       />
       <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-        Izbaci sve iz glave — ne mora uredno ni redom. Dodaj samo <b>kad</b> („u utorak", „u 11h", „do petka") i <b>šta je hitno</b> — po tome AI raspoređuje po danima, a ti potvrdiš.
+        Izbaci sve iz glave — ne mora uredno ni redom. Dodaj samo <b>kad</b> („u utorak“, „u 11h“, „do petka“) i <b>šta je hitno</b> — po tome AI raspoređuje po danima, a ti potvrdiš.
       </p>
       {show ? (
         <div className="flex flex-col gap-3">

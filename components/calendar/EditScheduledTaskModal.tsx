@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Modal from '@/components/ui/Modal'
 import Button from '@/components/ui/Button'
+import WhenFields from '@/components/calendar/WhenFields'
 
 type ScheduledTask = {
   id: string
@@ -191,40 +192,16 @@ export default function EditScheduledTaskModal({
         )}
       </div>
 
-      {/* Rok */}
-      <div>
-        <button
-          type="button"
-          onClick={() => setDeadlineEnabled(p => !p)}
-          className="flex items-center justify-between w-full px-3.5 py-3 rounded-[var(--r-md)] border text-sm transition-colors"
-          style={{
-            background: deadlineEnabled ? 'var(--gold-tint)' : 'var(--surface2)',
-            borderColor: deadlineEnabled ? 'var(--gold)' : 'var(--border)',
-          }}
-        >
-          <span style={{ color: 'var(--text)' }}>📅 Rok</span>
-          <div
-            className="w-10 h-5 rounded-full flex items-center px-0.5 transition-all"
-            style={{
-              background: deadlineEnabled ? 'var(--gold)' : 'var(--border)',
-              justifyContent: deadlineEnabled ? 'flex-end' : 'flex-start',
-            }}
-          >
-            <div className="w-4 h-4 rounded-full bg-white" />
-          </div>
-        </button>
-        {deadlineEnabled && (
-          <div className="mt-2">
-            <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Do kada?</label>
-            <input
-              type="date"
-              value={deadlineDate}
-              onChange={e => setDeadlineDate(e.target.value)}
-              className="field h-11 px-3 text-sm w-full"
-            />
-          </div>
-        )}
-      </div>
+      {/* task je null dok je forma zatvorena — Modal se i tad iscrtava, pa čuvamo pristup */}
+      {task && (
+        <WhenFields
+          startDate={task.for_date}
+          deadlineEnabled={deadlineEnabled}
+          onToggleDeadline={() => setDeadlineEnabled(p => !p)}
+          deadlineDate={deadlineDate}
+          onDeadlineChange={setDeadlineDate}
+        />
+      )}
 
       {error && (
         <p className="text-xs" style={{ color: 'var(--danger)' }}>{error}</p>

@@ -95,15 +95,17 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
 
     const todayTasks: Task[] = []
     const todayAppts: Appointment[] = []
-    const scheduled: { name: string; priority: Priority; type: TaskType; note: string; for_date: string }[] = []
+    const scheduled: { name: string; priority: Priority; type: TaskType; note: string; for_date: string; deadline_date: string | null }[] = []
     const futureAppts: { name: string; time: string; date_key: string; reminder: number }[] = []
 
     for (const t of planTasks) {
       const forDate = addDays(today, t.dayOffset)
+      // Rok je zaseban od dana rada — prati zadatak gde god da ode.
+      const deadline = t.deadlineDayOffset != null ? addDays(today, t.deadlineDayOffset) : null
       if (forDate === base) {
-        todayTasks.push({ name: t.name, note: t.note, priority: t.priority, type: t.type, done: false })
+        todayTasks.push({ name: t.name, note: t.note, priority: t.priority, type: t.type, done: false, deadline_date: deadline })
       } else {
-        scheduled.push({ name: t.name, priority: t.priority, type: t.type, note: t.note, for_date: forDate })
+        scheduled.push({ name: t.name, priority: t.priority, type: t.type, note: t.note, for_date: forDate, deadline_date: deadline })
       }
     }
     for (const a of planAppts) {

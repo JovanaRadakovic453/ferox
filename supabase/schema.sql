@@ -134,7 +134,8 @@ create table if not exists public.tasks (
   note text not null default '',
   position int not null default 0,
   block_index smallint check (block_index is null or block_index between 0 and 3), -- legacy (blokovi uklonjeni)
-  zone_id uuid references public.zones(id) on delete set null,
+  zone_id uuid references public.zones(id) on delete set null, -- legacy (oblasti uklonjene iz app-a)
+  deadline_date date default null, -- rok: do kada mora biti gotovo (prati zadatak i kad uđe u dan)
   created_at timestamptz not null default now()
 );
 
@@ -231,6 +232,7 @@ create policy "Users manage own routines"
 create index if not exists idx_day_entries_user_date on public.day_entries(user_id, date_key desc);
 create index if not exists idx_tasks_entry on public.tasks(entry_id);
 create index if not exists idx_tasks_user on public.tasks(user_id);
+create index if not exists idx_tasks_user_deadline on public.tasks(user_id, deadline_date);
 create index if not exists idx_appointments_user_date on public.appointments(user_id, date_key);
 create index if not exists idx_transferred_user_date on public.transferred_tasks(user_id, for_date);
 

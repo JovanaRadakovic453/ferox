@@ -29,7 +29,8 @@ const extractTool = {
             priority: { type: 'string', enum: [...PRIORITIES], description: 'high samo uz jasnu hitnost/rok; inače medium; low ako može da čeka. Ne stavljaj sve na high.' },
             note: { type: 'string' },
             estMinutes: { type: 'number', description: 'realna procena trajanja u minutima' },
-            dayOffset: { type: 'number', description: 'na koji dan ide: 0 = danas, 1 = sutra … najviše 7' },
+            dayOffset: { type: 'number', description: 'DAN RADA: kad korisnik planira da radi na tome. 0 = danas, 1 = sutra … najviše 7' },
+            deadlineDayOffset: { type: 'number', description: 'ROK: do kada MORA biti gotovo, kao broj dana od danas (0 = danas). Postavi SAMO ako tekst pominje rok ("do petka", "rok je sutra", "do kraja nedelje"). Ako nema roka, izostavi. Rok NIJE isto što i dan rada — dan rada je obično PRE roka.' },
             reason: { type: 'string', description: 'jedna kratka rečenica na srpskom: zašto baš taj dan' },
           },
           required: ['name', 'type', 'priority', 'dayOffset'],
@@ -87,6 +88,7 @@ export async function POST(request: NextRequest) {
           `Ako korisnik pomene vremenski okvir (npr. "narednih 7 dana", "ove nedelje", "do petka"), OBAVEZNO rasprostri zadatke kroz te dane — NEMOJ sve staviti na danas. ` +
           `Za ponavljajuće zadatke ("2x nedeljno", "svaki dan") napravi više stavki na različite dane. ` +
           `Kad korisnik pomene dan u nedelji (npr. "u četvrtak", "za petak"), pronađi taj dan u listi dana ispod i koristi TAČAN dayOffset za njega — ne pogađaj datum napamet. ` +
+          `Ako tekst pominje ROK ("do petka", "rok je sutra", "do kraja nedelje"), postavi deadlineDayOffset na taj dan, a dayOffset (dan rada) planiraj PRE roka — to su dve različite stvari. ` +
           `Ako se taj dan u nedelji pojavljuje više puta u listi (jednom kao danas, jednom sledeće nedelje), izaberi PRVU NAREDNU pojavu (ne danas), osim ako korisnik izričito kaže "danas". ` +
           `Predloži prioritet za svaki zadatak (visok/srednji/nizak) po hitnosti, rokovima i po tome kako korisnik obično prioritetizuje slične zadatke (vidi dole) — nemoj sve staviti na srednji. ` +
           `Ako tekst pominje konkretno vreme (npr. "u 14h", "sastanak u 9", "zubar u 11:30"), to je TERMIN sa "time" u HH:MM; inače je zadatak. ` +

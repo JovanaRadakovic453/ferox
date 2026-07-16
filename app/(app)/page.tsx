@@ -99,7 +99,7 @@ export default async function SetupPage({
     const [{ data: existingTasks }, { data: existingAppts }, { data: pendingScheduled }] = await Promise.all([
       supabase
         .from('tasks')
-        .select('name, note, priority, type, done, position')
+        .select('name, note, priority, type, done, position, deadline_date')
         .eq('entry_id', entry.id)
         .eq('user_id', user.id)
         .order('position'),
@@ -111,7 +111,7 @@ export default async function SetupPage({
         .order('time'),
       supabase
         .from('scheduled_tasks')
-        .select('id, name, priority, type, note')
+        .select('id, name, priority, type, note, deadline_date')
         .eq('user_id', user.id)
         .eq('for_date', targetDate)
         .eq('done', false),
@@ -119,11 +119,12 @@ export default async function SetupPage({
     initialTasks = (existingTasks ?? []) as Task[]
     initialAppointments = (existingAppts ?? []) as Appointment[]
     // Zakazan zadatak dodat POSLE kreiranja dana: ubaci ga u editor umesto da se tiho proguta.
+    // Rok ide sa njim — inače bi nestao čim zadatak uđe u plan.
     const pending = (pendingScheduled ?? []) as (Task & { id: string })[]
     if (pending.length > 0) {
       initialTasks = [
         ...initialTasks,
-        ...pending.map(t => ({ name: t.name, priority: t.priority, type: t.type ?? 'light', note: t.note ?? '', done: false })),
+        ...pending.map(t => ({ name: t.name, priority: t.priority, type: t.type ?? 'light', note: t.note ?? '', done: false, deadline_date: t.deadline_date ?? null })),
       ]
       scheduledTaskIds = pending.map(t => t.id)
     }
@@ -137,7 +138,7 @@ export default async function SetupPage({
         .maybeSingle(),
       supabase
         .from('scheduled_tasks')
-        .select('id, name, priority, type, note')
+        .select('id, name, priority, type, note, deadline_date')
         .eq('user_id', user.id)
         .eq('for_date', targetDate)
         .eq('done', false),
@@ -152,7 +153,7 @@ export default async function SetupPage({
     initialAppointments = (apptRows ?? []) as Appointment[]
     const filtered = ((transferred?.tasks ?? []) as Task[]).filter((t: Task) => !t.done)
     const scheduled = (scheduledRows ?? []) as (Task & { id: string })[]
-    const scheduledMapped = scheduled.map(t => ({ name: t.name, priority: t.priority, type: t.type ?? 'light', note: t.note ?? '', done: false }))
+    const scheduledMapped = scheduled.map(t => ({ name: t.name, priority: t.priority, type: t.type ?? 'light', note: t.note ?? '', done: false, deadline_date: t.deadline_date ?? null }))
     initialTasks = filtered
     scheduledTaskIds = scheduled.map(t => t.id)
     showTransferBanner = filtered.length > 0 || scheduledMapped.length > 0

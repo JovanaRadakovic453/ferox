@@ -25,7 +25,7 @@ import type { Routine } from '@/types/ferox'
 
 // Spaja "prenesene" zadatke bez dupliranja (po imenu, case-insensitive).
 // Čuva već postojeće (npr. ranije odložene) i dodaje samo nove.
-type TransferItem = { name: string; priority: Priority; type: TaskType; note: string; done: boolean }
+type TransferItem = { name: string; priority: Priority; type: TaskType; note: string; done: boolean; deadline_date?: string | null }
 function mergeTransferred(existing: TransferItem[], incoming: TransferItem[]): TransferItem[] {
   const seen = new Set(existing.map(t => t.name.trim().toLowerCase()))
   return [...existing, ...incoming.filter(t => !seen.has(t.name.trim().toLowerCase()))]
@@ -282,7 +282,7 @@ export default function PlanScreen({
       return
     }
 
-    const moved: TransferItem = { name: task.name, priority: task.priority, type: task.type, note: task.note ?? '', done: false }
+    const moved: TransferItem = { name: task.name, priority: task.priority, type: task.type, note: task.note ?? '', done: false, deadline_date: task.deadline_date ?? null }
 
     try {
       const { data: targetEntry } = await supabase
@@ -294,6 +294,7 @@ export default function PlanScreen({
         const { error } = await supabase.from('tasks').insert({
           entry_id: targetEntry.id, user_id: user.id, name: task.name, done: false,
           priority: task.priority, type: task.type, note: task.note ?? '', position: 9999,
+          deadline_date: task.deadline_date ?? null,
         })
         if (error) throw error
       } else {
@@ -413,6 +414,7 @@ export default function PlanScreen({
           .select('tasks').eq('user_id', user.id).eq('for_date', nextKey).maybeSingle()
         const incoming: TransferItem[] = tasksToTransfer.map(t => ({
           name: t.name, priority: t.priority, type: t.type, note: t.note ?? '', done: false,
+          deadline_date: t.deadline_date ?? null,
         }))
         const merged = mergeTransferred((existing?.tasks ?? []) as TransferItem[], incoming)
         await supabase.from('transferred_tasks').upsert({

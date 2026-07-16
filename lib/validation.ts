@@ -21,6 +21,8 @@ export const zTaskInput = z.object({
   done: z.boolean().optional().default(false),
   position: z.number().int().optional(),
   block_index: z.number().int().min(0).max(3).nullable().optional(),
+  /** Rok — prati zadatak i kad uđe u dan (može biti i u prošlosti: propušten rok). */
+  deadline_date: zStrictDate.nullable().optional(),
 })
 
 export const zAppointmentInput = z.object({
@@ -56,6 +58,9 @@ export const aiTaskSchema = z.object({
   note: z.string().max(500).catch(''),
   estMinutes: z.number().int().min(0).max(600).optional(),
   dayOffset: zDayOffset,
+  // Rok kao broj dana od danas (0 = danas). Namerno NE tražimo datum od AI-ja —
+  // računanje datuma napamet je čest izvor grešaka. null = nema roka.
+  deadlineDayOffset: z.number().int().min(0).max(120).nullable().catch(null),
   reason: z.string().max(160).catch(''),
 })
 export const aiAppointmentSchema = z.object({
@@ -77,6 +82,7 @@ export const scheduledBatchSchema = z.object({
     type: zTaskType.default('light'),
     note: z.string().max(500).default(''),
     for_date: zStrictDate.refine(d => d >= todayKey(), 'Datum ne može biti u prošlosti'),
+    deadline_date: zStrictDate.nullable().default(null),
   })).max(60).default([]),
   appointments: z.array(z.object({
     name: z.string().trim().min(1).max(120),

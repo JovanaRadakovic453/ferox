@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { getDeadlineBadge } from '@/lib/deadline'
 import AddScheduledTaskModal from './AddScheduledTaskModal'
 import EditScheduledTaskModal from './EditScheduledTaskModal'
 
@@ -13,28 +14,6 @@ type LoadedTask = { id: string; name: string; priority: string; done: boolean; n
 
 const PRIORITY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 }
 const PRIORITY_DOT: Record<string, string> = { high: '🔴', medium: '🟡', low: '🟢' }
-
-function formatDeadlineDate(dateKey: string, today: string): string {
-  const [todayYear] = today.split('-').map(Number)
-  const [dlYear] = dateKey.split('-').map(Number)
-  const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long' }
-  if (dlYear !== todayYear) opts.year = 'numeric'
-  return new Intl.DateTimeFormat('sr-Latn-RS', opts).format(new Date(`${dateKey}T12:00:00Z`))
-}
-
-function getDeadlineBadge(deadlineDate: string, today: string): { text: string; color: string } {
-  if (deadlineDate < today) {
-    return { text: `Rok: ${formatDeadlineDate(deadlineDate, today)}`, color: 'var(--danger)' }
-  }
-  if (deadlineDate === today) {
-    return { text: 'Rok: danas', color: 'var(--warn)' }
-  }
-  const diffMs = new Date(`${deadlineDate}T12:00:00Z`).getTime() - new Date(`${today}T12:00:00Z`).getTime()
-  const days = Math.round(diffMs / (1000 * 60 * 60 * 24))
-  if (days === 1) return { text: 'Rok: sutra', color: '#f97316' }
-  if (days <= 7) return { text: `Rok: ${formatDeadlineDate(deadlineDate, today)}`, color: '#f97316' }
-  return { text: `Rok: ${formatDeadlineDate(deadlineDate, today)}`, color: 'var(--text-muted)' }
-}
 
 function formatDateLabel(dateKey: string): string {
   return new Intl.DateTimeFormat('sr-Latn-RS', {

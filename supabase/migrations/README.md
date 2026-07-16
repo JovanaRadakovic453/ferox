@@ -3,8 +3,9 @@
 ## Stanje
 
 Na produkciji (Supabase projekat `scwsifonygvfxiixaiak`) primenjene su **sve
-migracije zaključno sa `0013_routines_fk_profiles.sql`** (0013 primenjena
-2026-07-02 kroz Management API; FK provereno pokazuje na profiles, cascade).
+migracije zaključno sa `0014_tasks_deadline.sql`** (0014 primenjena 2026-07-16
+kroz SQL Editor; provereno preko PostgREST-a da `tasks.deadline_date` postoji).
+Ranije: 0013 primenjena 2026-07-02 kroz Management API (FK na profiles, cascade).
 Fajlovi su numerisani po stvarnom redosledu primene (renumerisano jul 2026 —
 ranije su postojali duplikati 0003/0004; sadržaj fajlova nije menjan).
 

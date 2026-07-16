@@ -22,6 +22,8 @@ export interface Task {
   position?: number
   /** Manual block placement (0..3) set via drag-reorder; null/undefined = engine auto-places. */
   block_index?: number | null
+  /** Rok: do kada mora biti gotovo (YYYY-MM-DD). Prati zadatak i kad uđe u dan. */
+  deadline_date?: string | null
 }
 
 export interface Appointment {

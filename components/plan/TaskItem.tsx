@@ -5,6 +5,7 @@ import Checkbox from '@/components/ui/Checkbox'
 import { PRIORITY_LABELS } from '@/types/ferox'
 import type { Task } from '@/types/ferox'
 import { addDays, todayKey, tomorrowKey } from '@/lib/date'
+import { getDeadlineBadge } from '@/lib/deadline'
 import AnchoredMenu, { MenuHeading, MenuItem } from '@/components/ui/AnchoredMenu'
 
 export default function TaskItem({ task, onToggle, onDelete, onSnooze }: {
@@ -14,6 +15,8 @@ export default function TaskItem({ task, onToggle, onDelete, onSnooze }: {
   /** Kad je prosleđeno, prikazuje se dugme „Odloži" (premesti zadatak na drugi dan). */
   onSnooze?: (targetDateKey: string) => void
 }) {
+  // Rok se vidi na samoj kartici — dok zadatak nije gotov.
+  const dl = task.deadline_date && !task.done ? getDeadlineBadge(task.deadline_date, todayKey()) : null
   return (
     <div className="flex items-center w-full py-4">
       <button
@@ -37,6 +40,14 @@ export default function TaskItem({ task, onToggle, onDelete, onSnooze }: {
           </p>
           {task.note && (
             <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{task.note}</p>
+          )}
+          {dl && (
+            <span
+              className="inline-flex items-center gap-1 text-[0.62rem] font-semibold mt-1 px-2 py-0.5 rounded-full"
+              style={{ color: dl.color, background: 'color-mix(in srgb, currentColor 12%, transparent)' }}
+            >
+              <span aria-hidden>▲</span> {dl.text}
+            </span>
           )}
         </div>
         <span

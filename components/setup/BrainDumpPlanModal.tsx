@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Modal from '@/components/ui/Modal'
 import Button from '@/components/ui/Button'
 import { addDays, todayKey } from '@/lib/date'
+import { getDeadlineBadge } from '@/lib/deadline'
 import { formatDate } from '@/lib/utils'
 import { AI } from '@/lib/config'
 import { PRIORITY_LABELS } from '@/types/ferox'
@@ -15,7 +16,10 @@ export type PlanTask = {
   type: TaskType
   priority: Priority
   note: string
+  /** Dan rada — kad se zadatak pojavi u planu. */
   dayOffset: number
+  /** Rok — do kada mora biti gotovo (broj dana od danas). null = nema roka. */
+  deadlineDayOffset: number | null
   reason: string
 }
 export type PlanAppt = {
@@ -166,6 +170,14 @@ export default function BrainDumpPlanModal({
                     <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>{t.name}</span>
                     <button onClick={() => setTasks(prev => prev.filter((_, idx) => idx !== i))} className="text-xs opacity-50 hover:opacity-100" style={{ color: 'var(--danger)' }} aria-label="Izbaci">✕</button>
                   </div>
+                  {t.deadlineDayOffset != null && (
+                    <span
+                      className="self-start inline-flex items-center gap-1 text-[0.62rem] font-semibold px-2 py-0.5 rounded-full"
+                      style={{ color: getDeadlineBadge(addDays(baseKey, t.deadlineDayOffset), baseKey).color, background: 'color-mix(in srgb, currentColor 12%, transparent)' }}
+                    >
+                      <span aria-hidden>▲</span> {getDeadlineBadge(addDays(baseKey, t.deadlineDayOffset), baseKey).text}
+                    </span>
+                  )}
                   {t.reason && (
                     <p className="text-xs" style={{ color: 'var(--text-muted)' }}>💡 {t.reason}</p>
                   )}
