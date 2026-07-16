@@ -8,6 +8,7 @@ import confetti from 'canvas-confetti'
 let _audioCtx: AudioContext | null = null
 import { createClient } from '@/lib/supabase/client'
 import { addDays, todayKey } from '@/lib/date'
+import { getDeadlineBadge, dueTasks, sortTasksForDay } from '@/lib/deadline'
 import { formatDate } from '@/lib/utils'
 import type { Task, Appointment, DayEntry, UserProfile, TaskType, Priority } from '@/types/ferox'
 import Button from '@/components/ui/Button'
@@ -54,7 +55,7 @@ function Divider() {
 }
 
 export default function PlanScreen({
-  entry, tasks: initialTasks, appointments, profile, dayFinished = false, tomorrowPlanned = false, isToday = true, hasDateParam = false, streak = 0, tomorrowScheduledCount = 0, overdueDeadlineCount = 0,
+  entry, tasks: initialTasks, appointments, profile, dayFinished = false, tomorrowPlanned = false, isToday = true, hasDateParam = false, streak = 0, tomorrowScheduledCount = 0, overdueScheduled = [],
 }: {
   entry: DayEntry
   tasks: Task[]
@@ -66,7 +67,8 @@ export default function PlanScreen({
   hasDateParam?: boolean
   streak?: number
   tomorrowScheduledCount?: number
-  overdueDeadlineCount?: number
+  /** Zakazani zadaci (još nisu u planu) kojima rok ističe danas ili je prošao. */
+  overdueScheduled?: { name: string; deadline_date: string }[]
 }) {
   const toast = useToast()
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
@@ -95,6 +97,12 @@ export default function PlanScreen({
       }
     } catch {}
   }
+
+  // Rokovi koji gore danas: iz plana (živo, nestaje čim štiklirasš) + iz kalendara.
+  const dueNow: { name: string; deadline_date: string; scheduled: boolean }[] = [
+    ...dueTasks(tasks, todayKey()).map(t => ({ name: t.name, deadline_date: t.deadline_date as string, scheduled: false })),
+    ...overdueScheduled.map(t => ({ name: t.name, deadline_date: t.deadline_date, scheduled: true })),
+  ]
 
   const doneTasks = tasks.filter(t => t.done).length
   const doneAppts = appts.filter(a => a.done).length
@@ -546,13 +554,23 @@ export default function PlanScreen({
         </div>
       )}
 
-      {/* Upozorenje: zakazani zadaci sa isteklim ili današnjim rokom */}
-      {isToday && overdueDeadlineCount > 0 && !dayFinished && (
-        <div className="rounded-[var(--r-md)] px-4 py-3 flex items-center gap-3" style={{ background: 'var(--danger-tint)', border: '1px solid color-mix(in srgb, var(--danger) 20%, transparent)' }}>
+      {/* Upozorenje o rokovima — konkretno, po IMENU (i iz plana i iz kalendara). */}
+      {isToday && !dayFinished && dueNow.length > 0 && (
+        <div className="rounded-[var(--r-md)] px-4 py-3 flex items-start gap-3" style={{ background: 'var(--danger-tint)', border: '1px solid color-mix(in srgb, var(--danger) 20%, transparent)' }}>
           <span className="text-xl shrink-0">⚠️</span>
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            <span style={{ color: 'var(--danger)', fontWeight: 600 }}>{overdueDeadlineCount} zakazan{overdueDeadlineCount === 1 ? '' : 'a'} zadatak{overdueDeadlineCount === 1 ? '' : 'a'}</span> ima rok koji danas ističe ili je već prošao
-          </p>
+          <div className="min-w-0 flex flex-col gap-1">
+            {dueNow.map((t, i) => {
+              const b = getDeadlineBadge(t.deadline_date, todayKey())
+              return (
+                <p key={i} className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                  <span style={{ color: b.color, fontWeight: 600 }}>{b.text}</span>
+                  {' — '}
+                  <span style={{ color: 'var(--text)', fontWeight: 600 }}>{t.name}</span>
+                  {t.scheduled && <span className="text-xs"> (iz kalendara)</span>}
+                </p>
+              )
+            })}
+          </div>
         </div>
       )}
 
@@ -605,8 +623,7 @@ export default function PlanScreen({
                   </div>
                 </>
               )}
-              {[...tasks]
-                .sort((a, b) => ({ high: 0, medium: 1, low: 2 }[a.priority] ?? 1) - ({ high: 0, medium: 1, low: 2 }[b.priority] ?? 1))
+              {sortTasksForDay(tasks, todayKey())
                 .map((task, idx, arr) => (
                   <div key={task.id ?? task.name}>
                     <TaskItem

@@ -11,6 +11,58 @@ function formatDeadlineDate(dateKey: string, today: string): string {
   return new Intl.DateTimeFormat('sr-Latn-RS', opts).format(new Date(`${dateKey}T12:00:00Z`))
 }
 
+export type DeadlineTask = { name: string; done: boolean; priority: string; deadline_date?: string | null }
+
+const PRIORITY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 }
+
+/**
+ * Redosled po hitnosti roka: 0 = rok prošao, 1 = rok danas, 2 = ostalo.
+ * Završeni zadaci nikad nisu hitni (ne skaču na vrh).
+ */
+export function deadlineRank(t: DeadlineTask, today: string): number {
+  if (t.done || !t.deadline_date) return 2
+  if (t.deadline_date < today) return 0
+  if (t.deadline_date === today) return 1
+  return 2
+}
+
+/** Zadaci kojima rok ističe danas ili je prošao (a nisu gotovi). */
+export function dueTasks<T extends DeadlineTask>(tasks: T[], today: string): T[] {
+  return tasks
+    .filter(t => deadlineRank(t, today) < 2)
+    .sort((a, b) => (a.deadline_date ?? '').localeCompare(b.deadline_date ?? ''))
+}
+
+/**
+ * Redosled dana: rok koji gori ide na vrh, pa tek onda prioritet.
+ * Unutar iste hitnosti — raniji rok prvi, pa prioritet.
+ */
+export function sortTasksForDay<T extends DeadlineTask>(tasks: T[], today: string): T[] {
+  return [...tasks].sort((a, b) => {
+    const rank = deadlineRank(a, today) - deadlineRank(b, today)
+    if (rank !== 0) return rank
+    if (a.deadline_date && b.deadline_date && a.deadline_date !== b.deadline_date) {
+      return a.deadline_date < b.deadline_date ? -1 : 1
+    }
+    return (PRIORITY_ORDER[a.priority] ?? 1) - (PRIORITY_ORDER[b.priority] ?? 1)
+  })
+}
+
+/**
+ * Tekst push podsetnika za rokove. Uzima najhitniji (najraniji) rok i pominje ga
+ * imenom — gola brojka ne kaže ništa.
+ */
+export function deadlineReminderBody(items: { name: string; deadline_date: string }[], today: string): string | null {
+  if (items.length === 0) return null
+  const sorted = [...items].sort((a, b) => a.deadline_date.localeCompare(b.deadline_date))
+  const first = sorted[0]
+  const rest = sorted.length - 1
+  const suffix = rest > 0 ? ` (i još ${rest})` : ''
+  return first.deadline_date < today
+    ? `⚠️ Probijen rok: „${first.name}"${suffix}`
+    : `⏳ Danas ističe rok: „${first.name}"${suffix}`
+}
+
 /** Koliko dana do roka (negativno = rok je prošao). */
 export function daysUntil(dateKey: string, today: string): number {
   const diffMs = new Date(`${dateKey}T12:00:00Z`).getTime() - new Date(`${today}T12:00:00Z`).getTime()

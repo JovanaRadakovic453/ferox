@@ -44,7 +44,7 @@ export default async function PlanPage({
       ? supabase.from('scheduled_tasks').select('id, for_date, remind_before_minutes').eq('user_id', user.id).eq('done', false).not('remind_before_minutes', 'is', null).gt('for_date', today).lte('for_date', addDays(today, 99))
       : Promise.resolve({ data: [] }),
     isToday
-      ? supabase.from('scheduled_tasks').select('id').eq('user_id', user.id).eq('done', false).not('deadline_date', 'is', null).lte('deadline_date', today)
+      ? supabase.from('scheduled_tasks').select('name, deadline_date').eq('user_id', user.id).eq('done', false).not('deadline_date', 'is', null).lte('deadline_date', today).order('deadline_date')
       : Promise.resolve({ data: [] }),
   ])
 
@@ -66,7 +66,7 @@ export default async function PlanPage({
           const days = Math.ceil(t.remind_before_minutes / 1440)
           return addDays(today, days) === t.for_date
         }).length}
-      overdueDeadlineCount={(overdueDeadlines ?? []).length}
+      overdueScheduled={(overdueDeadlines ?? []) as { name: string; deadline_date: string }[]}
     />
   )
 }
