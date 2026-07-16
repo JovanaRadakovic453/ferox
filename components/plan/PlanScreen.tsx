@@ -7,7 +7,7 @@ import confetti from 'canvas-confetti'
 // Van komponente — preživljava navigaciju unutar istog tab-a
 let _audioCtx: AudioContext | null = null
 import { createClient } from '@/lib/supabase/client'
-import { addDays, todayKey, tomorrowKey } from '@/lib/date'
+import { addDays, todayKey } from '@/lib/date'
 import { formatDate } from '@/lib/utils'
 import type { Task, Appointment, DayEntry, UserProfile, TaskType, Priority } from '@/types/ferox'
 import Button from '@/components/ui/Button'
@@ -29,6 +29,15 @@ type TransferItem = { name: string; priority: Priority; type: TaskType; note: st
 function mergeTransferred(existing: TransferItem[], incoming: TransferItem[]): TransferItem[] {
   const seen = new Set(existing.map(t => t.name.trim().toLowerCase()))
   return [...existing, ...incoming.filter(t => !seen.has(t.name.trim().toLowerCase()))]
+}
+
+// "danas" / "sutra" / "prekosutra" / "Ponedeljak, 20. jul" — za poruke potvrde.
+function dayLabel(key: string): string {
+  const today = todayKey()
+  if (key === today) return 'danas'
+  if (key === addDays(today, 1)) return 'sutra'
+  if (key === addDays(today, 2)) return 'prekosutra'
+  return formatDate(key)
 }
 
 function Divider() {
@@ -260,11 +269,7 @@ export default function PlanScreen({
     const task = tasks.find(t => t.id === taskId)
     if (!task) return
 
-    const label = targetDateKey === tomorrowKey()
-      ? 'sutra'
-      : targetDateKey === addDays(todayKey(), 2)
-        ? 'prekosutra'
-        : formatDate(targetDateKey)
+    const label = dayLabel(targetDateKey)
 
     // Optimistički: skloni zadatak sa današnjeg spiska odmah.
     setTasks(prev => prev.filter(t => t.id !== taskId))
@@ -311,6 +316,33 @@ export default function PlanScreen({
       setTasks(prev => [...prev, task])
       toast({ message: 'Odlaganje nije uspelo — pokušaj ponovo', variant: 'error' })
     }
+  }
+
+  // "Pomeri termin" — novi dan i/ili novo vreme. Termin je vezan za datum
+  // (date_key), pa je pomeranje obična izmena ta dva polja.
+  async function moveAppointment(apptId: string, targetDateKey: string, newTime: string) {
+    const before = appts
+    const appt = before.find(a => a.id === apptId)
+    if (!appt) return
+
+    const staysHere = targetDateKey === entry.date_key
+
+    // Optimistički: ostaje isti dan → samo novo vreme; menja dan → silazi sa spiska.
+    setAppts(cur => staysHere
+      ? cur.map(a => a.id === apptId ? { ...a, time: newTime } : a)
+      : cur.filter(a => a.id !== apptId))
+
+    const supabase = createClient()
+    const { error } = await supabase.from('appointments')
+      .update({ date_key: targetDateKey, time: newTime }).eq('id', apptId)
+
+    if (error) {
+      setAppts(before)
+      toast({ message: 'Pomeranje nije uspelo — pokušaj ponovo', variant: 'error' })
+      return
+    }
+
+    toast({ message: `Termin pomeren za ${dayLabel(targetDateKey)} u ${newTime} ✓`, variant: 'success' })
   }
 
   async function toggleAppointment(apptId: string) {
@@ -553,7 +585,13 @@ export default function PlanScreen({
               )}
               {[...appts].sort((a, b) => a.time.localeCompare(b.time)).map((a, idx, arr) => (
                 <div key={a.id ?? a.name + a.time}>
-                  <AppointmentItem appt={a} onToggle={() => a.id && toggleAppointment(a.id)} onDelete={() => a.id && deleteAppointment(a.id)} />
+                  <AppointmentItem
+                    appt={a}
+                    currentDate={entry.date_key}
+                    onToggle={() => a.id && toggleAppointment(a.id)}
+                    onDelete={() => a.id && deleteAppointment(a.id)}
+                    onMove={isToday && !dayFinished ? (date, time) => a.id && moveAppointment(a.id, date, time) : undefined}
+                  />
                   {idx < arr.length - 1 && <Divider />}
                 </div>
               ))}
