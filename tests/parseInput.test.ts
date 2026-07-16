@@ -79,6 +79,13 @@ describe('parseInput — vreme i tip', () => {
     expect(r.time).toBeNull()
     expect(r.matched).not.toContain('vreme')
   })
+
+  it('nemoguće vreme ostaje u nazivu (ne guta se tiho)', () => {
+    const r = parseInput('sastanak u 99 sati')
+    expect(r.time).toBeNull()
+    expect(r.name).toBe('Sastanak u 99 sati')
+    expect(r.kind).toBe('task')
+  })
 })
 
 describe('parseInput — prioritet', () => {

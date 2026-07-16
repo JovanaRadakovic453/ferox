@@ -53,10 +53,12 @@ export function parseInput(raw: string): ParsedInput {
   let time: string | null = null
   let priority: Priority = 'medium'
 
-  function eat(pattern: string, label: string): RegExpMatchArray | null {
+  // `guard` validira pogodak PRE nego što se izbaci iz teksta — nevažeći
+  // pogodak (npr. "u 99h") ostaje u nazivu umesto da se tiho proguta.
+  function eat(pattern: string, label: string, guard?: (m: RegExpMatchArray) => boolean): RegExpMatchArray | null {
     const rx = wrap(pattern)
     const m = text.match(rx)
-    if (!m) return null
+    if (!m || (guard && !guard(m))) return null
     text = text.replace(rx, ' ')
     if (!matched.includes(label)) matched.push(label)
     return m
@@ -85,16 +87,11 @@ export function parseInput(raw: string): ParsedInput {
   }
 
   // 3) Vreme — tek posle dana, da "za 3 dana" ne bude protumačeno kao 3 sata.
-  m = eat('u (\\d{1,2})(?::(\\d{2}))? ?(?:h|[čc]|sati|[čc]asova)?', 'vreme')
-    ?? eat('(\\d{1,2})(?::(\\d{2}))? ?(?:h|sati|[čc]asova)', 'vreme')
+  const validTime = (mt: RegExpMatchArray) => Number(mt[1]) <= 23 && (!mt[2] || Number(mt[2]) <= 59)
+  m = eat('u (\\d{1,2})(?::(\\d{2}))? ?(?:h|[čc]|sati|[čc]asova)?', 'vreme', validTime)
+    ?? eat('(\\d{1,2})(?::(\\d{2}))? ?(?:h|sati|[čc]asova)', 'vreme', validTime)
   if (m) {
-    const hh = Number(m[1])
-    const mm = m[2] ? Number(m[2]) : 0
-    if (hh <= 23 && mm <= 59) {
-      time = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`
-    } else {
-      matched.splice(matched.indexOf('vreme'), 1)
-    }
+    time = `${String(Number(m[1])).padStart(2, '0')}:${String(m[2] ? Number(m[2]) : 0).padStart(2, '0')}`
   }
 
   const rest = text.replace(/\s+/g, ' ').trim()
