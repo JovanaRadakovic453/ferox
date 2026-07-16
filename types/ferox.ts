@@ -9,6 +9,13 @@ export type TaskType = (typeof TASK_TYPES)[number]
 
 export const PRIORITIES = ['high', 'medium', 'low'] as const
 export type Priority = (typeof PRIORITIES)[number]
+
+/** Jezik korisnika. Bira se pri onboardingu; čuva se u profiles.locale. */
+export const LOCALES = ['sr', 'en'] as const
+export type Locale = (typeof LOCALES)[number]
+/** Naziv jezika na tom istom jeziku — razumljiv i kad UI još nije preveden. */
+export const LOCALE_LABELS: Record<Locale, string> = { sr: 'Srpski', en: 'English' }
+export const LOCALE_FLAGS: Record<Locale, string> = { sr: '🇷🇸', en: '🇬🇧' }
 export type Reason = 'work' | 'school' | 'personal' | 'all'
 export type Rhythm = 'morning' | 'midday' | 'evening' | 'mixed'
 
@@ -24,6 +31,12 @@ export interface Task {
   block_index?: number | null
   /** Rok: do kada mora biti gotovo (YYYY-MM-DD). Prati zadatak i kad uđe u dan. */
   deadline_date?: string | null
+  /**
+   * Klijentska oznaka (NIJE kolona u bazi): zadatak potiče iz zakazanog
+   * (scheduled_tasks.id). Pri snimanju se SAMO zakazani koji su stvarno u planu
+   * označe kao prebačeni — inače bi nestali i iz kalendara i iz plana.
+   */
+  scheduledId?: string
 }
 
 export interface Appointment {
@@ -51,6 +64,8 @@ export interface UserProfile {
   last_sleep_time?: string
   last_sleep_hours?: number
   best_streak?: number
+  /** Jezik korisnika; stari profili nemaju kolonu popunjenu → tretiraj kao 'sr'. */
+  locale?: Locale
   theme?: Theme
   micro_feedback?: boolean
   sound_enabled?: boolean

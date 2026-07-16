@@ -92,8 +92,6 @@ export default async function SetupPage({
   let initialTasks: Task[] = []
   let initialAppointments: Appointment[] = []
   let showTransferBanner = false
-  // Zakazani zadaci koji ulaze u ovaj plan — samo se ONI markiraju kao done pri snimanju.
-  let scheduledTaskIds: string[] = []
 
   if (entry) {
     const [{ data: existingTasks }, { data: existingAppts }, { data: pendingScheduled }] = await Promise.all([
@@ -124,9 +122,8 @@ export default async function SetupPage({
     if (pending.length > 0) {
       initialTasks = [
         ...initialTasks,
-        ...pending.map(t => ({ name: t.name, priority: t.priority, type: t.type ?? 'light', note: t.note ?? '', done: false, deadline_date: t.deadline_date ?? null })),
+        ...pending.map(t => ({ name: t.name, priority: t.priority, type: t.type ?? 'light', note: t.note ?? '', done: false, deadline_date: t.deadline_date ?? null, scheduledId: t.id })),
       ]
-      scheduledTaskIds = pending.map(t => t.id)
     }
   } else {
     const [{ data: transferred }, { data: scheduledRows }, { data: apptRows }] = await Promise.all([
@@ -153,9 +150,10 @@ export default async function SetupPage({
     initialAppointments = (apptRows ?? []) as Appointment[]
     const filtered = ((transferred?.tasks ?? []) as Task[]).filter((t: Task) => !t.done)
     const scheduled = (scheduledRows ?? []) as (Task & { id: string })[]
-    const scheduledMapped = scheduled.map(t => ({ name: t.name, priority: t.priority, type: t.type ?? 'light', note: t.note ?? '', done: false, deadline_date: t.deadline_date ?? null }))
+    // scheduledId putuje sa predlogom — pri snimanju se označe SAMO oni koji su
+    // stvarno završili u planu (ranije su se svi gutali, pa su nestajali).
+    const scheduledMapped = scheduled.map(t => ({ name: t.name, priority: t.priority, type: t.type ?? 'light', note: t.note ?? '', done: false, deadline_date: t.deadline_date ?? null, scheduledId: t.id }))
     initialTasks = filtered
-    scheduledTaskIds = scheduled.map(t => t.id)
     showTransferBanner = filtered.length > 0 || scheduledMapped.length > 0
     return (
       <SetupScreen
@@ -165,7 +163,6 @@ export default async function SetupPage({
         scheduledSuggestions={scheduledMapped}
         initialAppointments={initialAppointments}
         showTransferBanner={showTransferBanner}
-        scheduledTaskIds={scheduledTaskIds}
         streak={streak}
       />
     )
@@ -178,7 +175,6 @@ export default async function SetupPage({
       transferredTasks={initialTasks}
       initialAppointments={initialAppointments}
       showTransferBanner={showTransferBanner}
-      scheduledTaskIds={scheduledTaskIds}
       streak={streak}
     />
   )

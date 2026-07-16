@@ -14,7 +14,7 @@ import TaskEditor from '@/components/setup/TaskEditor'
 import AppointmentEditor from '@/components/setup/AppointmentEditor'
 import PreviewRail from '@/components/setup/PreviewRail'
 
-export default function SetupScreen({ profile, targetDate, transferredTasks = [], scheduledSuggestions = [], initialAppointments = [], showTransferBanner = false, scheduledTaskIds = [], streak = 0 }: { profile: UserProfile; targetDate?: string; transferredTasks?: Task[]; scheduledSuggestions?: Task[]; initialAppointments?: Appointment[]; showTransferBanner?: boolean; scheduledTaskIds?: string[]; streak?: number }) {
+export default function SetupScreen({ profile, targetDate, transferredTasks = [], scheduledSuggestions = [], initialAppointments = [], showTransferBanner = false, streak = 0 }: { profile: UserProfile; targetDate?: string; transferredTasks?: Task[]; scheduledSuggestions?: Task[]; initialAppointments?: Appointment[]; showTransferBanner?: boolean; streak?: number }) {
   const [tasks, setTasks] = useState<Task[]>(showTransferBanner ? [] : transferredTasks)
   const [suggestedTransfers, setSuggestedTransfers] = useState<Task[]>(showTransferBanner ? transferredTasks : [])
   const [suggestedScheduled, setSuggestedScheduled] = useState<Task[]>(showTransferBanner ? scheduledSuggestions : [])
@@ -141,8 +141,9 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
     }
   }
   // Predlozi (preneseni + zakazani) su samo lokalni dok se plan ne napravi.
-  // Snimanje/markiranje "done" radi server u createDay (preko scheduledTaskIds),
-  // pa dodavanje/odbacivanje NE dira bazu — inače bi zadaci nestali pre snimanja.
+  // Markiranje "prebačen u plan" radi server u createDay, ali SAMO za zakazane
+  // koji su stvarno u planu (scheduledId se izvodi iz liste pri snimanju) —
+  // ranije su se gutali svi, pa je nedodat zadatak nestajao i iz kalendara.
   function addAllSuggested() {
     setTasks(prev => [...prev, ...suggestedTransfers])
     setSuggestedTransfers([])
@@ -187,6 +188,12 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
     try {
       const dateKey = targetDate ?? todayKey()
 
+      // Izvedeno iz onoga što je STVARNO u planu u trenutku snimanja: zakazani
+      // zadatak koji korisnik nije dodao (ili ga je izbacio) ostaje u kalendaru.
+      const acceptedScheduledIds = [...new Set(
+        tasks.map(t => t.scheduledId).filter((id): id is string => !!id)
+      )]
+
       const res = await fetch('/api/day/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -194,7 +201,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
           dateKey,
           tasks,
           appointments,
-          scheduledTaskIds,
+          scheduledTaskIds: acceptedScheduledIds,
         }),
       })
 
