@@ -100,7 +100,7 @@ export default function BrainDumpPlanModal({
           <div className="flex flex-col gap-2 w-full">
             {summary.today > 0 && (
               <div className="rounded-[var(--r-md)] px-4 py-3 text-sm text-left" style={{ background: 'var(--surface2)' }}>
-                <b>{summary.today}</b> {summary.today === 1 ? 'stavka je' : 'stavki je'} u <b>današnjem planu</b> — vidiš ih u listi ispod. Ne zaboravi da klikneš <b>„Napravi plan"</b> da završiš dan.
+                <b>{summary.today}</b> {summary.today === 1 ? 'stavka je' : 'stavki je'} u <b>današnjem planu</b> — vidiš ih u listi ispod. Ne zaboravi da klikneš <b>„Napravi plan“</b> da završiš dan.
               </div>
             )}
             {summary.future > 0 && (

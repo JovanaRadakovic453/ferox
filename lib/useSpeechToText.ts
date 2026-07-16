@@ -42,10 +42,14 @@ export function useSpeechToText({
   const [listening, setListening] = useState(false)
   const recRef = useRef<SpeechRecognitionLike | null>(null)
   // Uvek najsvežiji callback-ovi (bez re-kreiranja recognizera).
+  // Osvežavamo ih POSLE rendera — dodela tokom rendera je greška (react-hooks/refs).
+  // Čitaju se samo iz rec.onresult/onerror, koji okidaju kasnije, pa je bezbedno.
   const onResultRef = useRef(onResult)
   const onErrorRef = useRef(onError)
-  onResultRef.current = onResult
-  onErrorRef.current = onError
+  useEffect(() => {
+    onResultRef.current = onResult
+    onErrorRef.current = onError
+  })
 
   useEffect(() => {
     setSupported(!!getCtor())
