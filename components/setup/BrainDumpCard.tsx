@@ -108,14 +108,14 @@ export default function BrainDumpCard({
         }
       />
       <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-        Napiši ili <b>izgovori</b> sve što ti je na umu — za danas ili narednih dana. AI će izvući zadatke i rasporediti ih po danima, a ti potvrdiš.
+        Izbaci sve iz glave — ne mora uredno ni redom. Dodaj samo <b>kad</b> („u utorak", „u 11h", „do petka") i <b>šta je hitno</b> — po tome AI raspoređuje po danima, a ti potvrdiš.
       </p>
       {show ? (
         <div className="flex flex-col gap-3">
           <textarea
             value={text}
             onChange={e => setText(e.target.value)}
-            placeholder="Npr: Spremiti ispit do petka, poslati izveštaj šefu, zakazati zubara, kupiti namirnice danas, pozvati baku, isplanirati putovanje za vikend..."
+            placeholder="Npr: Zubar u utorak u 11h, izveštaj šefu do petka — hitno, kupiti namirnice danas, teretana 2x ove nedelje, pozvati baku kad stignem..."
             rows={4}
             autoFocus
             className="field p-3.5 text-sm resize-none"
