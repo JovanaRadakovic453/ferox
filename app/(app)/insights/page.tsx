@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { computeAggregates, type DayAgg } from '@/lib/insights'
+import { buildConsistencyWeeks } from '@/lib/consistency'
 import { computeStreak } from '@/lib/streak'
 import { todayKey } from '@/lib/date'
 import InsightsView from '@/components/insights/InsightsView'
@@ -21,7 +22,7 @@ export default async function InsightsPage() {
       .select('id, date_key, sleep_hours')
       .eq('user_id', user.id)
       .order('date_key', { ascending: false })
-      .limit(30),
+      .limit(91), // ~13 nedelja za kalendar doslednosti; statistika i dalje gleda skorijih 30
     supabase.from('profiles').select('rest_days, best_streak, locale').eq('id', user.id).maybeSingle(),
     supabase
       .from('day_entries')
@@ -45,7 +46,9 @@ export default async function InsightsPage() {
     }
   }
 
-  const days: DayAgg[] = list.map(e => {
+  // Statistika (realizacija, san, po danu) gleda skorijih 30 dana — kao i dosad.
+  const recentList = list.slice(0, 30)
+  const days: DayAgg[] = recentList.map(e => {
     const c = perEntry.get(e.id) ?? { done: 0, total: 0 }
     return {
       date_key: e.date_key,
@@ -55,6 +58,16 @@ export default async function InsightsPage() {
       weekday: new Date(`${e.date_key}T12:00:00Z`).getUTCDay(),
     }
   })
+
+  // Kalendar doslednosti gleda ceo prozor (~13 nedelja).
+  const consistencyWeeks = buildConsistencyWeeks(
+    list.map(e => {
+      const c = perEntry.get(e.id) ?? { done: 0, total: 0 }
+      return { date_key: e.date_key, done: c.done, total: c.total }
+    }),
+    todayKey(),
+    13,
+  )
 
   const t = getDict(toLocale(profile?.locale))
 
@@ -85,7 +98,7 @@ export default async function InsightsPage() {
 
   const finishedSet = new Set((finishedRows ?? []).map(r => r.date_key as string))
   const streak = computeStreak(finishedSet, profile?.rest_days ?? [0, 6], todayKey())
-  const totalDone = [...perEntry.values()].reduce((s, c) => s + c.done, 0)
+  const totalDone = recentList.reduce((s, e) => s + (perEntry.get(e.id)?.done ?? 0), 0)
 
   return (
     <InsightsView
@@ -93,6 +106,7 @@ export default async function InsightsPage() {
       streak={streak}
       bestStreak={Math.max(profile?.best_streak ?? 0, streak)}
       totalDone={totalDone}
+      consistencyWeeks={consistencyWeeks}
     />
   )
 }
