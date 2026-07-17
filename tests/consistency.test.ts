@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildConsistencyWeeks, cellLevel } from '@/lib/consistency'
+import { buildConsistencyWeeks, cellLevel, trimLeadingEmptyWeeks } from '@/lib/consistency'
 
 // Sreda, 2026-07-15 (getUTCDay = 3). Ponedeljak te nedelje = 2026-07-13.
 const TODAY = '2026-07-15'
@@ -26,6 +26,21 @@ describe('buildConsistencyWeeks', () => {
     expect(col[2].rate).toBeNull()   // danas, bez plana
     expect(col[2].future).toBe(false)
     expect(col[3].future).toBe(true) // četvrtak je budućnost
+  })
+})
+
+describe('trimLeadingEmptyWeeks', () => {
+  it('sve prazno → zadrži tačno minKeep nedelja', () => {
+    const w = buildConsistencyWeeks([], TODAY, 13)
+    expect(trimLeadingEmptyWeeks(w, 4)).toHaveLength(4)
+  })
+
+  it('odseca prazne nedelje s početka do prve sa podatkom', () => {
+    // 2026-07-06 je ponedeljak nedelje pre tekuće (druga kolona s kraja).
+    const w = buildConsistencyWeeks([{ date_key: '2026-07-06', done: 1, total: 1 }], TODAY, 13)
+    const trimmed = trimLeadingEmptyWeeks(w, 1)
+    expect(trimmed).toHaveLength(2) // ta nedelja + tekuća
+    expect(trimmed[0].some(c => c.date_key === '2026-07-06')).toBe(true)
   })
 })
 

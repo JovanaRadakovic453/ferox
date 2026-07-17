@@ -1,6 +1,6 @@
 'use client'
 
-import { cellLevel, type ConsistencyCell } from '@/lib/consistency'
+import { cellLevel, trimLeadingEmptyWeeks, type ConsistencyCell } from '@/lib/consistency'
 import { useT, useLocale } from '@/components/i18n/I18nProvider'
 
 // Nivo (0..4) → boja kvadratića. 0 = prazno (nema plana / ništa), 4 = sve završeno.
@@ -12,12 +12,17 @@ const LEVEL_BG = [
   'var(--gold)',
 ] as const
 
-const CELL = 12 // px
+const CELL = 15 // px
 
 export default function ConsistencyHeatmap({ weeks }: { weeks: ConsistencyCell[][] }) {
   const t = useT()
   const locale = useLocale()
   const fmt = new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'sr-Latn-RS', { day: 'numeric', month: 'short' })
+
+  // Mreža prati koliko podataka ima (bez mora praznih nedelja s početka).
+  const shown = trimLeadingEmptyWeeks(weeks)
+  // "Danas" = najnoviji dan koji nije u budućnosti — da se jasno vidi gde je sad.
+  const today = shown.flat().reduce((m, c) => (!c.future && c.date_key > m ? c.date_key : m), '')
 
   // Redovi su Pon..Ned (0..6); rečnik `weekdays` je [Ned..Sub] pa je (r+1)%7.
   const rowLabel = (r: number) => t.insights.weekdays[(r + 1) % 7]
@@ -51,22 +56,29 @@ export default function ConsistencyHeatmap({ weeks }: { weeks: ConsistencyCell[]
             ))}
           </div>
 
-          {weeks.map((col, w) => (
+          {shown.map((col, w) => (
             <div key={w} className="flex flex-col gap-[3px] shrink-0">
-              {col.map((cell, r) => (
-                <div
-                  key={r}
-                  title={tooltip(cell)}
-                  aria-hidden={cell.future}
-                  className="rounded-[3px]"
-                  style={{
-                    width: CELL,
-                    height: CELL,
-                    background: cell.future ? 'transparent' : LEVEL_BG[cellLevel(cell)],
-                    border: cell.future ? 'none' : '1px solid color-mix(in srgb, var(--border) 60%, transparent)',
-                  }}
-                />
-              ))}
+              {col.map((cell, r) => {
+                const isToday = !cell.future && cell.date_key === today
+                return (
+                  <div
+                    key={r}
+                    title={tooltip(cell)}
+                    aria-hidden={cell.future}
+                    className="rounded-[3px]"
+                    style={{
+                      width: CELL,
+                      height: CELL,
+                      background: cell.future ? 'transparent' : LEVEL_BG[cellLevel(cell)],
+                      border: cell.future
+                        ? 'none'
+                        : isToday
+                          ? '1.5px solid var(--gold-deep)'
+                          : '1px solid color-mix(in srgb, var(--border) 60%, transparent)',
+                    }}
+                  />
+                )
+              })}
             </div>
           ))}
         </div>

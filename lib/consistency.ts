@@ -64,3 +64,16 @@ export function cellLevel(cell: ConsistencyCell): 0 | 1 | 2 | 3 | 4 {
   if (cell.rate < 100) return 3
   return 4
 }
+
+/**
+ * Odseca PRAZNE nedelje s početka (kolone bez ijednog dana sa planom) da mreža
+ * prati koliko podataka korisnik zaista ima — inače novi korisnik vidi more
+ * praznih kvadratića. Uvek zadrži bar `minKeep` nedelja (uklj. tekuću).
+ */
+export function trimLeadingEmptyWeeks(weeks: ConsistencyCell[][], minKeep = 4): ConsistencyCell[][] {
+  let start = 0
+  while (start < weeks.length - minKeep && weeks[start].every(c => c.rate === null)) {
+    start++
+  }
+  return weeks.slice(start)
+}
