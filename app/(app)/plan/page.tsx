@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import PlanScreen from '@/components/plan/PlanScreen'
-import { todayKey, tomorrowKey, isValidDayKey, addDays } from '@/lib/date'
+import { todayKey, tomorrowKey, isValidDayKey, addDays, toTimezone } from '@/lib/date'
 import { computeStreak } from '@/lib/streak'
 import type { Task, Appointment, DayEntry, UserProfile } from '@/types/ferox'
 
@@ -18,17 +18,17 @@ export default async function PlanPage({
   if (!user) redirect('/login')
 
   const params = await searchParams
-  const today = todayKey()
-  // Učitavamo plan tačno za traženi datum (default: danas). Time se datum
-  // upisa i datum čitanja uvek poklapaju — nema bacanja na praznu početnu.
+  // Profil prvo — treba nam zona da bi "danas" bilo tačno za korisnika,
+  // a "danas" određuje koji dan učitavamo. Bez toga bi se datum upisa i čitanja
+  // razišli i bacilo bi na praznu početnu.
+  const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+  const tz = toTimezone(profile?.timezone)
+  const today = todayKey(tz)
   const hasDateParam = !!params.date && isValidDayKey(params.date)
   const viewDate = hasDateParam ? params.date! : today
   const isToday = viewDate === today
 
-  const [{ data: profile }, { data: entry }] = await Promise.all([
-    supabase.from('profiles').select('*').eq('id', user.id).single(),
-    supabase.from('day_entries').select('*').eq('user_id', user.id).eq('date_key', viewDate).single(),
-  ])
+  const { data: entry } = await supabase.from('day_entries').select('*').eq('user_id', user.id).eq('date_key', viewDate).single()
 
   if (!entry) redirect('/')
 
@@ -38,7 +38,7 @@ export default async function PlanPage({
   const [{ data: tasks }, { data: appointments }, { data: tomorrowEntry }, { data: finishedRows }, { data: tomorrowScheduled }, { data: overdueDeadlines }] = await Promise.all([
     supabase.from('tasks').select('*').eq('entry_id', entry.id).order('position'),
     supabase.from('appointments').select('*').eq('user_id', user.id).eq('date_key', viewDate).order('time'),
-    supabase.from('day_entries').select('id').eq('user_id', user.id).eq('date_key', tomorrowKey()).maybeSingle(),
+    supabase.from('day_entries').select('id').eq('user_id', user.id).eq('date_key', tomorrowKey(tz)).maybeSingle(),
     supabase.from('day_entries').select('date_key').eq('user_id', user.id).not('finished_at', 'is', null).order('date_key', { ascending: false }).limit(60),
     isToday
       ? supabase.from('scheduled_tasks').select('id, for_date, remind_before_minutes').eq('user_id', user.id).eq('done', false).not('remind_before_minutes', 'is', null).gt('for_date', today).lte('for_date', addDays(today, 99))

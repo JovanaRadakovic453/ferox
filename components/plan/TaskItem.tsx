@@ -6,7 +6,7 @@ import type { Task } from '@/types/ferox'
 import { addDays, todayKey, tomorrowKey } from '@/lib/date'
 import { getDeadlineBadge } from '@/lib/deadline'
 import AnchoredMenu, { MenuHeading, MenuItem } from '@/components/ui/AnchoredMenu'
-import { useT, useLocale } from '@/components/i18n/I18nProvider'
+import { useT, useLocale, useTimezone } from '@/components/i18n/I18nProvider'
 
 export default function TaskItem({ task, onToggle, onDelete, onSnooze }: {
   task: Task
@@ -17,8 +17,9 @@ export default function TaskItem({ task, onToggle, onDelete, onSnooze }: {
 }) {
   const t = useT()
   const locale = useLocale()
+  const tz = useTimezone()
   // Rok se vidi na samoj kartici — dok zadatak nije gotov.
-  const dl = task.deadline_date && !task.done ? getDeadlineBadge(task.deadline_date, todayKey(), locale) : null
+  const dl = task.deadline_date && !task.done ? getDeadlineBadge(task.deadline_date, todayKey(tz), locale) : null
   return (
     <div className="flex items-center w-full py-4">
       <button
@@ -87,18 +88,19 @@ export default function TaskItem({ task, onToggle, onDelete, onSnooze }: {
 
 function SnoozeMenu({ t, onPick }: { t: ReturnType<typeof useT>; onPick: (dateKey: string) => void }) {
   const [pickDate, setPickDate] = useState(false)
+  const tz = useTimezone()
   return (
     <>
       <MenuHeading>{t.snooze.heading}</MenuHeading>
-      <MenuItem label={t.snooze.tomorrow} onClick={() => onPick(tomorrowKey())} />
-      <MenuItem label={t.snooze.dayAfter} onClick={() => onPick(addDays(todayKey(), 2))} />
+      <MenuItem label={t.snooze.tomorrow} onClick={() => onPick(tomorrowKey(tz))} />
+      <MenuItem label={t.snooze.dayAfter} onClick={() => onPick(addDays(todayKey(tz), 2))} />
       {!pickDate ? (
         <MenuItem label={t.snooze.pickDay} onClick={() => setPickDate(true)} />
       ) : (
         <div className="px-1.5 pt-1">
           <input
             type="date"
-            min={tomorrowKey()}
+            min={tomorrowKey(tz)}
             autoFocus
             onChange={(e) => { if (e.target.value) onPick(e.target.value) }}
             className="w-full text-sm rounded-[var(--r-sm)] px-2 py-1.5"

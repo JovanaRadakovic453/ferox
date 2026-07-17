@@ -30,9 +30,9 @@ export function formatDate(dateKey: string, locale: Locale = 'sr'): string {
 }
 
 // Reeksport iz lib/date radi kompatibilnosti postojećih import-a.
-// Sada koristi lokalnu zonu (Europe/Belgrade), ne UTC.
-export function todayKey(): string {
-  return dayTodayKey()
+// `tz` opcion → podrazumevano Beograd (nepromenjeno). Prosleđuje se dalje.
+export function todayKey(tz?: string): string {
+  return dayTodayKey(tz)
 }
 
 export function calcSleepHours(sleepTime: string, wakeTime: string): number {

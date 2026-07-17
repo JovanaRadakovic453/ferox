@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { todayKey, addDays } from '@/lib/date'
+import { todayKey, addDays, toTimezone } from '@/lib/date'
 import CalendarView from '@/components/calendar/CalendarView'
 
 function monthBounds(month: string): { from: string; to: string } {
@@ -20,7 +20,10 @@ export default async function CalendarPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const today = todayKey()
+  // Profil prvo — zbog zone ("danas" i podrazumevani mesec u zoni korisnika).
+  const { data: profile } = await supabase.from('profiles').select('google_refresh_token, timezone').eq('id', user.id).single()
+  const tz = toTimezone(profile?.timezone)
+  const today = todayKey(tz)
   const params = await searchParams
   const month = params.month && /^\d{4}-\d{2}$/.test(params.month)
     ? params.month
@@ -35,7 +38,6 @@ export default async function CalendarPage({
     { data: entries },
     { data: appointments },
     { data: scheduled },
-    { data: profile },
   ] = await Promise.all([
     supabase
       .from('day_entries')
@@ -59,7 +61,6 @@ export default async function CalendarPage({
       .lte('for_date', expandedTo)
       .eq('done', false)
       .order('for_date'),
-    supabase.from('profiles').select('google_refresh_token').eq('id', user.id).single(),
   ])
 
   // Count tasks per date (via day_entry → tasks)

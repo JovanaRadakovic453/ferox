@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { LOCALES } from '@/types/ferox'
 import type { Locale } from '@/types/ferox'
+import { toTimezone } from '@/lib/date'
 
 export const DEFAULT_LOCALE: Locale = 'sr'
 
@@ -16,6 +17,12 @@ export function toLocale(value: unknown): Locale {
 export async function getUserLocale(supabase: SupabaseClient, userId: string): Promise<Locale> {
   const { data } = await supabase.from('profiles').select('locale').eq('id', userId).maybeSingle()
   return toLocale(data?.locale)
+}
+
+/** Zona korisnika iz profila — za serverske rute. Nevažeća → Beograd. */
+export async function getUserTimezone(supabase: SupabaseClient, userId: string): Promise<string> {
+  const { data } = await supabase.from('profiles').select('timezone').eq('id', userId).maybeSingle()
+  return toTimezone(data?.timezone)
 }
 
 /** Predlog jezika iz pregledača — za ekrane PRE prijave (nemamo profil). Balkan → sr, ostalo → en. */

@@ -5,7 +5,7 @@ import Checkbox from '@/components/ui/Checkbox'
 import type { Appointment } from '@/types/ferox'
 import { addDays, todayKey } from '@/lib/date'
 import AnchoredMenu, { MenuHeading } from '@/components/ui/AnchoredMenu'
-import { useT } from '@/components/i18n/I18nProvider'
+import { useT, useTimezone } from '@/components/i18n/I18nProvider'
 
 export default function AppointmentItem({ appt, onToggle, onDelete, onMove, currentDate }: {
   appt: Appointment
@@ -17,6 +17,7 @@ export default function AppointmentItem({ appt, onToggle, onDelete, onMove, curr
   currentDate?: string
 }) {
   const t = useT()
+  const tz = useTimezone()
   return (
     <div className="flex items-center w-full border-b" style={{ borderColor: 'var(--hairline)' }}>
       <button
@@ -48,7 +49,7 @@ export default function AppointmentItem({ appt, onToggle, onDelete, onMove, curr
             <MoveApptMenu
               t={t}
               appt={appt}
-              currentDate={currentDate ?? todayKey()}
+              currentDate={currentDate ?? todayKey(tz)}
               onMove={(d, time) => { close(); onMove(d, time) }}
             />
           )}
@@ -73,7 +74,8 @@ function MoveApptMenu({ t, appt, currentDate, onMove }: {
   currentDate: string
   onMove: (dateKey: string, time: string) => void
 }) {
-  const today = todayKey()
+  const tz = useTimezone()
+  const today = todayKey(tz)
   const quick = [
     { label: t.move.today, key: today },
     { label: t.move.tomorrow, key: addDays(today, 1) },

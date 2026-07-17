@@ -1,19 +1,22 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import HistoryView, { type HistoryDay } from '@/components/history/HistoryView'
-import { todayKey } from '@/lib/date'
+import { todayKey, toTimezone } from '@/lib/date'
 
 export default async function HistoryPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: entries } = await supabase
-    .from('day_entries')
-    .select('id, date_key, finished_at')
-    .eq('user_id', user.id)
-    .order('date_key', { ascending: false })
-    .limit(30)
+  const [{ data: entries }, { data: profile }] = await Promise.all([
+    supabase
+      .from('day_entries')
+      .select('id, date_key, finished_at')
+      .eq('user_id', user.id)
+      .order('date_key', { ascending: false })
+      .limit(30),
+    supabase.from('profiles').select('timezone').eq('id', user.id).single(),
+  ])
 
   const list = entries ?? []
   const ids = list.map(e => e.id)
@@ -35,5 +38,5 @@ export default async function HistoryPage() {
     return { ...e, done: c.done, total: c.total, pct: c.total ? Math.round((c.done / c.total) * 100) : 0 }
   })
 
-  return <HistoryView days={days} todayKey={todayKey()} />
+  return <HistoryView days={days} todayKey={todayKey(toTimezone(profile?.timezone))} />
 }

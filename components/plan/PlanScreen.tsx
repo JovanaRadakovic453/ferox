@@ -23,7 +23,7 @@ import RoutineModal from '@/components/plan/RoutineModal'
 import ReminderBanner from '@/components/plan/ReminderBanner'
 import { AnimatePresence } from 'framer-motion'
 import type { Routine, Locale } from '@/types/ferox'
-import { useT, useLocale } from '@/components/i18n/I18nProvider'
+import { useT, useLocale, useTimezone } from '@/components/i18n/I18nProvider'
 import type { Dict } from '@/lib/i18n/dict'
 
 // Spaja "prenesene" zadatke bez dupliranja (po imenu, case-insensitive).
@@ -35,8 +35,8 @@ function mergeTransferred(existing: TransferItem[], incoming: TransferItem[]): T
 }
 
 // "danas"/"today" · "sutra"/"tomorrow" · "prekosutra" · pun datum — za poruke potvrde.
-function dayLabel(key: string, t: Dict, locale: Locale): string {
-  const today = todayKey()
+function dayLabel(key: string, t: Dict, locale: Locale, tz: string): string {
+  const today = todayKey(tz)
   if (key === today) return t.common.today
   if (key === addDays(today, 1)) return t.common.tomorrow
   if (key === addDays(today, 2)) return t.common.dayAfter
@@ -75,6 +75,7 @@ export default function PlanScreen({
   const toast = useToast()
   const t = useT()
   const locale = useLocale()
+  const tz = useTimezone()
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
   const [appts, setAppts] = useState<Appointment[]>(appointments)
   const [savingEod, setSavingEod] = useState(false)
@@ -104,7 +105,7 @@ export default function PlanScreen({
 
   // Rokovi koji gore danas: iz plana (živo, nestaje čim štiklirasš) + iz kalendara.
   const dueNow: { name: string; deadline_date: string; scheduled: boolean }[] = [
-    ...dueTasks(tasks, todayKey()).map(t => ({ name: t.name, deadline_date: t.deadline_date as string, scheduled: false })),
+    ...dueTasks(tasks, todayKey(tz)).map(t => ({ name: t.name, deadline_date: t.deadline_date as string, scheduled: false })),
     ...overdueScheduled.map(t => ({ name: t.name, deadline_date: t.deadline_date, scheduled: true })),
   ]
 
@@ -281,7 +282,7 @@ export default function PlanScreen({
     const task = tasks.find(t => t.id === taskId)
     if (!task) return
 
-    const label = dayLabel(targetDateKey, t, locale)
+    const label = dayLabel(targetDateKey, t, locale, tz)
 
     // Optimistički: skloni zadatak sa današnjeg spiska odmah.
     setTasks(prev => prev.filter(t => t.id !== taskId))
@@ -355,7 +356,7 @@ export default function PlanScreen({
       return
     }
 
-    toast({ message: t.plan.apptMoved(dayLabel(targetDateKey, t, locale), newTime), variant: 'success' })
+    toast({ message: t.plan.apptMoved(dayLabel(targetDateKey, t, locale, tz), newTime), variant: 'success' })
   }
 
   async function toggleAppointment(apptId: string) {
@@ -564,7 +565,7 @@ export default function PlanScreen({
           <span className="text-xl shrink-0">⚠️</span>
           <div className="min-w-0 flex flex-col gap-1">
             {dueNow.map((due, i) => {
-              const b = getDeadlineBadge(due.deadline_date, todayKey(), locale)
+              const b = getDeadlineBadge(due.deadline_date, todayKey(tz), locale)
               return (
                 <p key={i} className="text-sm" style={{ color: 'var(--text-muted)' }}>
                   <span style={{ color: b.color, fontWeight: 600 }}>{b.text}</span>
@@ -627,7 +628,7 @@ export default function PlanScreen({
                   </div>
                 </>
               )}
-              {sortTasksForDay(tasks, todayKey())
+              {sortTasksForDay(tasks, todayKey(tz))
                 .map((task, idx, arr) => (
                   <div key={task.id ?? task.name}>
                     <TaskItem

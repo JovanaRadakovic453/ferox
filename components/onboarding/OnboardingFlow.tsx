@@ -10,6 +10,7 @@ import { LOCALES, LOCALE_LABELS, LOCALE_FLAGS } from '@/types/ferox'
 import type { Locale } from '@/types/ferox'
 import { DEFAULT_LOCALE } from '@/lib/locale'
 import { getDict } from '@/lib/i18n/dict'
+import { detectTimezone } from '@/lib/date'
 
 type Reason = 'work' | 'school'
 
@@ -110,6 +111,7 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
       name: form.name,
       reason: form.reason,
       locale: form.locale,
+      timezone: detectTimezone(), // prepoznato iz pregledača — bez pitanja korisniku
       completed_once: true,
     }).eq('id', user.id)
   }

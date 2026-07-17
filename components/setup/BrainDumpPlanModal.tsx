@@ -8,7 +8,7 @@ import { getDeadlineBadge } from '@/lib/deadline'
 import { formatDate } from '@/lib/utils'
 import { AI } from '@/lib/config'
 import type { TaskType, Priority } from '@/types/ferox'
-import { useT, useLocale } from '@/components/i18n/I18nProvider'
+import { useT, useLocale, useTimezone } from '@/components/i18n/I18nProvider'
 import type { Dict } from '@/lib/i18n/dict'
 
 // Stavke koje AI predloži (već normalizovane u BrainDumpCard).
@@ -58,8 +58,9 @@ export default function BrainDumpPlanModal({
   const [summary, setSummary] = useState<{ today: number; future: number }>({ today: 0, future: 0 })
   const t = useT()
   const locale = useLocale()
+  const tz = useTimezone()
 
-  const baseKey = todayKey()
+  const baseKey = todayKey(tz)
 
   async function handleConfirm() {
     setError(null)

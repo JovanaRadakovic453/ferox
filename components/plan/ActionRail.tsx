@@ -1,7 +1,7 @@
 import Button from '@/components/ui/Button'
 import LogoutButton from '@/components/LogoutButton'
 import { tomorrowKey } from '@/lib/date'
-import { useT } from '@/components/i18n/I18nProvider'
+import { useT, useTimezone } from '@/components/i18n/I18nProvider'
 
 // Akcije za plan (sticky rail na desktopu). Navigacija je name-bazirana
 // (window.location.href) da server pročita svež finished_at posle završetka dana.
@@ -19,6 +19,7 @@ export default function ActionRail({
   onResetDay: () => void
 }) {
   const t = useT()
+  const tz = useTimezone()
   return (
     <aside className="flex flex-col gap-3 rail-sticky">
       {!dayFinished && (
@@ -27,7 +28,7 @@ export default function ActionRail({
         </Button>
       )}
       {dayFinished && isToday && tomorrowPlanned && (
-        <Button size="lg" className="w-full" onClick={() => { window.location.href = '/plan?date=' + tomorrowKey() }}>
+        <Button size="lg" className="w-full" onClick={() => { window.location.href = '/plan?date=' + tomorrowKey(tz) }}>
           {t.actions.seeTomorrow}
         </Button>
       )}
@@ -41,7 +42,7 @@ export default function ActionRail({
           </Button>
         )}
         {isToday && tomorrowPlanned && (
-          <Button size="sm" variant="secondary" className="w-full" onClick={() => { window.location.href = '/plan?date=' + tomorrowKey() }}>
+          <Button size="sm" variant="secondary" className="w-full" onClick={() => { window.location.href = '/plan?date=' + tomorrowKey(tz) }}>
             {t.actions.peekTomorrow}
           </Button>
         )}

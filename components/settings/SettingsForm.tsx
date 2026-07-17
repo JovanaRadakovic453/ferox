@@ -12,6 +12,7 @@ import LogoutButton from '@/components/LogoutButton'
 import { LOCALES, LOCALE_LABELS, LOCALE_FLAGS } from '@/types/ferox'
 import type { UserProfile, Locale } from '@/types/ferox'
 import { toLocale } from '@/lib/locale'
+import { toTimezone } from '@/lib/date'
 import { useT } from '@/components/i18n/I18nProvider'
 import { getDict } from '@/lib/i18n/dict'
 
@@ -230,6 +231,14 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
           <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>
             {t.settings.languageHint}
           </p>
+        </div>
+        <div>
+          <label className="text-xs mb-1.5 block font-medium" style={{ color: 'var(--text-muted)' }}>{t.settings.timezone}</label>
+          <div className="flex items-center gap-2 px-3.5 py-3 rounded-[var(--r-md)]" style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}>
+            <span aria-hidden>🌍</span>
+            <span className="text-sm font-medium tabular-nums" style={{ color: 'var(--text)' }}>{toTimezone(profile.timezone)}</span>
+          </div>
+          <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>{t.settings.timezoneHint}</p>
         </div>
         <div>
           <label className="text-xs mb-1.5 block font-medium" style={{ color: 'var(--text-muted)' }}>{t.settings.theme}</label>

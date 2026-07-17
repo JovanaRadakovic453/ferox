@@ -53,8 +53,7 @@ export function weekdayName(key: string): string {
 }
 
 /** Mapa dan-u-nedelji → dayOffset + opterećenje, da AI tačno mapira "u četvrtak". */
-export function formatScheduledLoad(counts: Record<string, number>, horizonDays: number): string {
-  const today = todayKey()
+export function formatScheduledLoad(counts: Record<string, number>, horizonDays: number, today: string): string {
   const lines: string[] = []
   for (let i = 0; i < horizonDays; i++) {
     const key = addDays(today, i)
@@ -71,9 +70,10 @@ export function formatScheduledLoad(counts: Record<string, number>, horizonDays:
 export async function buildBrainDumpContext(
   supabase: SupabaseClient,
   userId: string,
+  tz?: string,
 ): Promise<{ contextText: string }> {
   const horizon = AI.brainDumpHorizonDays
-  const today = todayKey()
+  const today = todayKey(tz)
   const horizonEnd = addDays(today, horizon - 1)
 
   const [tasksRes, schedRes, loadRes] = await Promise.all([
@@ -97,7 +97,7 @@ export async function buildBrainDumpContext(
 
   const contextText = [
     summarizePriorityHistory(history),
-    formatScheduledLoad(counts, horizon),
+    formatScheduledLoad(counts, horizon, today),
   ].filter(Boolean).join('\n\n')
 
   return { contextText }

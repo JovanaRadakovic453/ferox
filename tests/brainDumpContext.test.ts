@@ -37,7 +37,7 @@ describe('weekdayName', () => {
 
 describe('formatScheduledLoad', () => {
   it('nabraja svaki dan horizonta sa danom u nedelji i brojem zakazanih', () => {
-    const out = formatScheduledLoad({}, 7)
+    const out = formatScheduledLoad({}, 7, '2026-07-18')
     expect(out).toContain('dayOffset 0 = ')
     expect(out).toContain('(danas,')
     expect(out).toContain('dayOffset 6 = ')

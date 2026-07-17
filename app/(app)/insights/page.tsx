@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { computeAggregates, type DayAgg } from '@/lib/insights'
 import { buildConsistencyWeeks } from '@/lib/consistency'
 import { computeStreak } from '@/lib/streak'
-import { todayKey } from '@/lib/date'
+import { todayKey, toTimezone } from '@/lib/date'
 import InsightsView from '@/components/insights/InsightsView'
 import { getDict } from '@/lib/i18n/dict'
 import { toLocale } from '@/lib/locale'
@@ -23,7 +23,7 @@ export default async function InsightsPage() {
       .eq('user_id', user.id)
       .order('date_key', { ascending: false })
       .limit(91), // ~13 nedelja za kalendar doslednosti; statistika i dalje gleda skorijih 30
-    supabase.from('profiles').select('rest_days, best_streak, locale').eq('id', user.id).maybeSingle(),
+    supabase.from('profiles').select('rest_days, best_streak, locale, timezone').eq('id', user.id).maybeSingle(),
     supabase
       .from('day_entries')
       .select('date_key')
@@ -65,7 +65,7 @@ export default async function InsightsPage() {
       const c = perEntry.get(e.id) ?? { done: 0, total: 0 }
       return { date_key: e.date_key, done: c.done, total: c.total }
     }),
-    todayKey(),
+    todayKey(toTimezone(profile?.timezone)),
     13,
   )
 
@@ -97,7 +97,7 @@ export default async function InsightsPage() {
   })
 
   const finishedSet = new Set((finishedRows ?? []).map(r => r.date_key as string))
-  const streak = computeStreak(finishedSet, profile?.rest_days ?? [0, 6], todayKey())
+  const streak = computeStreak(finishedSet, profile?.rest_days ?? [0, 6], todayKey(toTimezone(profile?.timezone)))
   const totalDone = recentList.reduce((s, e) => s + (perEntry.get(e.id)?.done ?? 0), 0)
 
   return (

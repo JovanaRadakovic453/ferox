@@ -66,6 +66,8 @@ export interface UserProfile {
   best_streak?: number
   /** Jezik korisnika; stari profili nemaju kolonu popunjenu → tretiraj kao 'sr'. */
   locale?: Locale
+  /** IANA vremenska zona (npr. 'Europe/Belgrade'); po njoj se računa "danas". */
+  timezone?: string
   theme?: Theme
   micro_feedback?: boolean
   sound_enabled?: boolean

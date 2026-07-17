@@ -5,7 +5,7 @@ import { apiOk, ERR } from '@/lib/api'
 import { brainDumpSchema, aiBrainDumpResult, TASK_TYPES, PRIORITIES } from '@/lib/validation'
 import { TASK_TYPE_GUIDE, planMethodGuide, outputLangRule, langLocative } from '@/lib/ai/prompts'
 import { buildBrainDumpContext } from '@/lib/ai/userContext'
-import { getUserLocale } from '@/lib/locale'
+import { getUserLocale, getUserTimezone } from '@/lib/locale'
 import type { Locale } from '@/types/ferox'
 import { AI, RATE_LIMITS } from '@/lib/config'
 import { checkRateLimit } from '@/lib/rateLimit'
@@ -71,9 +71,10 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) return ERR.invalidInput(parsed.error.issues)
   const { text } = parsed.data
 
-  // Kontekst: koliko je već zakazano po danima (da AI ne pretrpa dan).
-  const { contextText } = await buildBrainDumpContext(supabase, user.id)
   const locale = await getUserLocale(supabase, user.id)
+  const tz = await getUserTimezone(supabase, user.id)
+  // Kontekst: koliko je već zakazano po danima (da AI ne pretrpa dan) — u zoni korisnika.
+  const { contextText } = await buildBrainDumpContext(supabase, user.id, tz)
 
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 

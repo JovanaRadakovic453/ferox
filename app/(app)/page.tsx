@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import SetupScreen from '@/components/setup/SetupScreen'
 import EodLanding from '@/components/plan/EodLanding'
-import { todayKey, tomorrowKey } from '@/lib/date'
+import { todayKey, tomorrowKey, toTimezone } from '@/lib/date'
 import { computeStreak } from '@/lib/streak'
 import type { UserProfile, Task, Appointment } from '@/types/ferox'
 
@@ -24,11 +24,12 @@ export default async function SetupPage({
 
   if (!profile?.completed_once) redirect('/onboarding')
 
+  const tz = toTimezone(profile.timezone)
   const params = await searchParams
   const isSutra = params.sutra === '1'
   const isEdit = params.edit === '1'
 
-  const targetDate = isSutra ? tomorrowKey() : todayKey()
+  const targetDate = isSutra ? tomorrowKey(tz) : todayKey(tz)
 
   const { data: entry } = await supabase
     .from('day_entries')
@@ -51,7 +52,7 @@ export default async function SetupPage({
   if (!isSutra && !isEdit && entry && entry.finished_at) {
     const [{ data: dayTasks }, { data: transferred }, { data: finishedRows }] = await Promise.all([
       supabase.from('tasks').select('done').eq('entry_id', entry.id).eq('user_id', user.id),
-      supabase.from('transferred_tasks').select('tasks').eq('user_id', user.id).eq('for_date', tomorrowKey()).maybeSingle(),
+      supabase.from('transferred_tasks').select('tasks').eq('user_id', user.id).eq('for_date', tomorrowKey(tz)).maybeSingle(),
       supabase.from('day_entries').select('date_key').eq('user_id', user.id).not('finished_at', 'is', null).order('date_key', { ascending: false }).limit(60),
     ])
     const total = dayTasks?.length ?? 0
@@ -59,7 +60,7 @@ export default async function SetupPage({
     const transferredCount = ((transferred?.tasks ?? []) as Task[]).filter((t: Task) => !t.done).length
 
     const finishedSet = new Set((finishedRows ?? []).map(r => r.date_key as string))
-    const streak = computeStreak(finishedSet, profile.rest_days ?? [0, 6], todayKey())
+    const streak = computeStreak(finishedSet, profile.rest_days ?? [0, 6], todayKey(tz))
     if (streak > (profile.best_streak ?? 0)) {
       await supabase.from('profiles').update({ best_streak: streak }).eq('id', user.id)
     }
@@ -85,7 +86,7 @@ export default async function SetupPage({
     .order('date_key', { ascending: false })
     .limit(60)
   const finishedSetForStreak = new Set((finishedForStreak ?? []).map(r => r.date_key as string))
-  const streak = computeStreak(finishedSetForStreak, profile.rest_days ?? [0, 6], todayKey())
+  const streak = computeStreak(finishedSetForStreak, profile.rest_days ?? [0, 6], todayKey(tz))
 
   // Ako vec postoji plan za targetDate, ucitaj te zadatke i izabranu energiju
   // Inace ucitaj prenesene zadatke iz prethodnog dana

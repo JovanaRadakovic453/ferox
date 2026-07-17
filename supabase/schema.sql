@@ -28,7 +28,8 @@ create table if not exists public.profiles (
   last_sleep_time text,
   last_sleep_hours float,
   best_streak int not null default 0,
-  locale text not null default 'sr' check (locale in ('sr', 'en')), -- jezik AI odgovora (i UI-ja, u sledećoj fazi)
+  locale text not null default 'sr' check (locale in ('sr', 'en')), -- jezik UI-ja i AI odgovora
+  timezone text not null default 'Europe/Belgrade', -- IANA zona; po njoj se računa "danas" (prepoznato iz pregledača)
   theme text not null default 'system' check (theme in ('light', 'dark', 'system')),
   micro_feedback boolean not null default true,
   sound_enabled boolean not null default false,

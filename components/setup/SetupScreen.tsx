@@ -13,11 +13,12 @@ import BrainDumpPlanModal, { type BrainDumpPlan, type PlanTask, type PlanAppt, t
 import TaskEditor from '@/components/setup/TaskEditor'
 import AppointmentEditor from '@/components/setup/AppointmentEditor'
 import PreviewRail from '@/components/setup/PreviewRail'
-import { useT, useLocale } from '@/components/i18n/I18nProvider'
+import { useT, useLocale, useTimezone } from '@/components/i18n/I18nProvider'
 
 export default function SetupScreen({ profile, targetDate, transferredTasks = [], autoTasks = [], initialAppointments = [], showTransferBanner = false, streak = 0 }: { profile: UserProfile; targetDate?: string; transferredTasks?: Task[]; autoTasks?: Task[]; initialAppointments?: Appointment[]; showTransferBanner?: boolean; streak?: number }) {
   const t = useT()
   const locale = useLocale()
+  const tz = useTimezone()
   // autoTasks = zakazani zadaci za ovaj dan. Idu PRAVO u plan (korisnik je u
   // kalendaru već odlučio da ih radi tog dana) — ne kao predlog koji treba dodati.
   // Ako ih ne želi, izbaci ih iz liste i tada ostaju u kalendaru.
@@ -35,7 +36,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
   // Nedovršen plan (draft): pamte se SAMO korisnikovi zadaci i termini (njegov rad),
   // da prežive odlazak na drugu stranicu / osvežavanje. Predlozi (preneseni i zakazani)
   // uvek dolaze sveži sa servera — ne pamte se, da stari draft ne bi sakrio nove predloge.
-  const draftKey = `ferox-draft-${targetDate ?? todayKey()}`
+  const draftKey = `ferox-draft-${targetDate ?? todayKey(tz)}`
   const [hydrated, setHydrated] = useState(false)
 
   useEffect(() => {
@@ -72,7 +73,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
 
   useEffect(() => {
     if (!profile.google_refresh_token) return
-    const date = targetDate ?? todayKey()
+    const date = targetDate ?? todayKey(tz)
     fetch(`/api/integrations/google/events?date=${date}`)
       .then(r => r.ok ? r.json() : null)
       .then(json => {
@@ -81,7 +82,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
       })
       .catch(() => {})
   }, [targetDate, profile.google_refresh_token])
-  const isSutraMode = targetDate !== undefined && targetDate !== todayKey()
+  const isSutraMode = targetDate !== undefined && targetDate !== todayKey(tz)
 
   function addTask(draft: { name: string; note: string; priority: Priority; type: TaskType }) {
     setTasks(prev => [...prev, { ...draft, done: false }])
@@ -94,7 +95,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
   // se tog jutra u Kalendaru. Vraća rezultat — modal prikazuje poruku/grešku i
   // NE zatvara se dok čuvanje ne uspe (da ništa ne "nestane").
   async function confirmPlan(planTasks: PlanTask[], planAppts: PlanAppt[]): Promise<ConfirmResult> {
-    const today = todayKey()
+    const today = todayKey(tz)
     const base = targetDate ?? today
 
     const todayTasks: Task[] = []
@@ -163,7 +164,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
   async function resetDay() {
     if (!window.confirm(t.setup.confirmReset)) return
     setResetting(true)
-    const dateKey = targetDate ?? todayKey()
+    const dateKey = targetDate ?? todayKey(tz)
     await fetch('/api/day/reset', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -179,7 +180,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
     setSubmitError(null)
 
     try {
-      const dateKey = targetDate ?? todayKey()
+      const dateKey = targetDate ?? todayKey(tz)
 
       // Izvedeno iz onoga što je STVARNO u planu u trenutku snimanja: zakazani
       // zadatak koji korisnik nije dodao (ili ga je izbacio) ostaje u kalendaru.
@@ -207,7 +208,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
       }
 
       try { localStorage.removeItem(draftKey) } catch { /* ignore */ }
-      const isToday = dateKey === todayKey()
+      const isToday = dateKey === todayKey(tz)
       window.location.href = isToday ? '/plan' : `/plan?date=${dateKey}`
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : t.setup.networkError)
@@ -287,7 +288,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
       )}
 
       <main className="flex flex-col gap-9 pb-6 lg:pb-12">
-        {targetDate && targetDate !== todayKey() && (
+        {targetDate && targetDate !== todayKey(tz) && (
           <Link href="/plan" className="flex items-center gap-1.5 text-sm font-medium -mb-3" style={{ color: 'var(--text-muted)' }}>
             {t.setup.backToday}
           </Link>
@@ -308,13 +309,13 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
                 className="text-xs font-medium px-3 py-1.5 rounded-full whitespace-nowrap"
                 style={{ background: 'var(--surface)', border: '1px solid var(--hairline)', color: 'var(--text-muted)', boxShadow: 'var(--sh-xs)' }}
               >
-                {formatDate(targetDate ?? todayKey(), locale)}
+                {formatDate(targetDate ?? todayKey(tz), locale)}
               </span>
             </div>
           </div>
           <div>
             <div className="hidden lg:flex lg:items-center lg:gap-3 mb-3">
-              <span className="section-label">{formatDate(targetDate ?? todayKey(), locale)}</span>
+              <span className="section-label">{formatDate(targetDate ?? todayKey(tz), locale)}</span>
               {streak > 0 ? (
                 <span
                   className="text-xs font-semibold px-2.5 py-1 rounded-full"
