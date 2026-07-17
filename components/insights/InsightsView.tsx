@@ -3,7 +3,6 @@
 import type { Aggregates, Bar } from '@/lib/insights'
 import type { ConsistencyCell } from '@/lib/consistency'
 import ProgressRing from '@/components/ui/ProgressRing'
-import ConsistencyHeatmap from '@/components/insights/ConsistencyHeatmap'
 import { useT } from '@/components/i18n/I18nProvider'
 
 function BarRow({ label, rate }: { label: string; rate: number }) {
@@ -41,7 +40,7 @@ function StatTile({ icon, value, label }: { icon: string; value: string; label: 
 }
 
 export default function InsightsView({
-  agg, streak = 0, bestStreak = 0, totalDone = 0, consistencyWeeks = [],
+  agg, streak = 0, bestStreak = 0, totalDone = 0,
 }: {
   agg: Aggregates
   streak?: number
@@ -68,15 +67,8 @@ export default function InsightsView({
         <StatTile icon="📅" value={String(agg.dayCount)} label={t.insights.daysTracked} />
       </div>
 
-      {/* Kalendar doslednosti (heatmap) */}
-      {consistencyWeeks.length > 0 && (
-        <div style={{ ['--i' as string]: 2 }}>
-          <ConsistencyHeatmap weeks={consistencyWeeks} />
-        </div>
-      )}
-
       {/* Ukupna realizacija — brojčanik */}
-      <div className="card p-6 lg:p-7 flex items-center gap-6 lg:gap-8" style={{ ['--i' as string]: 3 }}>
+      <div className="card p-6 lg:p-7 flex items-center gap-6 lg:gap-8" style={{ ['--i' as string]: 2 }}>
         <ProgressRing pct={agg.overallCompletion} size={132} sublabel={t.common.completed} />
         <div className="min-w-0">
           <p className="section-label mb-2">{t.insights.overallTitle}</p>
@@ -89,14 +81,14 @@ export default function InsightsView({
       </div>
 
       {agg.sleepInsight && (
-        <div className="card p-5 lg:p-6" style={{ ['--i' as string]: 4 }}>
+        <div className="card p-5 lg:p-6" style={{ ['--i' as string]: 3 }}>
           <p className="section-label mb-2">{t.insights.sleepTitle}</p>
           <p className="text-sm lg:text-base" style={{ color: 'var(--text)' }}>😴 {agg.sleepInsight}</p>
         </div>
       )}
 
       {/* Grafici */}
-      <div className="grid gap-5 lg:grid-cols-2 lg:gap-6 items-start" style={{ ['--i' as string]: 5 }}>
+      <div className="grid gap-5 lg:grid-cols-2 lg:gap-6 items-start" style={{ ['--i' as string]: 4 }}>
         <ChartCard title={t.insights.weekdayChart} bars={agg.byWeekday} />
       </div>
     </main>
