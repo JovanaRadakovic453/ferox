@@ -5,6 +5,7 @@ import Checkbox from '@/components/ui/Checkbox'
 import type { Appointment } from '@/types/ferox'
 import { addDays, todayKey } from '@/lib/date'
 import AnchoredMenu, { MenuHeading } from '@/components/ui/AnchoredMenu'
+import { useT } from '@/components/i18n/I18nProvider'
 
 export default function AppointmentItem({ appt, onToggle, onDelete, onMove, currentDate }: {
   appt: Appointment
@@ -15,13 +16,14 @@ export default function AppointmentItem({ appt, onToggle, onDelete, onMove, curr
   /** Dan koji je trenutno prikazan — početni izbor u meniju. */
   currentDate?: string
 }) {
+  const t = useT()
   return (
     <div className="flex items-center w-full border-b" style={{ borderColor: 'var(--hairline)' }}>
       <button
         onClick={onToggle}
         role="checkbox"
         aria-checked={appt.done}
-        aria-label={`${appt.time} ${appt.name} (termin)${appt.done ? ', završeno' : ''}`}
+        aria-label={`${appt.time} ${appt.name} (${t.move.apptSuffix})${appt.done ? t.move.doneAria : ''}`}
         className="flex items-center gap-3 flex-1 min-w-0 text-left py-4 transition-transform active:scale-[0.995]"
       >
         <span aria-hidden><Checkbox checked={appt.done} /></span>
@@ -37,16 +39,17 @@ export default function AppointmentItem({ appt, onToggle, onDelete, onMove, curr
         >
           {appt.name}
         </p>
-        <span className="text-xs px-1.5 py-0.5 rounded shrink-0" style={{ background: 'var(--gold-tint)', color: 'var(--gold)' }}>termin</span>
+        <span className="text-xs px-1.5 py-0.5 rounded shrink-0" style={{ background: 'var(--gold-tint)', color: 'var(--gold)' }}>{t.move.apptSuffix}</span>
       </button>
 
       {onMove && !appt.done && (
-        <AnchoredMenu ariaLabel={`Pomeri termin ${appt.name}`} title="Pomeri termin" minWidth={220}>
+        <AnchoredMenu ariaLabel={t.move.aria(appt.name)} title={t.move.title} minWidth={220}>
           {(close) => (
             <MoveApptMenu
+              t={t}
               appt={appt}
               currentDate={currentDate ?? todayKey()}
-              onMove={(d, t) => { close(); onMove(d, t) }}
+              onMove={(d, time) => { close(); onMove(d, time) }}
             />
           )}
         </AnchoredMenu>
@@ -55,7 +58,7 @@ export default function AppointmentItem({ appt, onToggle, onDelete, onMove, curr
       {onDelete && (
         <button
           onClick={onDelete}
-          aria-label={`Obriši termin ${appt.name}`}
+          aria-label={t.move.deleteAria(appt.name)}
           className="shrink-0 ml-3 text-sm opacity-25 hover:opacity-70 transition-opacity"
           style={{ color: 'var(--text-muted)' }}
         >✕</button>
@@ -64,16 +67,17 @@ export default function AppointmentItem({ appt, onToggle, onDelete, onMove, curr
   )
 }
 
-function MoveApptMenu({ appt, currentDate, onMove }: {
+function MoveApptMenu({ t, appt, currentDate, onMove }: {
+  t: ReturnType<typeof useT>
   appt: Appointment
   currentDate: string
   onMove: (dateKey: string, time: string) => void
 }) {
   const today = todayKey()
   const quick = [
-    { label: 'Danas', key: today },
-    { label: 'Sutra', key: addDays(today, 1) },
-    { label: 'Prekosutra', key: addDays(today, 2) },
+    { label: t.move.today, key: today },
+    { label: t.move.tomorrow, key: addDays(today, 1) },
+    { label: t.move.dayAfter, key: addDays(today, 2) },
   ]
 
   const [day, setDay] = useState(currentDate)
@@ -83,7 +87,7 @@ function MoveApptMenu({ appt, currentDate, onMove }: {
 
   return (
     <div className="flex flex-col gap-2 p-0.5">
-      <MenuHeading>Pomeri termin</MenuHeading>
+      <MenuHeading>{t.move.title}</MenuHeading>
 
       <div className="flex gap-1 px-1.5">
         {quick.map(q => {
@@ -112,7 +116,7 @@ function MoveApptMenu({ appt, currentDate, onMove }: {
             className="text-xs w-full text-left px-1 py-1 transition-opacity hover:opacity-100 opacity-70"
             style={{ color: 'var(--text-muted)' }}
           >
-            Izaberi drugi dan…
+            {t.move.pickOtherDay}
           </button>
         ) : (
           <input
@@ -127,7 +131,7 @@ function MoveApptMenu({ appt, currentDate, onMove }: {
       </div>
 
       <label className="flex items-center gap-2 px-1.5">
-        <span className="text-xs shrink-0" style={{ color: 'var(--text-muted)' }}>Vreme</span>
+        <span className="text-xs shrink-0" style={{ color: 'var(--text-muted)' }}>{t.move.time}</span>
         <input
           type="time"
           value={time}
@@ -144,7 +148,7 @@ function MoveApptMenu({ appt, currentDate, onMove }: {
           className="w-full text-sm font-medium px-2 py-2 rounded-[var(--r-sm)] transition-opacity disabled:opacity-40"
           style={{ background: 'var(--gold-tint)', color: 'var(--gold)' }}
         >
-          Sačuvaj
+          {t.move.save}
         </button>
       </div>
     </div>

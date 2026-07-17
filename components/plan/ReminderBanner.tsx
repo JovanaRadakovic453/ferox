@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { motion } from 'framer-motion'
+import { useT } from '@/components/i18n/I18nProvider'
 
 export default function ReminderBanner({
   name,
@@ -14,6 +15,7 @@ export default function ReminderBanner({
   minutesBefore: number
   onClose: () => void
 }) {
+  const t = useT()
   useEffect(() => {
     const t = setTimeout(onClose, 30_000)
     return () => clearTimeout(t)
@@ -36,7 +38,7 @@ export default function ReminderBanner({
       <span className="text-2xl shrink-0 mt-0.5">📅</span>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
-          Podsetnik — termin za {minutesBefore} {minutesBefore === 1 ? 'minut' : minutesBefore < 5 ? 'minuta' : 'minuta'}
+          {t.reminder.banner(minutesBefore)}
         </p>
         <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
           {name} · {time}h
@@ -48,7 +50,7 @@ export default function ReminderBanner({
         className="text-xs font-semibold shrink-0 mt-0.5 transition-opacity hover:opacity-70"
         style={{ color: 'var(--gold)' }}
       >
-        Zatvori
+        {t.common.close}
       </button>
     </motion.div>
   )

@@ -1,25 +1,29 @@
+'use client'
+
 import Button from '@/components/ui/Button'
+import { useT } from '@/components/i18n/I18nProvider'
 
 export default function PreviewRail({
-  isSutraMode, taskCount, taskWord, apptCount, totalItems, totalWord, canSubmit, loading, onSubmit,
+  isSutraMode, taskCount, apptCount, totalItems, canSubmit, loading, onSubmit,
 }: {
   isSutraMode: boolean
   taskCount: number
-  taskWord: string
   apptCount: number
   totalItems: number
-  totalWord: string
   canSubmit: boolean
   loading: boolean
   onSubmit: () => void
 }) {
+  const t = useT()
+  const totalWord = t.setup.itemsWord(totalItems)
+
   return (
     <aside className="hidden lg:flex lg:flex-col gap-4 rail-sticky">
       <div className="card p-6 flex flex-col gap-5">
         <div>
-          <p className="section-label mb-2">Pregled</p>
+          <p className="section-label mb-2">{t.setup.preview}</p>
           <h2 className="title-serif text-2xl" style={{ color: 'var(--text)' }}>
-            {isSutraMode ? 'Sutrašnji plan' : 'Današnji plan'}
+            {isSutraMode ? t.setup.tomorrowPlan : t.setup.todayPlan}
           </h2>
         </div>
 
@@ -30,19 +34,19 @@ export default function PreviewRail({
 
         {taskCount > 0 && apptCount > 0 && (
           <p className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>
-            {taskCount} {taskWord} · {apptCount} {apptCount === 1 ? 'termin' : 'termina'}
+            {taskCount} {t.setup.taskWord(taskCount)} · {apptCount} {t.setup.apptWord(apptCount)}
           </p>
         )}
       </div>
 
       <div className="flex flex-col gap-2">
         <Button size="lg" className="w-full" disabled={!canSubmit} loading={loading} onClick={onSubmit}>
-          {totalItems > 0 ? `Napravi plan · ${totalItems} ${totalWord} →` : 'Napravi moj plan →'}
+          {totalItems > 0 ? t.setup.makePlanN(totalItems, totalWord) : t.setup.makePlan}
         </Button>
 
         {!canSubmit && !loading && (
           <p className="text-center text-xs" style={{ color: 'var(--text-muted)' }}>
-            📋 Dodaj bar jedan zadatak ili termin
+            {t.setup.needOne}
           </p>
         )}
       </div>

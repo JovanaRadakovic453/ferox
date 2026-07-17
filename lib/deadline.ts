@@ -1,14 +1,25 @@
 // Oznaka roka (rok = do kada mora biti gotovo). Jedno mesto istine da plan i
 // kalendar izgledaju isto. Pure — testabilno bez baze/DOM-a.
 
+import type { Locale } from '@/types/ferox'
+
 export type DeadlineBadge = { text: string; color: string; urgent: boolean }
 
-function formatDeadlineDate(dateKey: string, today: string): string {
+const INTL_LOCALE: Record<Locale, string> = { sr: 'sr-Latn-RS', en: 'en-US' }
+
+// Tekstovi oznake roka po jeziku. `locale` je opcioni (default 'sr') → svi
+// postojeći pozivi (i server, cron) rade netaknuto.
+const BADGE_TEXT = {
+  sr: { past: (d: string) => `Rok prošao: ${d}`, today: 'Rok: danas', tomorrow: 'Rok: sutra', on: (d: string) => `Rok: ${d}` },
+  en: { past: (d: string) => `Overdue: ${d}`, today: 'Due: today', tomorrow: 'Due: tomorrow', on: (d: string) => `Due: ${d}` },
+} satisfies Record<Locale, unknown>
+
+function formatDeadlineDate(dateKey: string, today: string, locale: Locale = 'sr'): string {
   const [todayYear] = today.split('-').map(Number)
   const [dlYear] = dateKey.split('-').map(Number)
   const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long' }
   if (dlYear !== todayYear) opts.year = 'numeric'
-  return new Intl.DateTimeFormat('sr-Latn-RS', opts).format(new Date(`${dateKey}T12:00:00Z`))
+  return new Intl.DateTimeFormat(INTL_LOCALE[locale] ?? INTL_LOCALE.sr, opts).format(new Date(`${dateKey}T12:00:00Z`))
 }
 
 export type DeadlineTask = { name: string; done: boolean; priority: string; deadline_date?: string | null }
@@ -73,15 +84,17 @@ export function daysUntil(dateKey: string, today: string): number {
  * Tekst + boja za rok. `urgent` = rok je danas ili prošao (koristi se i za
  * redosled — takav zadatak izbija na vrh).
  */
-export function getDeadlineBadge(deadlineDate: string, today: string): DeadlineBadge {
+export function getDeadlineBadge(deadlineDate: string, today: string, locale: Locale = 'sr'): DeadlineBadge {
+  const T = BADGE_TEXT[locale] ?? BADGE_TEXT.sr
+  const fmt = () => formatDeadlineDate(deadlineDate, today, locale)
   if (deadlineDate < today) {
-    return { text: `Rok prošao: ${formatDeadlineDate(deadlineDate, today)}`, color: 'var(--danger)', urgent: true }
+    return { text: T.past(fmt()), color: 'var(--danger)', urgent: true }
   }
   if (deadlineDate === today) {
-    return { text: 'Rok: danas', color: 'var(--warn)', urgent: true }
+    return { text: T.today, color: 'var(--warn)', urgent: true }
   }
   const days = daysUntil(deadlineDate, today)
-  if (days === 1) return { text: 'Rok: sutra', color: '#f97316', urgent: false }
-  if (days <= 7) return { text: `Rok: ${formatDeadlineDate(deadlineDate, today)}`, color: '#f97316', urgent: false }
-  return { text: `Rok: ${formatDeadlineDate(deadlineDate, today)}`, color: 'var(--text-muted)', urgent: false }
+  if (days === 1) return { text: T.tomorrow, color: '#f97316', urgent: false }
+  if (days <= 7) return { text: T.on(fmt()), color: '#f97316', urgent: false }
+  return { text: T.on(fmt()), color: 'var(--text-muted)', urgent: false }
 }

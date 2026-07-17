@@ -2,6 +2,8 @@
 
 import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
+import { useT, useLocale } from '@/components/i18n/I18nProvider'
+import type { Dict } from '@/lib/i18n/dict'
 
 export type HistoryDay = {
   id: string
@@ -12,9 +14,9 @@ export type HistoryDay = {
   pct: number
 }
 
-function weekLabel(dateKey: string, todayKey: string): string {
+function weekLabel(dateKey: string, todayKey: string, t: Dict): string {
   const d = new Date(`${dateKey}T12:00:00Z`)
-  const t = new Date(`${todayKey}T12:00:00Z`)
+  const tk = new Date(`${todayKey}T12:00:00Z`)
   const mondayOf = (dt: Date) => {
     const day = dt.getDay() === 0 ? 6 : dt.getDay() - 1
     const m = new Date(dt)
@@ -22,16 +24,16 @@ function weekLabel(dateKey: string, todayKey: string): string {
     m.setHours(0, 0, 0, 0)
     return m
   }
-  const weeksDiff = Math.round((mondayOf(t).getTime() - mondayOf(d).getTime()) / (7 * 24 * 60 * 60 * 1000))
-  if (weeksDiff === 0) return 'Ova nedelja'
-  if (weeksDiff === 1) return 'Prošla nedelja'
-  return `${weeksDiff} nedelje pre`
+  const weeksDiff = Math.round((mondayOf(tk).getTime() - mondayOf(d).getTime()) / (7 * 24 * 60 * 60 * 1000))
+  if (weeksDiff === 0) return t.history.weekThis
+  if (weeksDiff === 1) return t.history.weekLast
+  return t.history.weeksAgo(weeksDiff)
 }
 
-function groupByWeek(days: HistoryDay[], todayKey: string): { label: string; days: HistoryDay[] }[] {
+function groupByWeek(days: HistoryDay[], todayKey: string, t: Dict): { label: string; days: HistoryDay[] }[] {
   const groups: { label: string; days: HistoryDay[] }[] = []
   for (const d of days) {
-    const label = weekLabel(d.date_key, todayKey)
+    const label = weekLabel(d.date_key, todayKey, t)
     const last = groups[groups.length - 1]
     if (last && last.label === label) {
       last.days.push(d)
@@ -43,15 +45,17 @@ function groupByWeek(days: HistoryDay[], todayKey: string): { label: string; day
 }
 
 export default function HistoryView({ days, todayKey }: { days: HistoryDay[]; todayKey: string }) {
-  const groups = groupByWeek(days, todayKey)
+  const t = useT()
+  const locale = useLocale()
+  const groups = groupByWeek(days, todayKey, t)
 
   return (
     <main className="flex flex-col gap-6 lg:gap-7 pb-2">
       <header className="pt-2">
-        <div className="hidden lg:block mb-2"><span className="section-label">Tvoj ritam</span></div>
-        <h1 className="display foil text-3xl lg:text-5xl">Istorija</h1>
+        <div className="hidden lg:block mb-2"><span className="section-label">{t.history.rhythm}</span></div>
+        <h1 className="display foil text-3xl lg:text-5xl">{t.history.title}</h1>
         <p className="text-sm mt-1.5" style={{ color: 'var(--text-muted)' }}>
-          Tvojih poslednjih {days.length} {days.length === 1 ? 'dan' : 'dana'}.
+          {t.history.subtitle(days.length)}
         </p>
       </header>
 
@@ -59,9 +63,9 @@ export default function HistoryView({ days, todayKey }: { days: HistoryDay[]; to
         <div className="card p-8 text-center flex flex-col items-center gap-3">
           <span className="text-4xl">🗓️</span>
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            Još nema istorije. Kad završiš prvi dan, pojaviće se ovde.
+            {t.history.empty}
           </p>
-          <Link href="/" className="text-sm font-semibold" style={{ color: 'var(--gold)' }}>Napravi plan →</Link>
+          <Link href="/" className="text-sm font-semibold" style={{ color: 'var(--gold)' }}>{t.history.makePlan}</Link>
         </div>
       ) : (
         <div className="flex flex-col gap-6">
@@ -76,9 +80,9 @@ export default function HistoryView({ days, todayKey }: { days: HistoryDay[]; to
                     className="card card-interactive p-4 flex items-center gap-4"
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{formatDate(d.date_key)}</p>
+                      <p className="text-sm font-medium truncate">{formatDate(d.date_key, locale)}</p>
                       <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                        {(d.finished_at || (d.total > 0 && d.done === d.total)) && <span className="text-xs" style={{ color: 'var(--gold)' }}>✓ završen</span>}
+                        {(d.finished_at || (d.total > 0 && d.done === d.total)) && <span className="text-xs" style={{ color: 'var(--gold)' }}>{t.history.finished}</span>}
                       </div>
                       <div className="mt-2 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--surface2)' }}>
                         <div className="h-full rounded-full" style={{ width: `${d.pct}%`, backgroundImage: 'linear-gradient(90deg, var(--gold-light), var(--gold))' }} />

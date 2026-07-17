@@ -4,15 +4,11 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import CalendarGrid from './CalendarGrid'
 import DayPanel from './DayPanel'
+import { useT } from '@/components/i18n/I18nProvider'
 
 type Entry = { id: string; date_key: string; finished_at: string | null }
 type Appointment = { id: string; date_key: string; name: string; time: string; done: boolean }
 type ScheduledTask = { id: string; for_date: string; name: string; priority: string; note: string; remind_before_minutes: number | null; deadline_date: string | null }
-
-const MONTH_NAMES = [
-  'Januar', 'Februar', 'Mart', 'April', 'Maj', 'Jun',
-  'Jul', 'Avgust', 'Septembar', 'Oktobar', 'Novembar', 'Decembar',
-]
 
 function shiftMonth(month: string, delta: number): string {
   const [y, m] = month.split('-').map(Number)
@@ -38,13 +34,14 @@ export default function CalendarView({
   googleConnected?: boolean
 }) {
   const router = useRouter()
+  const t = useT()
   const [view, setView] = useState<'month' | 'week'>('month')
   const [selectedDate, setSelectedDate] = useState<string>(today)
   // Optimistic list — updated immediately on add/remove without waiting for re-fetch
   const [panelScheduled, setPanelScheduled] = useState<ScheduledTask[]>(scheduled)
 
   const [year, monthNum] = initialMonth.split('-').map(Number)
-  const monthName = MONTH_NAMES[monthNum - 1]
+  const monthName = t.cal.months[monthNum - 1]
 
   function navMonth(delta: number) {
     router.push(`/calendar?month=${shiftMonth(initialMonth, delta)}`)
@@ -71,7 +68,7 @@ export default function CalendarView({
             onClick={() => navMonth(-1)}
             className="w-8 h-8 flex items-center justify-center rounded-[var(--r-md)] transition-colors text-lg"
             style={{ color: 'var(--text-muted)', background: 'var(--surface2)' }}
-            aria-label="Prethodni mesec"
+            aria-label={t.cal.prevMonth}
           >‹</button>
           <h1 className="display foil text-2xl lg:text-3xl whitespace-nowrap">
             {monthName} {year}
@@ -80,7 +77,7 @@ export default function CalendarView({
             onClick={() => navMonth(1)}
             className="w-8 h-8 flex items-center justify-center rounded-[var(--r-md)] transition-colors text-lg"
             style={{ color: 'var(--text-muted)', background: 'var(--surface2)' }}
-            aria-label="Sledeći mesec"
+            aria-label={t.cal.nextMonth}
           >›</button>
         </div>
 
@@ -96,7 +93,7 @@ export default function CalendarView({
                 color: view === v ? '#fff' : 'var(--text-muted)',
               }}
             >
-              {v === 'month' ? 'Mesec' : 'Nedelja'}
+              {v === 'month' ? t.cal.viewMonth : t.cal.viewWeek}
             </button>
           ))}
         </div>

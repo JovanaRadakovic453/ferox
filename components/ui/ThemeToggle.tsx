@@ -2,13 +2,14 @@
 
 import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
-
-const OPTIONS: { value: string; label: string }[] = [
-  { value: 'light', label: '☀️ Svetla' },
-  { value: 'dark', label: '🌙 Tamna' },
-]
+import { useT } from '@/components/i18n/I18nProvider'
 
 export default function ThemeToggle({ onChange, compact }: { onChange?: (v: string) => void; compact?: boolean }) {
+  const t = useT()
+  const OPTIONS: { value: string; label: string }[] = [
+    { value: 'light', label: t.common.themeLight },
+    { value: 'dark', label: t.common.themeDark },
+  ]
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])

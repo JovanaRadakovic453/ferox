@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import LogoutButton from '@/components/LogoutButton'
 import ProgressRing from '@/components/ui/ProgressRing'
+import { useT } from '@/components/i18n/I18nProvider'
 
 export default function EodLanding({
   doneCount,
@@ -19,6 +20,7 @@ export default function EodLanding({
   eodRecap?: string | null
   streak?: number
 }) {
+  const t = useT()
   const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0
   const [recap, setRecap] = useState<string | null>(eodRecap)
   const [recapFailed, setRecapFailed] = useState(false)
@@ -47,13 +49,13 @@ export default function EodLanding({
     <main className="flex flex-col gap-6 lg:gap-7 pb-2 lg:max-w-2xl lg:mx-auto lg:w-full">
       <header className="pt-6 lg:pt-10 text-center flex flex-col items-center gap-3">
         <span className="text-5xl lg:text-6xl">🌙</span>
-        <h1 className="display text-4xl lg:text-5xl" style={{ color: 'var(--gold)' }}>Dan završen</h1>
+        <h1 className="display text-4xl lg:text-5xl" style={{ color: 'var(--gold)' }}>{t.eod.title}</h1>
         <p className="text-sm lg:text-base" style={{ color: 'var(--text-muted)' }}>
-          Odmori se — sutra je novi dan.
+          {t.eod.restUp}
         </p>
         {streak > 0 && (
           <span className="text-xs font-semibold px-3 py-1 rounded-full" style={{ background: 'var(--gold-tint)', color: 'var(--gold)' }}>
-            🔥 {streak} {streak === 1 ? 'dan' : 'dana'} zaredom
+            {t.plan.streak(streak)}
           </span>
         )}
       </header>
@@ -67,14 +69,14 @@ export default function EodLanding({
       {!recap && recapFailed && (
         <div className="card p-5 flex items-center justify-between gap-3">
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            Rezime dana trenutno nije dostupan.
+            {t.eod.recapUnavailable}
           </p>
           <button
             onClick={() => setAttempt(a => a + 1)}
             className="text-sm font-semibold shrink-0 transition-opacity hover:opacity-75"
             style={{ color: 'var(--gold)' }}
           >
-            Pokušaj ponovo
+            {t.eod.tryAgain}
           </button>
         </div>
       )}
@@ -83,16 +85,14 @@ export default function EodLanding({
         <ProgressRing pct={pct} size={124} />
         <div className="min-w-0 flex flex-col gap-2">
           <p className="text-[0.65rem] font-semibold tracking-[0.14em] uppercase" style={{ color: 'var(--text-muted)' }}>
-            Završeno
+            {t.eod.doneLabel}
           </p>
           <p className="display text-5xl lg:text-6xl leading-none" style={{ color: 'var(--text)' }}>
             {doneCount}
             <span className="text-2xl lg:text-3xl" style={{ color: 'var(--text-muted)' }}>/{total}</span>
           </p>
           <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
-            {transferredCount > 0
-              ? `📦 ${transferredCount} ${transferredCount === 1 ? 'zadatak prenet' : 'zadataka preneto'} za sutra`
-              : '✨ Sve čisto za danas'}
+            {transferredCount > 0 ? t.eod.transferred(transferredCount) : t.eod.allClear}
           </p>
         </div>
       </div>

@@ -7,9 +7,11 @@ import { createClient } from '@/lib/supabase/client'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import AuthCard from '@/components/auth/AuthCard'
+import { useT } from '@/components/i18n/I18nProvider'
 
 export default function RegisterPage() {
   const router = useRouter()
+  const t = useT()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -21,7 +23,7 @@ export default function RegisterPage() {
     setError('')
 
     if (password.length < 6) {
-      setError('Lozinka mora imati najmanje 6 karaktera')
+      setError(t.auth.passwordTooShort)
       return
     }
 
@@ -39,7 +41,7 @@ export default function RegisterPage() {
     if (signUpError) {
       setError(
         signUpError.message === 'User already registered'
-          ? 'Ovaj email je već registrovan'
+          ? t.auth.emailTaken
           : signUpError.message
       )
       setLoading(false)
@@ -66,16 +68,16 @@ export default function RegisterPage() {
 
   return (
     <AuthCard
-      subtitle="Napravi nalog i počni da planiraš pametnije"
+      subtitle={t.auth.registerSubtitle}
       footer={
         <>
-          Već imaš nalog?{' '}
+          {t.auth.haveAccount}{' '}
           <Link
             href="/login"
             className="font-medium underline underline-offset-2"
             style={{ color: 'var(--gold)' }}
           >
-            Prijavi se
+            {t.auth.login}
           </Link>
         </>
       }
@@ -83,7 +85,7 @@ export default function RegisterPage() {
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <Input
           id="name"
-          label="Tvoje ime"
+          label={t.auth.yourName}
           type="text"
           placeholder="Jovana"
           value={name}
@@ -93,7 +95,7 @@ export default function RegisterPage() {
         />
         <Input
           id="email"
-          label="Email"
+          label={t.auth.email}
           type="email"
           placeholder="tvoj@email.com"
           value={email}
@@ -103,9 +105,9 @@ export default function RegisterPage() {
         />
         <Input
           id="password"
-          label="Lozinka"
+          label={t.auth.password}
           type="password"
-          placeholder="Min. 6 karaktera"
+          placeholder={t.auth.passwordMin}
           value={password}
           onChange={e => setPassword(e.target.value)}
           required
@@ -119,7 +121,7 @@ export default function RegisterPage() {
           loading={loading}
           className="w-full mt-2"
         >
-          Napravi nalog
+          {t.auth.createAccount}
         </Button>
       </form>
     </AuthCard>

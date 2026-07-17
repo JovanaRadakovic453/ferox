@@ -8,7 +8,7 @@ import { useId } from 'react'
  * prefers-reduced-motion kroz globalni media block.
  */
 export default function ProgressRing({
-  pct, size = 148, stroke = 10, sublabel = 'završeno',
+  pct, size = 148, stroke = 10, sublabel = '',
 }: {
   pct: number
   size?: number

@@ -13,8 +13,11 @@ import BrainDumpPlanModal, { type BrainDumpPlan, type PlanTask, type PlanAppt, t
 import TaskEditor from '@/components/setup/TaskEditor'
 import AppointmentEditor from '@/components/setup/AppointmentEditor'
 import PreviewRail from '@/components/setup/PreviewRail'
+import { useT, useLocale } from '@/components/i18n/I18nProvider'
 
 export default function SetupScreen({ profile, targetDate, transferredTasks = [], autoTasks = [], initialAppointments = [], showTransferBanner = false, streak = 0 }: { profile: UserProfile; targetDate?: string; transferredTasks?: Task[]; autoTasks?: Task[]; initialAppointments?: Appointment[]; showTransferBanner?: boolean; streak?: number }) {
+  const t = useT()
+  const locale = useLocale()
   // autoTasks = zakazani zadaci za ovaj dan. Idu PRAVO u plan (korisnik je u
   // kalendaru već odlučio da ih radi tog dana) — ne kao predlog koji treba dodati.
   // Ako ih ne želi, izbaci ih iz liste i tada ostaju u kalendaru.
@@ -130,7 +133,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
         })
         if (!res.ok) {
           const body = await res.json().catch(() => ({}))
-          return { ok: false, todayCount: 0, futureCount: 0, error: body.error?.message ?? 'Stavke za naredne dane nisu sačuvane — pokušaj ponovo' }
+          return { ok: false, todayCount: 0, futureCount: 0, error: body.error?.message ?? t.setup.futureFail }
         }
       }
       // Tek kad je budući deo sigurno sačuvan, ubaci današnje u editor.
@@ -138,7 +141,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
       if (todayAppts.length) setAppointments(prev => [...prev, ...todayAppts])
       return { ok: true, todayCount, futureCount }
     } catch {
-      return { ok: false, todayCount: 0, futureCount: 0, error: 'Greška mreže pri čuvanju — pokušaj ponovo' }
+      return { ok: false, todayCount: 0, futureCount: 0, error: t.setup.saveNetErr }
     }
   }
   // Predlozi (preneseni + zakazani) su samo lokalni dok se plan ne napravi.
@@ -158,7 +161,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
   }
 
   async function resetDay() {
-    if (!window.confirm('Obrisati sve podatke za danas i početi ispočetka?')) return
+    if (!window.confirm(t.setup.confirmReset)) return
     setResetting(true)
     const dateKey = targetDate ?? todayKey()
     await fetch('/api/day/reset', {
@@ -198,7 +201,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
       const data = await res.json()
 
       if (!res.ok) {
-        setSubmitError(data.error?.message ?? 'Greška pri čuvanju plana')
+        setSubmitError(data.error?.message ?? t.setup.saveError)
         setLoading(false)
         return
       }
@@ -207,7 +210,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
       const isToday = dateKey === todayKey()
       window.location.href = isToday ? '/plan' : `/plan?date=${dateKey}`
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : 'Greška mreže')
+      setSubmitError(err instanceof Error ? err.message : t.setup.networkError)
       setLoading(false)
     }
   }
@@ -220,13 +223,10 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
   const visibleGoogleEvents = googleEvents.filter(e => !googleAdded.has(e.id) && !apptNames.has(e.title))
 
   const hour = new Date().getHours()
-  const dayPart = hour < 5 ? 'Dobro veče' : hour < 12 ? 'Dobro jutro' : hour < 18 ? 'Dobar dan' : 'Dobro veče'
-  const heroTitle = isSutraMode ? 'Planiramo sutra' : dayPart
-  const heroSub = isSutraMode
-    ? 'Pripremi sutrašnji dan na miru — zakaži ga dok je sveže. 🌙'
-    : 'Dodaj zadatke i zakazane termine za danas.'
-  const taskWord = tasks.length === 1 ? 'zadatak' : 'zadataka'
-  const totalWord = totalItems === 1 ? 'zadatak' : totalItems < 5 ? 'zadatka' : 'zadataka'
+  const dayPart = hour < 5 ? t.setup.goodEvening : hour < 12 ? t.setup.goodMorning : hour < 18 ? t.setup.goodDay : t.setup.goodEvening
+  const heroTitle = isSutraMode ? t.setup.planningTomorrow : dayPart
+  const heroSub = isSutraMode ? t.setup.tomorrowSub : t.setup.todaySub
+  const totalWord = t.setup.itemsWord(totalItems)
 
   return (
     <>
@@ -276,7 +276,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
                 className="text-[0.68rem] font-semibold uppercase"
                 style={{ color: 'var(--text-muted)', letterSpacing: '0.18em' }}
               >
-                Izrada plana
+                {t.setup.building}
               </p>
               <div style={{ width: 110, height: 1, borderRadius: 1, overflow: 'hidden' }}>
                 <div className="luxury-loader-line" style={{ width: '100%', height: '100%' }} />
@@ -289,7 +289,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
       <main className="flex flex-col gap-9 pb-6 lg:pb-12">
         {targetDate && targetDate !== todayKey() && (
           <Link href="/plan" className="flex items-center gap-1.5 text-sm font-medium -mb-3" style={{ color: 'var(--text-muted)' }}>
-            ← Danas
+            {t.setup.backToday}
           </Link>
         )}
         <header className="flex flex-col gap-6 pt-3 animate-fade-slide">
@@ -308,26 +308,26 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
                 className="text-xs font-medium px-3 py-1.5 rounded-full whitespace-nowrap"
                 style={{ background: 'var(--surface)', border: '1px solid var(--hairline)', color: 'var(--text-muted)', boxShadow: 'var(--sh-xs)' }}
               >
-                {formatDate(targetDate ?? todayKey())}
+                {formatDate(targetDate ?? todayKey(), locale)}
               </span>
             </div>
           </div>
           <div>
             <div className="hidden lg:flex lg:items-center lg:gap-3 mb-3">
-              <span className="section-label">{formatDate(targetDate ?? todayKey())}</span>
+              <span className="section-label">{formatDate(targetDate ?? todayKey(), locale)}</span>
               {streak > 0 ? (
                 <span
                   className="text-xs font-semibold px-2.5 py-1 rounded-full"
                   style={{ background: 'var(--gold-tint)', color: 'var(--gold)', border: '1px solid var(--gold)' }}
                 >
-                  🔥 {streak} {streak === 1 ? 'dan' : 'dana'}
+                  {t.setup.streakDays(streak)}
                 </span>
               ) : (
                 <span
                   className="text-xs font-medium px-2.5 py-1 rounded-full"
                   style={{ background: 'var(--surface2)', color: 'var(--text-muted)', border: '1px solid var(--hairline)' }}
                 >
-                  🔥 Započni svoj niz
+                  {t.setup.startStreak}
                 </span>
               )}
             </div>
@@ -349,14 +349,14 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
             {googleNeedsReconnect && (
               <div className="card p-4 flex items-center justify-between gap-3" style={{ border: '1px solid var(--hairline)' }}>
                 <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                  Google Kalendar veza je istekla — poveži ponovo u Podešavanjima.
+                  {t.setup.googleExpired}
                 </span>
                 <Link
                   href="/settings"
                   className="shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full"
                   style={{ background: 'var(--gold-tint)', color: 'var(--gold)', border: '1px solid var(--gold)' }}
                 >
-                  Podešavanja →
+                  {t.setup.settingsLink}
                 </Link>
               </div>
             )}
@@ -370,7 +370,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
                     <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
                     <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
                   </svg>
-                  <span className="section-label">Iz Google Kalendara</span>
+                  <span className="section-label">{t.setup.fromGoogle}</span>
                 </div>
                 {visibleGoogleEvents.map(event => (
                   <div key={event.id} className="flex items-center justify-between gap-3">
@@ -390,7 +390,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
                       className="shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full transition-opacity hover:opacity-80"
                       style={{ background: 'var(--gold-tint)', color: 'var(--gold)', border: '1px solid var(--gold)' }}
                     >
-                      + Dodaj
+                      {t.setup.add}
                     </button>
                   </div>
                 ))}
@@ -403,7 +403,6 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
                 onAddAll={addAllSuggested}
                 onAddOne={addSuggested}
                 onDismiss={dismissSuggested}
-                title="Iz prethodnog dana"
                 icon="📋"
               />
             )}
@@ -430,11 +429,11 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
             {/* Mobilni „Napravi plan" — u toku sadržaja, iznad donje navigacije (desktop koristi PreviewRail) */}
             <div className="lg:hidden flex flex-col gap-2">
               <Button size="lg" className="w-full" disabled={!canSubmit} loading={loading} onClick={handleSubmit}>
-                {totalItems > 0 ? `Napravi plan · ${totalItems} ${totalWord} →` : 'Napravi moj plan →'}
+                {totalItems > 0 ? t.setup.makePlanN(totalItems, totalWord) : t.setup.makePlan}
               </Button>
               {!canSubmit && !loading && (
                 <p className="text-center text-xs" style={{ color: 'var(--text-muted)' }}>
-                  📋 Dodaj bar jedan zadatak ili termin
+                  {t.setup.needOne}
                 </p>
               )}
             </div>
@@ -446,17 +445,15 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
               className="w-full text-xs text-center py-2.5 opacity-45 hover:opacity-80 transition-opacity"
               style={{ color: 'var(--text-muted)' }}
             >
-              {resetting ? 'Brišem...' : '🗑️ Obriši sve za danas i počni iznova'}
+              {resetting ? t.setup.resetting : t.setup.resetAll}
             </button>
           </div>
 
           <PreviewRail
             isSutraMode={isSutraMode}
             taskCount={tasks.length}
-            taskWord={taskWord}
             apptCount={appointments.length}
             totalItems={totalItems}
-            totalWord={totalWord}
             canSubmit={canSubmit}
             loading={loading}
             onSubmit={handleSubmit}

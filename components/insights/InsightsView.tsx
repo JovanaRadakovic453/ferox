@@ -2,6 +2,7 @@
 
 import type { Aggregates, Bar } from '@/lib/insights'
 import ProgressRing from '@/components/ui/ProgressRing'
+import { useT } from '@/components/i18n/I18nProvider'
 
 function BarRow({ label, rate }: { label: string; rate: number }) {
   return (
@@ -45,49 +46,48 @@ export default function InsightsView({
   bestStreak?: number
   totalDone?: number
 }) {
+  const t = useT()
   return (
     <main className="flex flex-col gap-5 lg:gap-6 pb-2 stagger">
       <header className="pt-2" style={{ ['--i' as string]: 0 }}>
-        <div className="hidden lg:block mb-2"><span className="section-label">Tvoji obrasci</span></div>
-        <h1 className="display foil text-3xl lg:text-5xl">Uvidi</h1>
+        <div className="hidden lg:block mb-2"><span className="section-label">{t.insights.patterns}</span></div>
+        <h1 className="display foil text-3xl lg:text-5xl">{t.insights.title}</h1>
         <p className="text-sm mt-1.5" style={{ color: 'var(--text-muted)' }}>
-          Na osnovu poslednjih {agg.dayCount} {agg.dayCount === 1 ? 'dana' : 'dana'}.
+          {t.insights.subtitle(agg.dayCount)}
         </p>
       </header>
 
       {/* Ključne brojke */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3" style={{ ['--i' as string]: 1 }}>
-        <StatTile icon="🔥" value={String(streak)} label={streak === 1 ? 'dan zaredom' : 'dana zaredom'} />
-        <StatTile icon="🏆" value={String(bestStreak)} label="najduži niz" />
-        <StatTile icon="✅" value={String(totalDone)} label="urađenih zadataka" />
-        <StatTile icon="📅" value={String(agg.dayCount)} label="praćenih dana" />
+        <StatTile icon="🔥" value={String(streak)} label={streak === 1 ? t.insights.streakDay : t.insights.streakDays} />
+        <StatTile icon="🏆" value={String(bestStreak)} label={t.insights.bestStreak} />
+        <StatTile icon="✅" value={String(totalDone)} label={t.insights.tasksDone} />
+        <StatTile icon="📅" value={String(agg.dayCount)} label={t.insights.daysTracked} />
       </div>
 
       {/* Ukupna realizacija — brojčanik */}
       <div className="card p-6 lg:p-7 flex items-center gap-6 lg:gap-8" style={{ ['--i' as string]: 2 }}>
-        <ProgressRing pct={agg.overallCompletion} size={132} />
+        <ProgressRing pct={agg.overallCompletion} size={132} sublabel={t.common.completed} />
         <div className="min-w-0">
-          <p className="section-label mb-2">Ukupna realizacija</p>
+          <p className="section-label mb-2">{t.insights.overallTitle}</p>
           <p className="text-sm lg:text-base leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-            Od svega što je bilo u planovima, završeno je{' '}
+            {t.insights.overallDone}{' '}
             <span className="font-semibold" style={{ color: 'var(--gold)' }}>{agg.overallCompletion}%</span>.
-            {agg.overallCompletion >= 70
-              ? ' Držiš odličan ritam. ✨'
-              : ' Svaki završen zadatak se računa — ritam se gradi polako.'}
+            {agg.overallCompletion >= 70 ? t.insights.goodRhythm : t.insights.slowRhythm}
           </p>
         </div>
       </div>
 
       {agg.sleepInsight && (
         <div className="card p-5 lg:p-6" style={{ ['--i' as string]: 3 }}>
-          <p className="section-label mb-2">San i učinak</p>
+          <p className="section-label mb-2">{t.insights.sleepTitle}</p>
           <p className="text-sm lg:text-base" style={{ color: 'var(--text)' }}>😴 {agg.sleepInsight}</p>
         </div>
       )}
 
       {/* Grafici */}
       <div className="grid gap-5 lg:grid-cols-2 lg:gap-6 items-start" style={{ ['--i' as string]: 4 }}>
-        <ChartCard title="Realizacija po danu u nedelji" bars={agg.byWeekday} />
+        <ChartCard title={t.insights.weekdayChart} bars={agg.byWeekday} />
       </div>
     </main>
   )

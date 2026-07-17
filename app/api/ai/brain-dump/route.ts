@@ -3,8 +3,10 @@ import { createClient } from '@/lib/supabase/server'
 import type { NextRequest } from 'next/server'
 import { apiOk, ERR } from '@/lib/api'
 import { brainDumpSchema, aiBrainDumpResult, TASK_TYPES, PRIORITIES } from '@/lib/validation'
-import { TASK_TYPE_GUIDE, PLAN_METHOD_GUIDE } from '@/lib/ai/prompts'
+import { TASK_TYPE_GUIDE, planMethodGuide, outputLangRule, langLocative } from '@/lib/ai/prompts'
 import { buildBrainDumpContext } from '@/lib/ai/userContext'
+import { getUserLocale } from '@/lib/locale'
+import type { Locale } from '@/types/ferox'
 import { AI, RATE_LIMITS } from '@/lib/config'
 import { checkRateLimit } from '@/lib/rateLimit'
 
@@ -13,9 +15,10 @@ export const maxDuration = 60
 // Forced tool-use: the SDK guarantees valid JSON and enums can't be wrong.
 // Concrete times become appointments; everything else is a task. AI raspoređuje
 // svaku stavku po danu (dayOffset).
-const extractTool = {
+// Alat zavisi od jezika jer opisi polja govore modelu na kom jeziku da PIŠE.
+const extractTool = (locale: Locale) => ({
   name: 'extract_plan',
-  description: 'Izdvoji zadatke i termine iz teksta na srpskom i rasporedi ih po danima (Eisenhower + 1-3-5 + rokovi).',
+  description: `Izdvoji zadatke i termine iz korisnikovog teksta (može biti na bilo kom jeziku) i rasporedi ih po danima (Eisenhower + 1-3-5 + rokovi). Sav tekst koji vraćaš piši na ${langLocative(locale)}.`,
   input_schema: {
     type: 'object' as const,
     properties: {
@@ -24,14 +27,14 @@ const extractTool = {
         items: {
           type: 'object',
           properties: {
-            name: { type: 'string', description: 'kratko ime na srpskom' },
+            name: { type: 'string', description: `kratko ime na ${langLocative(locale)}` },
             type: { type: 'string', enum: [...TASK_TYPES] },
             priority: { type: 'string', enum: [...PRIORITIES], description: 'high samo uz jasnu hitnost/rok; inače medium; low ako može da čeka. Ne stavljaj sve na high.' },
             note: { type: 'string' },
             estMinutes: { type: 'number', description: 'realna procena trajanja u minutima' },
             dayOffset: { type: 'number', description: 'DAN RADA: kad korisnik planira da radi na tome. 0 = danas, 1 = sutra … najviše 7' },
             deadlineDayOffset: { type: 'number', description: 'ROK: do kada MORA biti gotovo, kao broj dana od danas (0 = danas). Postavi SAMO ako tekst pominje rok ("do petka", "rok je sutra", "do kraja nedelje"). Ako nema roka, izostavi. Rok NIJE isto što i dan rada — dan rada je obično PRE roka.' },
-            reason: { type: 'string', description: 'jedna kratka rečenica na srpskom: zašto baš taj dan' },
+            reason: { type: 'string', description: `jedna kratka rečenica na ${langLocative(locale)}: zašto baš taj dan` },
           },
           required: ['name', 'type', 'priority', 'dayOffset'],
         },
@@ -51,7 +54,7 @@ const extractTool = {
     },
     required: ['tasks', 'appointments'],
   },
-}
+})
 
 export async function POST(request: NextRequest) {
   if (!process.env.ANTHROPIC_API_KEY) return ERR.aiUnavailable('API ključ nije podešen')
@@ -70,6 +73,7 @@ export async function POST(request: NextRequest) {
 
   // Kontekst: koliko je već zakazano po danima (da AI ne pretrpa dan).
   const { contextText } = await buildBrainDumpContext(supabase, user.id)
+  const locale = await getUserLocale(supabase, user.id)
 
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -78,9 +82,9 @@ export async function POST(request: NextRequest) {
     message = await anthropic.messages.create({
       model: AI.model,
       max_tokens: AI.maxTokens.brainDump,
-      tools: [extractTool],
+      tools: [extractTool(locale)],
       tool_choice: { type: 'tool', name: 'extract_plan' },
-      system: `${TASK_TYPE_GUIDE}\n\n${PLAN_METHOD_GUIDE}`,
+      system: `${TASK_TYPE_GUIDE}\n\n${planMethodGuide(locale)}\n\n${outputLangRule(locale)}`,
       messages: [{
         role: 'user',
         content:

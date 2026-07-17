@@ -6,6 +6,7 @@ import Button from '@/components/ui/Button'
 import { DEFAULTS } from '@/lib/config'
 import RoutinesSection from '@/components/extras/RoutinesSection'
 import type { Routine } from '@/types/ferox'
+import { useT } from '@/components/i18n/I18nProvider'
 import {
   t,
   ensureAudioCtx,
@@ -30,6 +31,7 @@ function fmt(s: number) {
 }
 
 export default function ExtrasScreen({ initialPomodoro, profileId, initialRoutines }: { initialPomodoro: number; profileId: string; initialRoutines: Routine[] }) {
+  const tr = useT()
   // — Pomodoro (fokus tajmer) — React state je samo za prikaz; pravo stanje je u lib/focusTimer.ts
   const [focusMins, setFocusMins] = useState(f.focusMins)
   const [focusSecs, setFocusSecs] = useState(f.focusSecs)
@@ -132,9 +134,9 @@ export default function ExtrasScreen({ initialPomodoro, profileId, initialRoutin
   return (
     <main className="flex flex-col gap-6 lg:gap-7 pb-2">
       <header className="pt-2">
-        <div className="hidden lg:block mb-2"><span className="section-label">Fokus alati</span></div>
-        <h1 className="display foil text-3xl lg:text-5xl">Alati</h1>
-        <p className="text-sm mt-1.5" style={{ color: 'var(--text-muted)' }}>Podesi fokus sesiju, odmore i rutine.</p>
+        <div className="hidden lg:block mb-2"><span className="section-label">{tr.extras.focusTools}</span></div>
+        <h1 className="display foil text-3xl lg:text-5xl">{tr.extras.title}</h1>
+        <p className="text-sm mt-1.5" style={{ color: 'var(--text-muted)' }}>{tr.extras.subtitle}</p>
       </header>
 
       <RoutinesSection initialRoutines={initialRoutines} userId={profileId} />
@@ -142,8 +144,8 @@ export default function ExtrasScreen({ initialPomodoro, profileId, initialRoutin
       {/* Tajmer odmora */}
       <section className="card p-6 flex flex-col items-center gap-6">
         <div className="self-start">
-          <p className="font-medium text-sm">⏱️ Tajmer odmora</p>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Odbrojava pauzu i javi ti kad je vreme da nastaviš</p>
+          <p className="font-medium text-sm">{tr.extras.breakTimer}</p>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{tr.extras.breakHint}</p>
         </div>
 
         <div className="relative w-40 h-40">
@@ -168,7 +170,7 @@ export default function ExtrasScreen({ initialPomodoro, profileId, initialRoutin
               {fmt(secondsLeft)}
             </span>
             <span className="text-[0.65rem] font-semibold tracking-widest uppercase" style={{ color: 'var(--text-muted)' }}>
-              {alarming ? 'alarm!' : secondsLeft === 0 ? 'gotovo' : running ? 'odmor' : 'spreman'}
+              {alarming ? tr.extras.stAlarm : secondsLeft === 0 ? tr.extras.stDone : running ? tr.extras.stBreak : tr.extras.stReady}
             </span>
           </div>
         </div>
@@ -181,7 +183,7 @@ export default function ExtrasScreen({ initialPomodoro, profileId, initialRoutin
                 background: breakMins === m ? 'var(--gold-tint)' : 'var(--surface2)',
                 border: `1px solid ${breakMins === m ? 'var(--gold)' : 'var(--border)'}`,
                 color: breakMins === m ? 'var(--gold)' : 'var(--text-muted)',
-              }}>{m} min</button>
+              }}>{m} {tr.extras.min}</button>
           ))}
           <div className="flex items-center gap-1.5">
             <input
@@ -196,7 +198,7 @@ export default function ExtrasScreen({ initialPomodoro, profileId, initialRoutin
                 if (v >= 1 && v <= 120) handleSelectBreak(v)
               }}
             />
-            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>min</span>
+            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{tr.extras.min}</span>
           </div>
         </div>
 
@@ -204,15 +206,15 @@ export default function ExtrasScreen({ initialPomodoro, profileId, initialRoutin
           {alarming ? (
             <Button size="lg" className="flex-1" onClick={handleReset}
               style={{ background: 'var(--gold)', color: 'white' }}>
-              ⏹ Zaustavi alarm
+              {tr.extras.stopAlarm}
             </Button>
           ) : (
             <Button size="lg" className="flex-1" onClick={handleStartPause} disabled={secondsLeft === 0}>
-              {running ? 'Pauziraj' : 'Kreni'}
+              {running ? tr.extras.pause : tr.extras.start}
             </Button>
           )}
           <button type="button" onClick={handleReset} className="px-4 rounded-[var(--r-md)] text-sm font-medium transition-colors"
-            style={{ background: 'var(--surface2)', color: 'var(--text-muted)' }}>Resetuj</button>
+            style={{ background: 'var(--surface2)', color: 'var(--text-muted)' }}>{tr.extras.reset}</button>
         </div>
       </section>
 
@@ -220,7 +222,7 @@ export default function ExtrasScreen({ initialPomodoro, profileId, initialRoutin
       <section className="card p-6 flex flex-col items-center gap-6">
         <div className="self-start">
           <p className="font-medium text-sm">🍅 Pomodoro</p>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Odbrojava fokus sesiju i javi ti alarmom kad je kraj</p>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{tr.extras.pomodoroHint}</p>
         </div>
 
         <div className="relative w-40 h-40">
@@ -245,7 +247,7 @@ export default function ExtrasScreen({ initialPomodoro, profileId, initialRoutin
               {fmt(focusSecs)}
             </span>
             <span className="text-[0.65rem] font-semibold tracking-widest uppercase" style={{ color: 'var(--text-muted)' }}>
-              {focusAlarming ? 'alarm!' : focusSecs === 0 ? 'gotovo' : focusRunning ? 'fokus' : 'spreman'}
+              {focusAlarming ? tr.extras.stAlarm : focusSecs === 0 ? tr.extras.stDone : focusRunning ? tr.extras.stFocus : tr.extras.stReady}
             </span>
           </div>
         </div>
@@ -276,15 +278,15 @@ export default function ExtrasScreen({ initialPomodoro, profileId, initialRoutin
           {focusAlarming ? (
             <Button size="lg" className="flex-1" onClick={handleFocusReset}
               style={{ background: 'var(--gold)', color: 'white' }}>
-              ⏹ Zaustavi alarm
+              {tr.extras.stopAlarm}
             </Button>
           ) : (
             <Button size="lg" className="flex-1" onClick={handleFocusStartPause} disabled={focusSecs === 0}>
-              {focusRunning ? 'Pauziraj' : 'Kreni'}
+              {focusRunning ? tr.extras.pause : tr.extras.start}
             </Button>
           )}
           <button type="button" onClick={handleFocusReset} className="px-4 rounded-[var(--r-md)] text-sm font-medium transition-colors"
-            style={{ background: 'var(--surface2)', color: 'var(--text-muted)' }}>Resetuj</button>
+            style={{ background: 'var(--surface2)', color: 'var(--text-muted)' }}>{tr.extras.reset}</button>
         </div>
       </section>
     </main>

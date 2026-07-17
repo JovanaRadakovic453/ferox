@@ -22,7 +22,9 @@ import AddTaskModal from '@/components/plan/AddTaskModal'
 import RoutineModal from '@/components/plan/RoutineModal'
 import ReminderBanner from '@/components/plan/ReminderBanner'
 import { AnimatePresence } from 'framer-motion'
-import type { Routine } from '@/types/ferox'
+import type { Routine, Locale } from '@/types/ferox'
+import { useT, useLocale } from '@/components/i18n/I18nProvider'
+import type { Dict } from '@/lib/i18n/dict'
 
 // Spaja "prenesene" zadatke bez dupliranja (po imenu, case-insensitive).
 // Čuva već postojeće (npr. ranije odložene) i dodaje samo nove.
@@ -32,13 +34,13 @@ function mergeTransferred(existing: TransferItem[], incoming: TransferItem[]): T
   return [...existing, ...incoming.filter(t => !seen.has(t.name.trim().toLowerCase()))]
 }
 
-// "danas" / "sutra" / "prekosutra" / "Ponedeljak, 20. jul" — za poruke potvrde.
-function dayLabel(key: string): string {
+// "danas"/"today" · "sutra"/"tomorrow" · "prekosutra" · pun datum — za poruke potvrde.
+function dayLabel(key: string, t: Dict, locale: Locale): string {
   const today = todayKey()
-  if (key === today) return 'danas'
-  if (key === addDays(today, 1)) return 'sutra'
-  if (key === addDays(today, 2)) return 'prekosutra'
-  return formatDate(key)
+  if (key === today) return t.common.today
+  if (key === addDays(today, 1)) return t.common.tomorrow
+  if (key === addDays(today, 2)) return t.common.dayAfter
+  return formatDate(key, locale)
 }
 
 function Divider() {
@@ -71,6 +73,8 @@ export default function PlanScreen({
   overdueScheduled?: { name: string; deadline_date: string }[]
 }) {
   const toast = useToast()
+  const t = useT()
+  const locale = useLocale()
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
   const [appts, setAppts] = useState<Appointment[]>(appointments)
   const [savingEod, setSavingEod] = useState(false)
@@ -193,7 +197,7 @@ export default function PlanScreen({
           setActiveReminder({ name: appt.name, time: appt.time, minutesBefore: appt.reminder })
           if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
             new Notification(`📅 ${appt.name}`, {
-              body: `Počinje za ${appt.reminder} min · ${appt.time}h`,
+              body: t.reminder.notifBody(appt.reminder, appt.time),
               icon: '/icon.svg',
             })
           }
@@ -204,7 +208,7 @@ export default function PlanScreen({
     checkReminders()
     const interval = setInterval(checkReminders, 30_000)
     return () => clearInterval(interval)
-  }, [appts, isToday])
+  }, [appts, isToday, t])
 
   // Optimistički toggle PO ID-u (ne po imenu — dva ista naziva se više ne sudaraju).
   // Na grešku vraćamo stanje i nudimo retry preko toasta.
@@ -220,19 +224,19 @@ export default function PlanScreen({
       const doneNow = tasks.filter(t => (t.id === taskId ? true : t.done)).length + appts.filter(a => a.done).length
       const isLast = totalCount > 0 && doneNow === totalCount
       fireConfetti(isLast)
-      if (isLast) toast({ message: 'Sve gotovo za danas! 🎉', variant: 'success' })
+      if (isLast) toast({ message: t.plan.allDone, variant: 'success' })
     }
 
     const supabase = createClient()
     const { error } = await supabase.from('tasks').update({ done: newDone }).eq('id', taskId)
     if (error) {
       setTasks(prev => prev.map(t => t.id === taskId ? { ...t, done: !newDone } : t))
-      toast({ message: 'Nije sačuvano — proveri internet', variant: 'error', action: { label: 'Pokušaj', onClick: () => toggleTask(taskId) } })
+      toast({ message: t.plan.notSaved, variant: 'error', action: { label: t.common.retry, onClick: () => toggleTask(taskId) } })
     }
   }
 
   async function resetDay() {
-    if (!window.confirm('Obrisati sve podatke za danas i početi ispočetka?')) return
+    if (!window.confirm(t.plan.resetConfirm)) return
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
@@ -254,7 +258,7 @@ export default function PlanScreen({
     const { error } = await supabase.from('appointments').delete().eq('id', apptId)
     if (error) {
       setAppts(prev => [...prev, appt])
-      toast({ message: 'Brisanje nije uspelo — pokušaj ponovo', variant: 'error' })
+      toast({ message: t.plan.deleteFailed, variant: 'error' })
     }
   }
 
@@ -266,7 +270,7 @@ export default function PlanScreen({
     const { error } = await supabase.from('tasks').delete().eq('id', taskId)
     if (error) {
       setTasks(prev => [...prev, task])
-      toast({ message: 'Brisanje nije uspelo — pokušaj ponovo', variant: 'error' })
+      toast({ message: t.plan.deleteFailed, variant: 'error' })
     }
   }
 
@@ -277,7 +281,7 @@ export default function PlanScreen({
     const task = tasks.find(t => t.id === taskId)
     if (!task) return
 
-    const label = dayLabel(targetDateKey)
+    const label = dayLabel(targetDateKey, t, locale)
 
     // Optimistički: skloni zadatak sa današnjeg spiska odmah.
     setTasks(prev => prev.filter(t => t.id !== taskId))
@@ -286,7 +290,7 @@ export default function PlanScreen({
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       setTasks(prev => [...prev, task])
-      toast({ message: 'Odlaganje nije uspelo — pokušaj ponovo', variant: 'error' })
+      toast({ message: t.plan.snoozeFailed, variant: 'error' })
       return
     }
 
@@ -320,10 +324,10 @@ export default function PlanScreen({
       const { error: delErr } = await supabase.from('tasks').delete().eq('id', taskId)
       if (delErr) throw delErr
 
-      toast({ message: `Odloženo za ${label} ✓`, variant: 'success' })
+      toast({ message: t.plan.snoozed(label), variant: 'success' })
     } catch {
       setTasks(prev => [...prev, task])
-      toast({ message: 'Odlaganje nije uspelo — pokušaj ponovo', variant: 'error' })
+      toast({ message: t.plan.snoozeFailed, variant: 'error' })
     }
   }
 
@@ -347,11 +351,11 @@ export default function PlanScreen({
 
     if (error) {
       setAppts(before)
-      toast({ message: 'Pomeranje nije uspelo — pokušaj ponovo', variant: 'error' })
+      toast({ message: t.plan.moveFailed, variant: 'error' })
       return
     }
 
-    toast({ message: `Termin pomeren za ${dayLabel(targetDateKey)} u ${newTime} ✓`, variant: 'success' })
+    toast({ message: t.plan.apptMoved(dayLabel(targetDateKey, t, locale), newTime), variant: 'success' })
   }
 
   async function toggleAppointment(apptId: string) {
@@ -371,7 +375,7 @@ export default function PlanScreen({
     const { error } = await supabase.from('appointments').update({ done: newDone }).eq('id', apptId)
     if (error) {
       setAppts(prev => prev.map(a => a.id === apptId ? { ...a, done: !newDone } : a))
-      toast({ message: 'Nije sačuvano — proveri internet', variant: 'error', action: { label: 'Pokušaj', onClick: () => toggleAppointment(apptId) } })
+      toast({ message: t.plan.notSaved, variant: 'error', action: { label: t.common.retry, onClick: () => toggleAppointment(apptId) } })
     }
   }
 
@@ -390,9 +394,9 @@ export default function PlanScreen({
       block_index: t.block_index ?? null,
     }))
     const { data, error } = await supabase.from('tasks').insert(inserts).select('id, name, type, priority, note, done, position, block_index')
-    if (error) { toast({ message: 'Rutina nije primenjena — pokušaj ponovo', variant: 'error' }); return }
+    if (error) { toast({ message: t.plan.routineFailed, variant: 'error' }); return }
     setTasks(prev => [...prev, ...(data ?? []).map(t => ({ ...t, done: false as const }))])
-    toast({ message: `Rutina "${routine.name}" primenjena ✓`, variant: 'success' })
+    toast({ message: t.plan.routineApplied(routine.name), variant: 'success' })
   }
 
   function startFinishDay() {
@@ -443,7 +447,7 @@ export default function PlanScreen({
       entry_id: entry.id, user_id: entry.user_id, name, done: false, priority, type, note, position: tasks.length,
     }).select('id').single()
     if (error) {
-      toast({ message: 'Zadatak nije dodat — pokušaj ponovo', variant: 'error' })
+      toast({ message: t.plan.taskAddFailed, variant: 'error' })
       return false
     }
     setTasks(prev => [...prev, { id: data?.id, name, priority, type, note, done: false }])
@@ -456,7 +460,7 @@ export default function PlanScreen({
       user_id: entry.user_id, date_key: entry.date_key, name, time, reminder, done: false,
     }).select('id').single()
     if (error) {
-      toast({ message: 'Termin nije dodat — pokušaj ponovo', variant: 'error' })
+      toast({ message: t.plan.apptAddFailed, variant: 'error' })
       return false
     }
     // Ako je vreme podsetnika već prošlo u momentu dodavanja → tiho označi kao prikazano
@@ -475,13 +479,13 @@ export default function PlanScreen({
       <main className="min-h-[70vh] flex flex-col items-center justify-center gap-8 px-4">
         <div className="text-center flex flex-col items-center gap-3">
           <span className="text-6xl">🌙</span>
-          <h1 className="display text-4xl" style={{ color: 'var(--gold)' }}>Dan završen</h1>
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Odmori se — sutra je novi dan.</p>
+          <h1 className="display text-4xl" style={{ color: 'var(--gold)' }}>{t.plan.dayComplete}</h1>
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{t.plan.restUp}</p>
         </div>
         {tomorrowPlanned && (
           <div className="flex flex-col gap-3 w-full max-w-xs">
             <Button size="lg" className="w-full" onClick={() => { window.location.href = '/plan?date=' + addDays(entry.date_key, 1) }}>
-              🌙 Pogledaj plan za sutra →
+              {t.plan.seeTomorrow}
             </Button>
           </div>
         )}
@@ -493,7 +497,7 @@ export default function PlanScreen({
     <main className="flex flex-col gap-7 lg:gap-9 pb-2">
       {!isToday && (
         <Link href="/history" className="flex items-center gap-1.5 text-sm font-medium -mb-1" style={{ color: 'var(--text-muted)' }}>
-          ← Istorija
+          {t.plan.historyBack}
         </Link>
       )}
       <AnimatePresence>
@@ -510,18 +514,18 @@ export default function PlanScreen({
       {/* Header */}
       <header className="flex items-end justify-between gap-4 pt-1">
         <div className="min-w-0">
-          <div className="hidden lg:block mb-2"><span className="section-label">{formatDate(entry.date_key)}</span></div>
+          <div className="hidden lg:block mb-2"><span className="section-label">{formatDate(entry.date_key, locale)}</span></div>
           <h1 className="display foil text-3xl lg:text-5xl">
-            {isToday ? 'Moj plan' : 'Plan'}
+            {isToday ? t.plan.myPlan : t.plan.plan}
           </h1>
           {!isToday && (
             <p className="text-xs font-medium mt-0.5 lg:hidden" style={{ color: 'var(--gold)' }}>
-              🌙 {formatDate(entry.date_key)}
+              🌙 {formatDate(entry.date_key, locale)}
             </p>
           )}
           {streak > 0 && (
             <span className="inline-block text-xs font-semibold px-2.5 py-1 rounded-full mt-2" style={{ background: 'var(--gold-tint)', color: 'var(--gold)' }}>
-              🔥 {streak} {streak === 1 ? 'dan' : streak < 5 ? 'dana' : 'dana'} zaredom
+              {t.plan.streak(streak)}
             </span>
           )}
         </div>
@@ -529,7 +533,7 @@ export default function PlanScreen({
           <p className="display text-5xl lg:text-6xl leading-none tabular-nums" style={{ color: 'var(--text)' }}>
             {doneDisplay}<span className="text-2xl lg:text-3xl" style={{ color: 'var(--text-muted)' }}>/{total}</span>
           </p>
-          <p className="text-[0.65rem] font-semibold tracking-[0.14em] uppercase mt-1.5" style={{ color: 'var(--text-muted)' }}>završeno</p>
+          <p className="text-[0.65rem] font-semibold tracking-[0.14em] uppercase mt-1.5" style={{ color: 'var(--text-muted)' }}>{t.plan.done}</p>
         </div>
       </header>
 
@@ -538,8 +542,8 @@ export default function PlanScreen({
         <div className="rounded-[var(--r-md)] px-4 py-3 flex items-center gap-3" style={{ background: 'var(--gold-tint)', color: 'var(--gold)', border: '1px solid color-mix(in srgb, var(--gold) 25%, transparent)' }}>
           <span className="text-xl">🌙</span>
           <div className="text-sm">
-            <p className="font-medium">Danas je završen</p>
-            {tomorrowPlanned && <p className="opacity-70">Plan za sutra je spreman</p>}
+            <p className="font-medium">{t.plan.todayComplete}</p>
+            {tomorrowPlanned && <p className="opacity-70">{t.plan.tomorrowReady}</p>}
           </div>
         </div>
       )}
@@ -549,7 +553,7 @@ export default function PlanScreen({
         <div className="rounded-[var(--r-md)] px-4 py-3 flex items-center gap-3" style={{ background: 'var(--surface2)', border: '1px solid var(--hairline)' }}>
           <span className="text-xl shrink-0">📅</span>
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            Sutra imaš <span style={{ color: 'var(--text)', fontWeight: 600 }}>{tomorrowScheduledCount} zakazan{tomorrowScheduledCount === 1 ? '' : 'a'} zadatak{tomorrowScheduledCount === 1 ? '' : 'a'}</span> iz kalendara
+            {t.plan.tomorrowScheduled(tomorrowScheduledCount)}
           </p>
         </div>
       )}
@@ -559,14 +563,14 @@ export default function PlanScreen({
         <div className="rounded-[var(--r-md)] px-4 py-3 flex items-start gap-3" style={{ background: 'var(--danger-tint)', border: '1px solid color-mix(in srgb, var(--danger) 20%, transparent)' }}>
           <span className="text-xl shrink-0">⚠️</span>
           <div className="min-w-0 flex flex-col gap-1">
-            {dueNow.map((t, i) => {
-              const b = getDeadlineBadge(t.deadline_date, todayKey())
+            {dueNow.map((due, i) => {
+              const b = getDeadlineBadge(due.deadline_date, todayKey(), locale)
               return (
                 <p key={i} className="text-sm" style={{ color: 'var(--text-muted)' }}>
                   <span style={{ color: b.color, fontWeight: 600 }}>{b.text}</span>
                   {' — '}
-                  <span style={{ color: 'var(--text)', fontWeight: 600 }}>{t.name}</span>
-                  {t.scheduled && <span className="text-xs"> (iz kalendara)</span>}
+                  <span style={{ color: 'var(--text)', fontWeight: 600 }}>{due.name}</span>
+                  {due.scheduled && <span className="text-xs">{t.plan.fromCalendar}</span>}
                 </p>
               )
             })}
@@ -591,16 +595,16 @@ export default function PlanScreen({
           <div className="card p-8 text-center flex flex-col items-center gap-3">
             <span className="text-4xl">🗒️</span>
             <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-              Plan je prazan. Dodaj prvi zadatak da krenemo.
+              {t.plan.emptyPlan}
             </p>
-            <Button size="sm" onClick={() => setShowAddTask(true)}>➕ Dodaj zadatak</Button>
+            <Button size="sm" onClick={() => setShowAddTask(true)}>{t.plan.addTask}</Button>
           </div>
         ) : (
           <div className="card overflow-hidden">
             <div className="pl-6 pr-5">
               {appts.length > 0 && (
                 <div className="py-2 text-[0.65rem] font-semibold tracking-[0.14em] uppercase" style={{ color: 'var(--text-muted)' }}>
-                  Zakazani termini
+                  {t.plan.appointments}
                 </div>
               )}
               {[...appts].sort((a, b) => a.time.localeCompare(b.time)).map((a, idx, arr) => (
@@ -619,7 +623,7 @@ export default function PlanScreen({
                 <>
                   {appts.length > 0 && <Divider />}
                   <div className="py-2 text-[0.65rem] font-semibold tracking-[0.14em] uppercase" style={{ color: 'var(--text-muted)' }}>
-                    Zadaci
+                    {t.plan.tasks}
                   </div>
                 </>
               )}

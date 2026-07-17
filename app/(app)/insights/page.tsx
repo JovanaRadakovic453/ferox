@@ -5,6 +5,8 @@ import { computeAggregates, type DayAgg } from '@/lib/insights'
 import { computeStreak } from '@/lib/streak'
 import { todayKey } from '@/lib/date'
 import InsightsView from '@/components/insights/InsightsView'
+import { getDict } from '@/lib/i18n/dict'
+import { toLocale } from '@/lib/locale'
 
 const MIN_DAYS = 5
 
@@ -20,7 +22,7 @@ export default async function InsightsPage() {
       .eq('user_id', user.id)
       .order('date_key', { ascending: false })
       .limit(30),
-    supabase.from('profiles').select('rest_days, best_streak').eq('id', user.id).maybeSingle(),
+    supabase.from('profiles').select('rest_days, best_streak, locale').eq('id', user.id).maybeSingle(),
     supabase
       .from('day_entries')
       .select('date_key')
@@ -54,6 +56,8 @@ export default async function InsightsPage() {
     }
   })
 
+  const t = getDict(toLocale(profile?.locale))
+
   // Only days that actually had tasks count toward "logged days".
   const loggedDays = days.filter(d => d.total > 0)
 
@@ -61,21 +65,23 @@ export default async function InsightsPage() {
     return (
       <main className="flex flex-col gap-6 pb-2">
         <header className="pt-2">
-          <h1 className="display foil text-3xl">Uvidi</h1>
+          <h1 className="display foil text-3xl">{t.insights.title}</h1>
         </header>
         <div className="card p-8 text-center flex flex-col items-center gap-3">
           <span className="text-4xl">📈</span>
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            Još skupljam tvoje obrasce. Treba mi bar {MIN_DAYS} dana sa zadacima — imaš {loggedDays.length}.
-            Nastavi da planiraš i ovde će se pojaviti tvoji uvidi.
+            {t.insights.notEnough(MIN_DAYS, loggedDays.length)}
           </p>
-          <Link href="/" className="text-sm font-semibold" style={{ color: 'var(--gold)' }}>Napravi plan →</Link>
+          <Link href="/" className="text-sm font-semibold" style={{ color: 'var(--gold)' }}>{t.history.makePlan}</Link>
         </div>
       </main>
     )
   }
 
-  const agg = computeAggregates(loggedDays)
+  const agg = computeAggregates(loggedDays, {
+    weekdays: t.insights.weekdays,
+    sleepInsight: t.insights.sleepInsight,
+  })
 
   const finishedSet = new Set((finishedRows ?? []).map(r => r.date_key as string))
   const streak = computeStreak(finishedSet, profile?.rest_days ?? [0, 6], todayKey())

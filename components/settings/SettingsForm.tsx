@@ -9,9 +9,12 @@ import Input from '@/components/ui/Input'
 import Modal from '@/components/ui/Modal'
 import ThemeToggle from '@/components/ui/ThemeToggle'
 import LogoutButton from '@/components/LogoutButton'
-import type { UserProfile } from '@/types/ferox'
+import { LOCALES, LOCALE_LABELS, LOCALE_FLAGS } from '@/types/ferox'
+import type { UserProfile, Locale } from '@/types/ferox'
+import { toLocale } from '@/lib/locale'
+import { useT } from '@/components/i18n/I18nProvider'
+import { getDict } from '@/lib/i18n/dict'
 
-const WEEKDAYS = ['Ned', 'Pon', 'Uto', 'Sre', 'Čet', 'Pet', 'Sub']
 
 function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
@@ -33,8 +36,10 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
 export default function SettingsForm({ profile, email }: { profile: UserProfile; email: string }) {
   const router = useRouter()
   const toast = useToast()
+  const t = useT()
 
   const [name, setName] = useState(profile.name ?? '')
+  const [locale, setLocale] = useState<Locale>(toLocale(profile.locale))
   const [restDays, setRestDays] = useState<number[]>(profile.rest_days ?? [0, 6])
   const [microFeedback, setMicroFeedback] = useState(profile.micro_feedback ?? true)
   const [soundEnabled, setSoundEnabled] = useState(profile.sound_enabled ?? false)
@@ -67,8 +72,8 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
       updated_at: new Date().toISOString(),
     }).eq('id', profile.id)
     setSaving(false)
-    if (error) toast({ message: 'Nije sačuvano — pokušaj ponovo', variant: 'error' })
-    else { toast({ message: 'Sačuvano ✓', variant: 'success' }); router.refresh() }
+    if (error) toast({ message: t.settings.saveFailed, variant: 'error' })
+    else { toast({ message: t.settings.saved, variant: 'success' }); router.refresh() }
   }
 
   async function activateNotifications() {
@@ -76,7 +81,7 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
     try {
       const permission = await Notification.requestPermission()
       if (permission !== 'granted') {
-        toast({ message: 'Dozvola odbijena — uključi notifikacije u podešavanjima pregledača', variant: 'error' })
+        toast({ message: t.settings.permDenied, variant: 'error' })
         return
       }
       const reg = await navigator.serviceWorker.ready
@@ -90,10 +95,10 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ subscription: sub.toJSON() }),
       })
-      if (res.ok) { setNotifActive(true); toast({ message: 'Podsetnik aktiviran ✓', variant: 'success' }) }
-      else toast({ message: 'Nije uspelo — pokušaj ponovo', variant: 'error' })
+      if (res.ok) { setNotifActive(true); toast({ message: t.settings.reminderOn, variant: 'success' }) }
+      else toast({ message: t.settings.failedRetry, variant: 'error' })
     } catch {
-      toast({ message: 'Greška pri aktivaciji', variant: 'error' })
+      toast({ message: t.settings.activateError, variant: 'error' })
     } finally {
       setNotifLoading(false)
     }
@@ -107,9 +112,9 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
       await sub?.unsubscribe()
       await fetch('/api/notifications/subscribe', { method: 'DELETE' })
       setNotifActive(false)
-      toast({ message: 'Podsetnik isključen', variant: 'success' })
+      toast({ message: t.settings.reminderOff, variant: 'success' })
     } catch {
-      toast({ message: 'Greška pri deaktivaciji', variant: 'error' })
+      toast({ message: t.settings.deactivateError, variant: 'error' })
     } finally {
       setNotifLoading(false)
     }
@@ -119,8 +124,8 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
     setTestLoading(true)
     try {
       const res = await fetch('/api/notifications/test', { method: 'POST' })
-      if (res.ok) toast({ message: 'Test notifikacija poslata!', variant: 'success' })
-      else toast({ message: 'Slanje nije uspelo', variant: 'error' })
+      if (res.ok) toast({ message: t.settings.testSent, variant: 'success' })
+      else toast({ message: t.settings.sendFailed, variant: 'error' })
     } finally {
       setTestLoading(false)
     }
@@ -130,8 +135,8 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
     setGoogleDisconnecting(true)
     const res = await fetch('/api/integrations/google/disconnect', { method: 'DELETE' })
     setGoogleDisconnecting(false)
-    if (res.ok) { setGoogleConnected(false); toast({ message: 'Google Kalendar odspojeno', variant: 'success' }) }
-    else toast({ message: 'Nije uspelo — pokušaj ponovo', variant: 'error' })
+    if (res.ok) { setGoogleConnected(false); toast({ message: t.settings.googleDisconnected, variant: 'success' }) }
+    else toast({ message: t.settings.failedRetry, variant: 'error' })
   }
 
   async function persistTheme(theme: string) {
@@ -139,14 +144,31 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
     await supabase.from('profiles').update({ theme }).eq('id', profile.id)
   }
 
+  // Jezik se snima odmah (kao tema) — bez "Sačuvaj". Na grešku vraćamo izbor.
+  async function pickLocale(next: Locale) {
+    if (next === locale) return
+    const before = locale
+    setLocale(next)
+    const supabase = createClient()
+    const { error } = await supabase.from('profiles').update({ locale: next }).eq('id', profile.id)
+    if (error) {
+      setLocale(before)
+      toast({ message: t.settings.langSaveFailed, variant: 'error' })
+      return
+    }
+    // Poruka ide na NOVOM jeziku (rečnik `t` je još stari) + osvežavamo ekrane.
+    toast({ message: getDict(next).settings.langSwitched, variant: 'success' })
+    router.refresh()
+  }
+
   async function changePassword() {
-    if (newPassword.length < 6) { toast({ message: 'Lozinka mora imati bar 6 karaktera', variant: 'error' }); return }
+    if (newPassword.length < 6) { toast({ message: t.settings.passwordTooShort, variant: 'error' }); return }
     setChangingPw(true)
     const supabase = createClient()
     const { error } = await supabase.auth.updateUser({ password: newPassword })
     setChangingPw(false)
     if (error) toast({ message: error.message, variant: 'error' })
-    else { setNewPassword(''); toast({ message: 'Lozinka promenjena ✓', variant: 'success' }) }
+    else { setNewPassword(''); toast({ message: t.settings.passwordChanged, variant: 'success' }) }
   }
 
   async function deleteAccount() {
@@ -156,7 +178,7 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
       window.location.href = '/login'
     } else {
       const body = await res.json().catch(() => ({}))
-      toast({ message: body.error?.message ?? 'Brisanje nije uspelo', variant: 'error' })
+      toast({ message: body.error?.message ?? t.settings.deleteFailed, variant: 'error' })
       setDeleting(false)
       setShowDelete(false)
     }
@@ -165,8 +187,8 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
   return (
     <main className="flex flex-col gap-5 lg:gap-6 pb-2 lg:max-w-5xl lg:mx-auto lg:w-full">
       <header className="pt-2">
-        <div className="hidden lg:block mb-2"><span className="section-label">Tvoj nalog</span></div>
-        <h1 className="display foil text-3xl lg:text-5xl">Podešavanja</h1>
+        <div className="hidden lg:block mb-2"><span className="section-label">{t.settings.account}</span></div>
+        <h1 className="display foil text-3xl lg:text-5xl">{t.settings.title}</h1>
         <p className="text-sm mt-1.5" style={{ color: 'var(--text-muted)' }}>{email}</p>
       </header>
 
@@ -174,17 +196,17 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
       <div className="flex flex-col gap-5">
       {/* Profil */}
       <section className="card p-5 flex flex-col gap-4">
-        <p className="section-label">Profil</p>
-        <Input id="name" label="Ime" value={name} onChange={e => setName(e.target.value)} />
+        <p className="section-label">{t.settings.profileSection}</p>
+        <Input id="name" label={t.settings.name} value={name} onChange={e => setName(e.target.value)} />
       </section>
 
       {/* Slobodni dani */}
       <section className="card p-5 flex flex-col gap-4">
-        <p className="section-label">Slobodni dani</p>
+        <p className="section-label">{t.settings.restDaysSection}</p>
         <div>
-          <label className="text-xs mb-1.5 block font-medium" style={{ color: 'var(--text-muted)' }}>Ne lome streak</label>
+          <label className="text-xs mb-1.5 block font-medium" style={{ color: 'var(--text-muted)' }}>{t.settings.restDaysHint}</label>
           <div className="grid grid-cols-7 gap-1.5">
-            {WEEKDAYS.map((d, i) => <Chip key={i} active={restDays.includes(i)} onClick={() => toggle(restDays, i, setRestDays)}>{d}</Chip>)}
+            {t.settings.weekdays.map((d, i) => <Chip key={i} active={restDays.includes(i)} onClick={() => toggle(restDays, i, setRestDays)}>{d}</Chip>)}
           </div>
         </div>
       </section>
@@ -193,22 +215,37 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
       <div className="flex flex-col gap-5">
       {/* Aplikacija */}
       <section className="card p-5 flex flex-col gap-4">
-        <p className="section-label">Aplikacija</p>
+        <p className="section-label">{t.settings.appSection}</p>
         <div>
-          <label className="text-xs mb-1.5 block font-medium" style={{ color: 'var(--text-muted)' }}>Tema</label>
+          <label className="text-xs mb-1.5 block font-medium" style={{ color: 'var(--text-muted)' }}>
+            {t.settings.language}
+          </label>
+          <div className="grid grid-cols-2 gap-1.5">
+            {LOCALES.map(l => (
+              <Chip key={l} active={locale === l} onClick={() => pickLocale(l)}>
+                {LOCALE_FLAGS[l]} {LOCALE_LABELS[l]}
+              </Chip>
+            ))}
+          </div>
+          <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>
+            {t.settings.languageHint}
+          </p>
+        </div>
+        <div>
+          <label className="text-xs mb-1.5 block font-medium" style={{ color: 'var(--text-muted)' }}>{t.settings.theme}</label>
           <ThemeToggle onChange={persistTheme} />
         </div>
         <label className="flex items-center justify-between">
-          <span className="text-sm">Mikro-animacije pri završetku</span>
+          <span className="text-sm">{t.settings.microFeedback}</span>
           <input type="checkbox" checked={microFeedback} onChange={e => setMicroFeedback(e.target.checked)} className="w-5 h-5 accent-[var(--gold)]" />
         </label>
         <label className="flex items-center justify-between">
-          <span className="text-sm">Zvuk</span>
+          <span className="text-sm">{t.settings.sound}</span>
           <input type="checkbox" checked={soundEnabled} onChange={e => setSoundEnabled(e.target.checked)} className="w-5 h-5 accent-[var(--gold)]" />
         </label>
         <div className="flex flex-col gap-3">
           <label className="text-xs font-medium block" style={{ color: 'var(--text-muted)' }}>
-            🔔 Jutarnji podsetnik
+            {t.settings.morningReminder}
           </label>
 
           {notifActive ? (
@@ -219,9 +256,9 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
               >
                 <span className="text-lg">⏰</span>
                 <span className="flex-1 text-sm font-semibold" style={{ color: 'var(--text)' }}>
-                  Podsetnik stiže svako jutro
+                  {t.settings.reminderActive}
                 </span>
-                <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: 'var(--gold-tint)', color: 'var(--gold)' }}>aktivno</span>
+                <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: 'var(--gold-tint)', color: 'var(--gold)' }}>{t.settings.activeBadge}</span>
               </div>
               <button
                 type="button"
@@ -230,7 +267,7 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
                 className="w-full text-xs h-8 rounded-[var(--r-md)] font-medium transition-opacity disabled:opacity-40"
                 style={{ background: 'var(--gold-tint)', color: 'var(--gold)', border: '1px solid var(--gold)' }}
               >
-                {testLoading ? '...' : 'Pošalji test'}
+                {testLoading ? '...' : t.settings.sendTest}
               </button>
               <button
                 type="button"
@@ -239,7 +276,7 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
                 className="text-xs text-left transition-opacity hover:opacity-70 disabled:opacity-30"
                 style={{ color: 'var(--text-muted)' }}
               >
-                Isključi podsetnike
+                {t.settings.turnOffReminders}
               </button>
             </div>
           ) : (
@@ -251,10 +288,10 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
                 className="w-full text-sm h-9 rounded-[var(--r-md)] font-medium transition-opacity disabled:opacity-40"
                 style={{ background: 'var(--gold-tint)', color: 'var(--gold)', border: '1px solid var(--gold)' }}
               >
-                {notifLoading ? 'Aktiviram...' : '+ Aktiviraj jutarnji podsetnik'}
+                {notifLoading ? t.settings.activating : t.settings.activateReminder}
               </button>
               <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                Stiže svako jutro — kratko podsećanje da napraviš plan za dan.
+                {t.settings.reminderHint}
               </p>
             </div>
           )}
@@ -263,14 +300,14 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
         {/* Google Kalendar */}
         <div className="flex flex-col gap-3">
           <label className="text-xs font-medium block" style={{ color: 'var(--text-muted)' }}>
-            📅 Google Kalendar
+            {t.settings.googleCal}
           </label>
           {googleConnected ? (
             <div className="flex items-center justify-between px-3.5 py-3 rounded-[var(--r-md)]"
               style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold" style={{ color: 'var(--gold)' }}>✓ Povezano</span>
-                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>— termini se uvlače automatski</span>
+                <span className="text-xs font-semibold" style={{ color: 'var(--gold)' }}>{t.settings.connected}</span>
+                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t.settings.connectedHint}</span>
               </div>
               <button
                 type="button"
@@ -279,7 +316,7 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
                 className="text-xs transition-opacity hover:opacity-70 disabled:opacity-30"
                 style={{ color: 'var(--text-muted)' }}
               >
-                {googleDisconnecting ? '...' : 'Odspoji'}
+                {googleDisconnecting ? '...' : t.settings.disconnect}
               </button>
             </div>
           ) : (
@@ -294,7 +331,7 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
                 <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
                 <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
               </svg>
-              Poveži Google Kalendar
+              {t.settings.connectGoogle}
             </a>
           )}
         </div>
@@ -303,33 +340,33 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
       </div>
 
       <div className="lg:flex lg:justify-center">
-        <Button size="lg" className="w-full lg:w-auto lg:px-20" onClick={save} loading={saving}>Sačuvaj izmene</Button>
+        <Button size="lg" className="w-full lg:w-auto lg:px-20" onClick={save} loading={saving}>{t.settings.saveChanges}</Button>
       </div>
 
       {/* Nalog */}
       <section className="card p-5 lg:p-6 flex flex-col gap-4">
-        <p className="section-label">Nalog</p>
+        <p className="section-label">{t.settings.accountSection}</p>
         <div className="grid gap-4 lg:grid-cols-2 lg:gap-8">
           <div className="flex flex-col gap-2">
-            <Input id="pw" label="Nova lozinka" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Bar 6 karaktera" />
-            <Button size="sm" variant="secondary" onClick={changePassword} loading={changingPw} disabled={!newPassword}>Promeni lozinku</Button>
+            <Input id="pw" label={t.settings.newPassword} type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder={t.settings.passwordPlaceholder} />
+            <Button size="sm" variant="secondary" onClick={changePassword} loading={changingPw} disabled={!newPassword}>{t.settings.changePassword}</Button>
           </div>
           <div className="flex flex-col gap-3">
-            <a href="/api/account/export" className="text-sm font-medium" style={{ color: 'var(--gold)' }}>⬇️ Preuzmi sve svoje podatke</a>
-            <button onClick={() => setShowDelete(true)} className="text-sm text-left" style={{ color: 'var(--danger)' }}>🗑️ Trajno obriši nalog</button>
+            <a href="/api/account/export" className="text-sm font-medium" style={{ color: 'var(--gold)' }}>{t.settings.exportData}</a>
+            <button onClick={() => setShowDelete(true)} className="text-sm text-left" style={{ color: 'var(--danger)' }}>{t.settings.deleteAccount}</button>
             <div className="pt-1"><LogoutButton /></div>
           </div>
         </div>
       </section>
 
-      <Modal open={showDelete} onClose={() => setShowDelete(false)} title="Obriši nalog">
-        <h3 className="title-serif text-xl" style={{ color: 'var(--text)' }}>Trajno obrisati nalog?</h3>
+      <Modal open={showDelete} onClose={() => setShowDelete(false)} title={t.settings.deleteModalTitle}>
+        <h3 className="title-serif text-xl" style={{ color: 'var(--text)' }}>{t.settings.deleteConfirmTitle}</h3>
         <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-          Ovo briše sve tvoje podatke zauvek — planove, istoriju, profil. Ne može se poništiti.
+          {t.settings.deleteConfirmBody}
         </p>
         <div className="flex flex-col gap-2">
-          <Button variant="danger" onClick={deleteAccount} loading={deleting}>Da, obriši sve</Button>
-          <Button variant="ghost" onClick={() => setShowDelete(false)}>Otkaži</Button>
+          <Button variant="danger" onClick={deleteAccount} loading={deleting}>{t.settings.deleteConfirmYes}</Button>
+          <Button variant="ghost" onClick={() => setShowDelete(false)}>{t.common.cancel}</Button>
         </div>
       </Modal>
     </main>

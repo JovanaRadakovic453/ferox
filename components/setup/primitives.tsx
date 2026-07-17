@@ -2,12 +2,6 @@ import type { ReactNode } from 'react'
 import type { TaskType, Priority } from '@/types/ferox'
 import { DEFAULTS } from '@/lib/config'
 
-export const PRIORITY_OPTIONS: { value: Priority; label: string }[] = [
-  { value: 'high',   label: '🔴 Visok' },
-  { value: 'medium', label: '🟡 Srednji' },
-  { value: 'low',    label: '🟢 Nizak' },
-]
-
 export const EMPTY_TASK = { name: '', note: '', priority: 'medium' as Priority, type: 'light' as TaskType }
 export const EMPTY_APPT = { name: '', time: '09:00', reminder: DEFAULTS.reminderMinutes }
 export const EMPTY_APPT_REMINDER = { value: DEFAULTS.reminderMinutes, unit: 'min' as 'min' | 'sat' }

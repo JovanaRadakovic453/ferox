@@ -2,6 +2,7 @@
 
 import { cn } from '@/lib/utils'
 import { InputHTMLAttributes, forwardRef, useState } from 'react'
+import { useT } from '@/components/i18n/I18nProvider'
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string
@@ -10,6 +11,7 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 
 const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ className, label, error, id, type, ...props }, ref) => {
+    const t = useT()
     const [visible, setVisible] = useState(false)
     const isPassword = type === 'password'
     const inputType = isPassword && visible ? 'text' : type
@@ -42,8 +44,8 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             <button
               type="button"
               onClick={() => setVisible(v => !v)}
-              aria-label={visible ? 'Sakrij lozinku' : 'Prikaži lozinku'}
-              title={visible ? 'Sakrij lozinku' : 'Prikaži lozinku'}
+              aria-label={visible ? t.common.hidePassword : t.common.showPassword}
+              title={visible ? t.common.hidePassword : t.common.showPassword}
               tabIndex={-1}
               className="absolute right-3 top-1/2 -translate-y-1/2 p-1 opacity-55 hover:opacity-100 transition-opacity"
               style={{ color: 'var(--text-muted)' }}

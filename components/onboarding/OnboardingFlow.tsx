@@ -6,12 +6,23 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
+import { LOCALES, LOCALE_LABELS, LOCALE_FLAGS } from '@/types/ferox'
+import type { Locale } from '@/types/ferox'
+import { DEFAULT_LOCALE } from '@/lib/locale'
+import { getDict } from '@/lib/i18n/dict'
 
 type Reason = 'work' | 'school'
 
 interface FormData {
   name: string
   reason: Reason | null
+  locale: Locale
+}
+
+// Kratak opis uz svaki jezik — na tom istom jeziku, jer korisnik još nije izabrao.
+const LOCALE_DESC: Record<Locale, string> = {
+  sr: 'AI ti piše plan i rezime na srpskom',
+  en: 'AI writes your plan and recap in English',
 }
 
 const slideVariants = {
@@ -74,8 +85,11 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
   const [form, setForm] = useState<FormData>({
     name: initialName,
     reason: null,
+    locale: DEFAULT_LOCALE,
   })
   const [notifLoading, setNotifLoading] = useState(false)
+  // Tekst prati IZABRANI jezik uživo (ne profil) — čim izabere, ostatak je na tom jeziku.
+  const t = getDict(form.locale)
 
   function next() {
     setDir(1)
@@ -95,6 +109,7 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
     await supabase.from('profiles').update({
       name: form.name,
       reason: form.reason,
+      locale: form.locale,
       completed_once: true,
     }).eq('id', user.id)
   }
@@ -143,31 +158,61 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
         </div>
         <div>
           <h1 className="title-serif text-4xl mb-2" style={{ color: 'var(--text)' }}>
-            Dobrodošla u Ferox
+            {t.onboarding.welcomeTitle}
           </h1>
           <p className="text-sm leading-relaxed max-w-[280px]" style={{ color: 'var(--text-muted)' }}>
-            Isplaniraj svoj dan i prati šta si zaista uradila.
+            {t.onboarding.welcomeSub}
           </p>
         </div>
         <Button size="lg" className="w-full max-w-[280px]" onClick={next}>
-          Počnimo →
+          {t.onboarding.start}
         </Button>
       </div>
     ),
 
+    // Jezik je PRVI izbor — da sve posle njega može da bude na tom jeziku.
+    // Naslov i dugme su dvojezični jer korisnik još nije izabrao.
     2: (
+      <div className="flex flex-col gap-5">
+        <div>
+          <h2 className="title-serif text-3xl mb-1" style={{ color: 'var(--text)' }}>
+            Jezik · Language
+          </h2>
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+            Izaberi jezik · Choose your language
+          </p>
+        </div>
+        <div className="flex flex-col gap-3">
+          {LOCALES.map(l => (
+            <OptionCard
+              key={l}
+              emoji={LOCALE_FLAGS[l]}
+              title={LOCALE_LABELS[l]}
+              desc={LOCALE_DESC[l]}
+              selected={form.locale === l}
+              onClick={() => setForm(f => ({ ...f, locale: l }))}
+            />
+          ))}
+        </div>
+        <Button size="lg" className="w-full" onClick={next}>
+          Dalje · Next →
+        </Button>
+      </div>
+    ),
+
+    3: (
       <div className="flex flex-col gap-6">
         <div>
           <h2 className="title-serif text-3xl mb-1" style={{ color: 'var(--text)' }}>
-            Kako da te zovemo?
+            {t.onboarding.nameTitle}
           </h2>
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            Ime koje ćeš videti svaki dan
+            {t.onboarding.nameSub}
           </p>
         </div>
         <Input
           id="name"
-          placeholder="Tvoje ime"
+          placeholder={t.onboarding.namePlaceholder}
           value={form.name}
           onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
           autoFocus
@@ -178,39 +223,39 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
           onClick={next}
           disabled={!form.name.trim()}
         >
-          Dalje →
-        </Button>
-      </div>
-    ),
-
-    3: (
-      <div className="flex flex-col gap-5">
-        <div>
-          <h2 className="title-serif text-3xl mb-1" style={{ color: 'var(--text)' }}>
-            Zašto koristiš Ferox?
-          </h2>
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            Pomoći će nam da prilagodimo preporuke
-          </p>
-        </div>
-        <div className="flex flex-col gap-3">
-          <OptionCard emoji="💼" title="Posao" desc="Projekti, rokovi, poslovni zadaci" selected={form.reason === 'work'} onClick={() => setForm(f => ({ ...f, reason: 'work' }))} />
-          <OptionCard emoji="🎓" title="Fakultet" desc="Učenje, ispiti, predavanja" selected={form.reason === 'school'} onClick={() => setForm(f => ({ ...f, reason: 'school' }))} />
-        </div>
-        <Button size="lg" className="w-full" onClick={next} disabled={!form.reason}>
-          Dalje →
+          {t.common.next}
         </Button>
       </div>
     ),
 
     4: (
+      <div className="flex flex-col gap-5">
+        <div>
+          <h2 className="title-serif text-3xl mb-1" style={{ color: 'var(--text)' }}>
+            {t.onboarding.reasonTitle}
+          </h2>
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+            {t.onboarding.reasonSub}
+          </p>
+        </div>
+        <div className="flex flex-col gap-3">
+          <OptionCard emoji="💼" title={t.onboarding.work} desc={t.onboarding.workDesc} selected={form.reason === 'work'} onClick={() => setForm(f => ({ ...f, reason: 'work' }))} />
+          <OptionCard emoji="🎓" title={t.onboarding.school} desc={t.onboarding.schoolDesc} selected={form.reason === 'school'} onClick={() => setForm(f => ({ ...f, reason: 'school' }))} />
+        </div>
+        <Button size="lg" className="w-full" onClick={next} disabled={!form.reason}>
+          {t.common.next}
+        </Button>
+      </div>
+    ),
+
+    5: (
       <div className="flex flex-col gap-6">
         <div>
           <h2 className="title-serif text-3xl mb-1" style={{ color: 'var(--text)' }}>
-            Jutarnji podsetnik
+            {t.onboarding.reminderTitle}
           </h2>
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            Svako jutro te kratko podsetimo da napraviš plan dana.
+            {t.onboarding.reminderSub}
           </p>
         </div>
 
@@ -220,7 +265,7 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
         >
           <span className="text-2xl">⏰</span>
           <span className="flex-1 text-lg font-semibold" style={{ color: 'var(--text)' }}>
-            Jedna poruka ujutru
+            {t.onboarding.reminderOne}
           </span>
         </div>
 
@@ -230,7 +275,7 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
           onClick={activateReminder}
           loading={notifLoading || loading}
         >
-          Aktiviraj podsetnik →
+          {t.onboarding.activateReminder}
         </Button>
 
         <button
@@ -240,7 +285,7 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
           className="text-sm text-center transition-opacity hover:opacity-70 disabled:opacity-30"
           style={{ color: 'var(--text-muted)' }}
         >
-          Preskoči
+          {t.common.skip}
         </button>
       </div>
     ),
@@ -259,10 +304,10 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
         </div>
         <div>
           <h2 className="title-serif text-[2.6rem] leading-[1.1]" style={{ color: 'var(--text)' }}>
-            Tvoje obaveze,<br /><span className="foil">tvoj dan.</span>
+            {t.onboarding.brandLine1}<br /><span className="foil">{t.onboarding.brandLine2}</span>
           </h2>
           <p className="text-base mt-6 max-w-[44ch]" style={{ color: 'var(--text-muted)' }}>
-            Isplaniraj svoj dan i prati napredak. Sve na jednom mestu.
+            {t.onboarding.brandSub}
           </p>
         </div>
       </aside>
@@ -276,11 +321,11 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
               className="self-start mb-4 text-sm flex items-center gap-1 transition-opacity hover:opacity-70"
               style={{ color: 'var(--text-muted)' }}
             >
-              ← Nazad
+              {t.common.back}
             </button>
           )}
 
-          <StepDots total={4} current={step} />
+          <StepDots total={5} current={step} />
 
           <AnimatePresence mode="wait" custom={dir}>
             <motion.div

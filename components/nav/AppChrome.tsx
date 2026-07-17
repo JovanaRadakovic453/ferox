@@ -6,6 +6,8 @@ import Link from 'next/link'
 import InstallBanner from '@/components/nav/InstallBanner'
 import ThemeToggle from '@/components/ui/ThemeToggle'
 import BreakAlarmOverlay from '@/components/extras/BreakAlarmOverlay'
+import { useT } from '@/components/i18n/I18nProvider'
+import type { Dict } from '@/lib/i18n/dict'
 
 // Chrome visibility. Pages with their own full-width bottom CTA (e.g. SetupScreen)
 // call setHidden(true) on mount to avoid a double bar. This hides ONLY the mobile
@@ -14,13 +16,14 @@ type ChromeValue = { setHidden: (v: boolean) => void }
 const ChromeCtx = createContext<ChromeValue>({ setHidden: () => {} })
 export function useChrome() { return useContext(ChromeCtx) }
 
+// Naziv se ne piše ovde nego se vadi iz rečnika — `label` bira ključ.
 const TABS = [
-  { href: '/',          label: 'Danas',       icon: '☀️', match: (p: string) => p === '/' || p.startsWith('/plan') },
-  { href: '/calendar',  label: 'Kalendar',    icon: '📅', match: (p: string) => p.startsWith('/calendar') },
-  { href: '/history',   label: 'Istorija',    icon: '🕰️', match: (p: string) => p.startsWith('/history') },
-  { href: '/insights',  label: 'Uvidi',       icon: '📈', match: (p: string) => p.startsWith('/insights') },
-  { href: '/extras',    label: 'Alati',       icon: '🛠️', match: (p: string) => p.startsWith('/extras') },
-  { href: '/settings',  label: 'Podešavanja', icon: '⚙️', match: (p: string) => p.startsWith('/settings') },
+  { href: '/',          label: (t: Dict) => t.nav.today,    icon: '☀️', match: (p: string) => p === '/' || p.startsWith('/plan') },
+  { href: '/calendar',  label: (t: Dict) => t.nav.calendar, icon: '📅', match: (p: string) => p.startsWith('/calendar') },
+  { href: '/history',   label: (t: Dict) => t.nav.history,  icon: '🕰️', match: (p: string) => p.startsWith('/history') },
+  { href: '/insights',  label: (t: Dict) => t.nav.insights, icon: '📈', match: (p: string) => p.startsWith('/insights') },
+  { href: '/extras',    label: (t: Dict) => t.nav.extras,   icon: '🛠️', match: (p: string) => p.startsWith('/extras') },
+  { href: '/settings',  label: (t: Dict) => t.nav.settings, icon: '⚙️', match: (p: string) => p.startsWith('/settings') },
 ]
 
 export default function AppChrome({ children, streak = 0 }: { children: ReactNode; streak?: number }) {
@@ -62,9 +65,10 @@ export default function AppChrome({ children, streak = 0 }: { children: ReactNod
 
 /* ── Desktop left rail ─────────────────────────────────────────── */
 function Sidebar({ pathname, streak }: { pathname: string; streak: number }) {
+  const t = useT()
   return (
     <aside className="app-sidebar">
-      <Link href="/" aria-label="Ferox — početna" className="flex items-center gap-2.5 px-2 mb-7">
+      <Link href="/" aria-label={t.nav.home} className="flex items-center gap-2.5 px-2 mb-7">
         <span
           className="grid place-items-center w-9 h-9 rounded-[12px] text-white logo text-xl shrink-0"
           style={{ backgroundImage: 'linear-gradient(135deg, var(--gold-light), var(--gold-deep))', boxShadow: 'var(--sh-gold)' }}
@@ -75,13 +79,13 @@ function Sidebar({ pathname, streak }: { pathname: string; streak: number }) {
         <span className="logo text-[1.65rem] leading-none foil">Ferox</span>
       </Link>
 
-      <nav aria-label="Glavna navigacija" className="flex flex-col gap-1">
+      <nav aria-label={t.nav.main} className="flex flex-col gap-1">
         {TABS.map(tab => {
           const active = tab.match(pathname)
           return (
             <Link key={tab.href} href={tab.href} aria-current={active ? 'page' : undefined} className="nav-item">
               <span className="nav-ico" aria-hidden>{tab.icon}</span>
-              {tab.label}
+              {tab.label(t)}
             </Link>
           )
         })}
@@ -92,7 +96,7 @@ function Sidebar({ pathname, streak }: { pathname: string; streak: number }) {
       {streak > 0 && (
         <div className="px-2 mb-3">
           <span className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-[var(--r-md)] w-full" style={{ background: 'var(--gold-tint)', color: 'var(--gold)' }}>
-            🔥 <span>{streak} {streak === 1 ? 'dan' : 'dana'} zaredom</span>
+            🔥 <span>{t.nav.streak(streak)}</span>
           </span>
         </div>
       )}
@@ -106,8 +110,9 @@ function Sidebar({ pathname, streak }: { pathname: string; streak: number }) {
 
 /* ── Mobile bottom bar ─────────────────────────────────────────── */
 function MobileNav({ pathname }: { pathname: string }) {
+  const t = useT()
   return (
-    <nav aria-label="Glavna navigacija" className="lg:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[520px] z-40 px-3">
+    <nav aria-label={t.nav.main} className="lg:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[520px] z-40 px-3">
       <div
         className="glass mb-3 rounded-[var(--r-lg)] px-1.5 py-1.5 flex items-center justify-around pb-safe"
         style={{ border: '1px solid var(--hairline)', boxShadow: 'var(--sh-md)' }}
@@ -123,7 +128,7 @@ function MobileNav({ pathname }: { pathname: string }) {
               style={{ color: active ? 'var(--gold)' : 'var(--text-muted)', background: active ? 'var(--gold-tint)' : 'transparent' }}
             >
               <span className="text-lg leading-none" aria-hidden>{tab.icon}</span>
-              <span className="text-[0.6rem] font-medium tracking-wide">{tab.label}</span>
+              <span className="text-[0.6rem] font-medium tracking-wide">{tab.label(t)}</span>
             </Link>
           )
         })}

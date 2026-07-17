@@ -1,6 +1,6 @@
 'use client'
 
-const DAY_NAMES = ['Pon', 'Uto', 'Sre', 'Čet', 'Pet', 'Sub', 'Ned']
+import { useT } from '@/components/i18n/I18nProvider'
 
 type Entry = { id: string; date_key: string; finished_at: string | null }
 type Appointment = { id: string; date_key: string; name: string; time: string; done: boolean }
@@ -71,6 +71,7 @@ export default function CalendarGrid({
   selectedDate: string | null
   onSelectDate: (date: string) => void
 }) {
+  const t = useT()
   const days = view === 'month'
     ? getMonthGridDays(month)
     : getWeekDays(selectedDate ?? today)
@@ -88,7 +89,7 @@ export default function CalendarGrid({
     <div className="card p-3 sm:p-4">
       {/* Day-of-week headers */}
       <div className="grid grid-cols-7 mb-1">
-        {DAY_NAMES.map(d => (
+        {t.cal.weekdaysShort.map(d => (
           <div
             key={d}
             className="text-center py-1 text-[0.6rem] font-semibold tracking-[0.1em] uppercase"
@@ -189,17 +190,17 @@ export default function CalendarGrid({
                 <div className="flex flex-col items-center gap-0.5">
                   {taskCount > 0 && (
                     <div className="text-[0.58rem] font-medium leading-tight" style={{ color: 'var(--text-muted)' }}>
-                      {taskCount} zad.
+                      {t.cal.tasksAbbr(taskCount)}
                     </div>
                   )}
                   {hasAppt && (
                     <div className="text-[0.58rem] font-medium leading-tight" style={{ color: '#f97316' }}>
-                      termin
+                      {t.cal.apptAbbr}
                     </div>
                   )}
                   {hasScheduled && !hasEntry && (
                     <div className="text-[0.58rem] font-medium leading-tight" style={{ color: '#60a5fa' }}>
-                      zakazano
+                      {t.cal.scheduledAbbr}
                     </div>
                   )}
                 </div>
@@ -213,19 +214,19 @@ export default function CalendarGrid({
       <div className="flex items-center gap-3 mt-4 pt-3 flex-wrap" style={{ borderTop: '1px solid var(--hairline)' }}>
         <div className="flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full shrink-0" style={{ background: 'var(--gold)' }} />
-          <span className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>Zadaci</span>
+          <span className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>{t.cal.legendTasks}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full shrink-0" style={{ background: '#f97316' }} />
-          <span className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>Termini</span>
+          <span className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>{t.cal.legendAppts}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full shrink-0" style={{ background: '#60a5fa' }} />
-          <span className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>Zakazano</span>
+          <span className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>{t.cal.legendScheduled}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="text-[0.58rem] font-bold leading-none" style={{ color: 'var(--gold)' }}>✓</span>
-          <span className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>Dan završen</span>
+          <span className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>{t.cal.legendDone}</span>
         </div>
       </div>
     </div>

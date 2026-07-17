@@ -7,9 +7,24 @@ import { z } from 'zod'
 import { apiOk, ERR } from '@/lib/api'
 import { zStrictDate } from '@/lib/validation'
 import { extractText } from '@/lib/ai/parse'
-import { FEROX_PERSONA } from '@/lib/ai/prompts'
+import { feroxPersona, outputLangRule, langLocative } from '@/lib/ai/prompts'
+import { getUserLocale } from '@/lib/locale'
 import { TASK_TYPE_LABELS } from '@/types/ferox'
-import type { TaskType } from '@/types/ferox'
+import type { TaskType, Locale } from '@/types/ferox'
+
+// Rezerva kad AI nije dostupan — app nikad ne sme da zavisi od modela.
+const FALLBACK: Record<Locale, { none: string; some: (n: number) => string; finished: string }> = {
+  sr: {
+    none: 'Dan je gotov. Sutra je novi početak — to je sasvim u redu.',
+    some: n => `Završio/la si ${n} ${n === 1 ? 'stvar' : 'stvari'} danas. To se računa. 🌙`,
+    finished: 'Dan je završen. Svaki korak napred se računa. 🌙',
+  },
+  en: {
+    none: 'The day is done. Tomorrow is a fresh start — and that is perfectly fine.',
+    some: n => `You finished ${n} ${n === 1 ? 'thing' : 'things'} today. That counts. 🌙`,
+    finished: 'Day complete. Every step forward counts. 🌙',
+  },
+}
 import { AI, RATE_LIMITS } from '@/lib/config'
 import { checkRateLimit } from '@/lib/rateLimit'
 
@@ -35,8 +50,11 @@ export async function POST(request: NextRequest) {
   // Cached — don't pay for the model twice for the same finished day.
   if (entry.eod_recap) return apiOk({ recap: entry.eod_recap })
 
+  const locale = await getUserLocale(supabase, user.id)
+  const fb = FALLBACK[locale]
+
   if (!process.env.ANTHROPIC_API_KEY) {
-    return apiOk({ recap: 'Dan je završen. Svaki korak napred se računa. 🌙' })
+    return apiOk({ recap: fb.finished })
   }
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -52,21 +70,19 @@ export async function POST(request: NextRequest) {
     const message = await anthropic.messages.create({
       model: AI.model,
       max_tokens: AI.maxTokens.eod,
-      system: [{ type: 'text', text: FEROX_PERSONA, cache_control: { type: 'ephemeral' } }],
+      system: [{ type: 'text', text: `${feroxPersona(locale)}\n\n${outputLangRule(locale)}`, cache_control: { type: 'ephemeral' } }],
       messages: [{
         role: 'user',
         content:
           `Korisnik je upravo završio dan. Uradio/la je ${done.length} od ${total} zadataka. ` +
           `${doneTypes ? `Završeni tipovi: ${doneTypes}. ` : ''}` +
-          `Napiši toplu poruku od 1-2 rečenice na srpskom koja priznaje trud (čak i ako je malo urađeno). Bez osuđivanja, bez klišea. Vrati SAMO poruku.`,
+          `Napiši toplu poruku od 1-2 rečenice na ${langLocative(locale)} koja priznaje trud (čak i ako je malo urađeno). Bez osuđivanja, bez klišea. Vrati SAMO poruku.`,
       }],
     })
     recap = extractText(message) ?? ''
   } catch {
     // Deterministic fallback — app never hard-depends on the model.
-    recap = done.length === 0
-      ? 'Dan je gotov. Sutra je novi početak — to je sasvim u redu.'
-      : `Završio/la si ${done.length} ${done.length === 1 ? 'stvar' : 'stvari'} danas. To se računa. 🌙`
+    recap = done.length === 0 ? fb.none : fb.some(done.length)
   }
 
   if (recap) {

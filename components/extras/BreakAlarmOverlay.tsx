@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { t, resetTimer } from '@/lib/breakTimer'
+import { useT } from '@/components/i18n/I18nProvider'
 
 export default function BreakAlarmOverlay() {
+  const tr = useT()
   const [alarming, setAlarming] = useState(false)
   const [mounted, setMounted] = useState(false)
 
@@ -57,15 +59,15 @@ export default function BreakAlarmOverlay() {
           >
             <span className="text-5xl animate-pulse">⏰</span>
             <div>
-              <p className="title-serif text-2xl" style={{ color: 'var(--text)' }}>Odmor je gotov!</p>
-              <p className="text-sm mt-1.5" style={{ color: 'var(--text-muted)' }}>Vreme je da nastaviš sa radom.</p>
+              <p className="title-serif text-2xl" style={{ color: 'var(--text)' }}>{tr.extras.alarmOver}</p>
+              <p className="text-sm mt-1.5" style={{ color: 'var(--text-muted)' }}>{tr.extras.alarmBackToWork}</p>
             </div>
             <button
               onClick={dismiss}
               className="w-full py-3.5 rounded-[var(--r-md)] font-semibold text-sm transition-opacity hover:opacity-90 active:scale-95"
               style={{ background: 'var(--gold)', color: 'white' }}
             >
-              ⏹ Zaustavi alarm
+              {tr.extras.stopAlarm}
             </button>
           </motion.div>
         </motion.div>

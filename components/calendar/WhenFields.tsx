@@ -7,6 +7,7 @@
 // Ranije je "Krećem" bio samo sitan datum ispod naslova, pa se nije ni video.
 
 import { formatDate } from '@/lib/utils'
+import { useT, useLocale } from '@/components/i18n/I18nProvider'
 
 export default function WhenFields({
   startDate, deadlineEnabled, onToggleDeadline, deadlineDate, onDeadlineChange,
@@ -17,9 +18,11 @@ export default function WhenFields({
   deadlineDate: string
   onDeadlineChange: (v: string) => void
 }) {
+  const t = useT()
+  const locale = useLocale()
   return (
     <div className="flex flex-col gap-2">
-      <span className="section-label">Kada</span>
+      <span className="section-label">{t.when.heading}</span>
 
       {/* Krećem — nije izmenjiv ovde; bira se klikom na dan u kalendaru */}
       <div
@@ -28,14 +31,14 @@ export default function WhenFields({
       >
         <div className="flex items-center justify-between gap-2">
           <span className="text-sm flex items-center gap-2" style={{ color: 'var(--text)' }}>
-            <span aria-hidden>▶️</span> Krećem
+            {t.when.start}
           </span>
           <span className="text-sm font-semibold text-right" style={{ color: 'var(--gold)' }}>
-            {formatDate(startDate)}
+            {formatDate(startDate, locale)}
           </span>
         </div>
         <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-          Tog dana ti se sam pojavi u planu
+          {t.when.startHint}
         </p>
       </div>
 
@@ -53,7 +56,7 @@ export default function WhenFields({
         >
           <div className="flex items-center justify-between gap-2">
             <span className="text-sm flex items-center gap-2" style={{ color: 'var(--text)' }}>
-              <span aria-hidden>📅</span> Rok
+              {t.when.deadline}
             </span>
             <div
               className="w-10 h-5 rounded-full flex items-center px-0.5 transition-all shrink-0"
@@ -66,7 +69,7 @@ export default function WhenFields({
             </div>
           </div>
           <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-            Do kada mora da bude gotov
+            {t.when.deadlineHint}
           </p>
         </button>
 
@@ -76,7 +79,7 @@ export default function WhenFields({
             value={deadlineDate}
             min={startDate}
             onChange={e => onDeadlineChange(e.target.value)}
-            aria-label="Datum roka"
+            aria-label={t.when.deadlineDateAria}
             className="field h-11 px-3 text-sm w-full mt-2"
           />
         )}

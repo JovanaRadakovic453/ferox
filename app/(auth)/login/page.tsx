@@ -7,9 +7,11 @@ import { createClient } from '@/lib/supabase/client'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import AuthCard from '@/components/auth/AuthCard'
+import { useT } from '@/components/i18n/I18nProvider'
 
 export default function LoginPage() {
   const router = useRouter()
+  const t = useT()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -18,7 +20,7 @@ export default function LoginPage() {
   const [resetLoading, setResetLoading] = useState(false)
 
   async function handleReset() {
-    if (!email.trim()) { setError('Upiši email pa klikni "Zaboravio/la lozinku?"'); return }
+    if (!email.trim()) { setError(t.auth.resetNeedEmail); return }
     setResetLoading(true)
     setError('')
     const supabase = createClient()
@@ -45,7 +47,7 @@ export default function LoginPage() {
     if (error) {
       setError(
         error.message === 'Invalid login credentials'
-          ? 'Pogrešan email ili lozinka'
+          ? t.auth.wrongCreds
           : error.message
       )
       setLoading(false)
@@ -58,16 +60,16 @@ export default function LoginPage() {
 
   return (
     <AuthCard
-      subtitle="Tvoj lični planer dana"
+      subtitle={t.auth.loginSubtitle}
       footer={
         <>
-          Nemaš nalog?{' '}
+          {t.auth.noAccount}{' '}
           <Link
             href="/register"
             className="font-medium underline underline-offset-2"
             style={{ color: 'var(--gold)' }}
           >
-            Registruj se
+            {t.auth.signUp}
           </Link>
         </>
       }
@@ -75,7 +77,7 @@ export default function LoginPage() {
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <Input
           id="email"
-          label="Email"
+          label={t.auth.email}
           type="email"
           placeholder="tvoj@email.com"
           value={email}
@@ -85,7 +87,7 @@ export default function LoginPage() {
         />
         <Input
           id="password"
-          label="Lozinka"
+          label={t.auth.password}
           type="password"
           placeholder="••••••••"
           value={password}
@@ -101,7 +103,7 @@ export default function LoginPage() {
           loading={loading}
           className="w-full mt-2"
         >
-          Prijavi se
+          {t.auth.login}
         </Button>
 
         <button
@@ -111,12 +113,12 @@ export default function LoginPage() {
           className="w-full text-sm text-center py-1 opacity-60 hover:opacity-100 transition-opacity"
           style={{ color: 'var(--gold)' }}
         >
-          {resetLoading ? 'Šaljem...' : 'Zaboravio/la lozinku?'}
+          {resetLoading ? t.auth.sending : t.auth.forgot}
         </button>
 
         {resetSent && (
           <p className="text-sm text-center rounded-[10px] px-3 py-2" style={{ background: 'var(--ok-tint)', color: 'var(--ok)' }}>
-            ✓ Poslali smo ti link za reset lozinke na email
+            {t.auth.resetSent}
           </p>
         )}
       </form>

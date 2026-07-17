@@ -6,6 +6,8 @@ import { createClient } from '@/lib/supabase/client'
 import { getDeadlineBadge } from '@/lib/deadline'
 import AddScheduledTaskModal from './AddScheduledTaskModal'
 import EditScheduledTaskModal from './EditScheduledTaskModal'
+import { useT, useLocale } from '@/components/i18n/I18nProvider'
+import { INTL_LOCALE } from '@/lib/locale'
 
 type Entry = { id: string; date_key: string; finished_at: string | null }
 type Appointment = { id: string; date_key: string; name: string; time: string; done: boolean }
@@ -15,8 +17,8 @@ type LoadedTask = { id: string; name: string; priority: string; done: boolean; n
 const PRIORITY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 }
 const PRIORITY_DOT: Record<string, string> = { high: '🔴', medium: '🟡', low: '🟢' }
 
-function formatDateLabel(dateKey: string): string {
-  return new Intl.DateTimeFormat('sr-Latn-RS', {
+function formatDateLabel(dateKey: string, intlLocale: string): string {
+  return new Intl.DateTimeFormat(intlLocale, {
     day: 'numeric', month: 'long', year: 'numeric',
   }).format(new Date(`${dateKey}T12:00:00Z`))
 }
@@ -46,6 +48,8 @@ export default function DayPanel({
   onUpdateTask: (updated: ScheduledTask) => void
   googleConnected?: boolean
 }) {
+  const t = useT()
+  const locale = useLocale()
   const entry = entries.find(e => e.date_key === date)
   const isFuture = date > today
   const isToday = date === today
@@ -102,7 +106,7 @@ export default function DayPanel({
     onUpdateTask(updated)
   }
 
-  const dayLabel = isToday ? 'Danas' : isFuture ? 'Budući datum' : 'Prošli datum'
+  const dayLabel = isToday ? t.cal.todayLabel : isFuture ? t.cal.futureLabel : t.cal.pastLabel
 
   return (
     <div
@@ -118,11 +122,11 @@ export default function DayPanel({
           {dayLabel}
         </div>
         <h2 className="title-serif text-[1.1rem] leading-tight" style={{ color: 'var(--text)' }}>
-          {formatDateLabel(date)}
+          {formatDateLabel(date, INTL_LOCALE[locale])}
         </h2>
         {entry?.finished_at && (
           <span className="inline-flex items-center gap-1 text-xs mt-1 font-medium" style={{ color: 'var(--gold)' }}>
-            ✓ Dan završen
+            {t.cal.dayComplete}
           </span>
         )}
       </div>
@@ -130,7 +134,7 @@ export default function DayPanel({
       {/* Appointments */}
       {sortedAppts.length > 0 && (
         <section>
-          <div className="section-label mb-2">Termini</div>
+          <div className="section-label mb-2">{t.cal.appointments}</div>
           <div className="flex flex-col gap-1.5">
             {sortedAppts.map(a => (
               <div
@@ -163,7 +167,7 @@ export default function DayPanel({
               <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
               <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
             </svg>
-            <div className="section-label">Google Kalendar</div>
+            <div className="section-label">{t.cal.googleCal}</div>
           </div>
           <div className="flex flex-col gap-1.5">
             {googleEvents.map(ev => (
@@ -187,17 +191,17 @@ export default function DayPanel({
       {/* Past / today: tasks from day_entry */}
       {!isFuture && (
         <section>
-          <div className="section-label mb-2">Zadaci</div>
+          <div className="section-label mb-2">{t.cal.tasks}</div>
           {loadingTasks && (
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Učitavam...</p>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{t.cal.loading}</p>
           )}
           {!loadingTasks && !entry && (
             <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-              Za ovaj datum nije kreiran plan.
+              {t.cal.noPlan}
             </p>
           )}
           {!loadingTasks && entry && sortedTasks.length === 0 && (
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Nema zadataka za ovaj dan.</p>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{t.cal.noTasks}</p>
           )}
           {!loadingTasks && sortedTasks.length > 0 && (
             <div className="flex flex-col gap-1.5">
@@ -228,53 +232,53 @@ export default function DayPanel({
       {/* Future + today: scheduled tasks */}
       {(isFuture || isToday) && (
         <section>
-          <div className="section-label mb-2">Zakazani zadaci</div>
+          <div className="section-label mb-2">{t.cal.scheduledTasks}</div>
           {sortedScheduled.length === 0 && (
             <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
-              Nema zakazanih zadataka za ovaj dan.
+              {t.cal.noScheduled}
             </p>
           )}
           {sortedScheduled.length > 0 && (
             <div className="flex flex-col gap-1.5 mb-3">
-              {sortedScheduled.map(t => {
-                const dlBadge = t.deadline_date ? getDeadlineBadge(t.deadline_date, today) : null
+              {sortedScheduled.map(st => {
+                const dlBadge = st.deadline_date ? getDeadlineBadge(st.deadline_date, today, locale) : null
                 return (
                   <div
-                    key={t.id}
+                    key={st.id}
                     className="flex items-start gap-2 px-3 py-2 rounded-[var(--r-md)] group"
                     style={{ background: 'var(--surface2)' }}
                   >
-                    <span className="text-xs shrink-0 mt-0.5">{PRIORITY_DOT[t.priority] ?? '🟡'}</span>
+                    <span className="text-xs shrink-0 mt-0.5">{PRIORITY_DOT[st.priority] ?? '🟡'}</span>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm truncate" style={{ color: 'var(--text)' }}>{t.name}</div>
+                      <div className="text-sm truncate" style={{ color: 'var(--text)' }}>{st.name}</div>
                       {dlBadge && (
                         <div className="flex items-center gap-0.5 text-[0.58rem] font-semibold mt-0.5" style={{ color: dlBadge.color }}>
                           <span>▲</span><span>{dlBadge.text}</span>
                         </div>
                       )}
                     </div>
-                    {t.remind_before_minutes != null && (
+                    {st.remind_before_minutes != null && (
                       <span className="text-[0.58rem] font-semibold shrink-0 mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                        🔔{t.remind_before_minutes >= 1440
-                          ? `${Math.round(t.remind_before_minutes / 1440)}d`
-                          : t.remind_before_minutes >= 60
-                          ? `${Math.round(t.remind_before_minutes / 60)}h`
-                          : `${t.remind_before_minutes}min`}
+                        🔔{st.remind_before_minutes >= 1440
+                          ? `${Math.round(st.remind_before_minutes / 1440)}d`
+                          : st.remind_before_minutes >= 60
+                          ? `${Math.round(st.remind_before_minutes / 60)}h`
+                          : `${st.remind_before_minutes}min`}
                       </span>
                     )}
                     <div className="flex items-center gap-1.5 shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
-                        onClick={() => setEditingTask(t)}
+                        onClick={() => setEditingTask(st)}
                         className="text-xs hover:opacity-70 transition-opacity"
                         style={{ color: 'var(--text-muted)' }}
-                        aria-label={`Izmeni ${t.name}`}
+                        aria-label={t.cal.editAria(st.name)}
                       >✎</button>
                       <button
-                        onClick={() => handleRemove(t.id)}
-                        disabled={removing === t.id}
+                        onClick={() => handleRemove(st.id)}
+                        disabled={removing === st.id}
                         className="text-xs hover:opacity-70 transition-opacity disabled:opacity-30"
                         style={{ color: 'var(--text-muted)' }}
-                        aria-label={`Obriši ${t.name}`}
+                        aria-label={t.cal.deleteAria(st.name)}
                       >✕</button>
                     </div>
                   </div>
@@ -282,17 +286,17 @@ export default function DayPanel({
               })}
             </div>
           )}
-          {sortedScheduled.some(t => t.deadline_date) && (
+          {sortedScheduled.some(st => st.deadline_date) && (
             <div className="flex items-center gap-3 mb-2 px-1">
-              <span className="text-[0.55rem] font-semibold uppercase tracking-wide shrink-0" style={{ color: 'var(--text-muted)' }}>Rok:</span>
+              <span className="text-[0.55rem] font-semibold uppercase tracking-wide shrink-0" style={{ color: 'var(--text-muted)' }}>{t.cal.deadlineLabel}</span>
               <div className="flex items-center gap-1 text-[0.58rem] font-semibold" style={{ color: 'var(--danger)' }}>
-                <span>▲</span><span>prošao</span>
+                <span>▲</span><span>{t.cal.dlPast}</span>
               </div>
               <div className="flex items-center gap-1 text-[0.58rem] font-semibold" style={{ color: 'var(--warn)' }}>
-                <span>▲</span><span>uskoro</span>
+                <span>▲</span><span>{t.cal.dlSoon}</span>
               </div>
               <div className="flex items-center gap-1 text-[0.58rem] font-semibold" style={{ color: 'var(--text-muted)' }}>
-                <span>▲</span><span>daleko</span>
+                <span>▲</span><span>{t.cal.dlFar}</span>
               </div>
             </div>
           )}
@@ -306,7 +310,7 @@ export default function DayPanel({
               background: 'var(--gold-tint)',
             }}
           >
-            + Dodaj zadatak
+            {t.cal.addTask}
           </button>
         </section>
       )}
@@ -318,7 +322,7 @@ export default function DayPanel({
           className="flex items-center justify-center gap-1.5 h-9 rounded-[var(--r-md)] text-sm font-medium transition-colors"
           style={{ background: 'var(--surface2)', color: 'var(--text-muted)' }}
         >
-          {isToday ? 'Idi na plan →' : 'Pogledaj plan →'}
+          {isToday ? t.cal.goToPlan : t.cal.viewPlan}
         </Link>
       )}
 

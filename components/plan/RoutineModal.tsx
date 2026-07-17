@@ -3,6 +3,7 @@
 import Modal from '@/components/ui/Modal'
 import Button from '@/components/ui/Button'
 import type { Routine } from '@/types/ferox'
+import { useT } from '@/components/i18n/I18nProvider'
 
 export default function RoutineModal({
   open, onClose, routines, onApply,
@@ -12,17 +13,18 @@ export default function RoutineModal({
   routines: Routine[]
   onApply: (r: Routine) => void
 }) {
+  const t = useT()
   return (
     <Modal open={open} onClose={onClose} titleId="routine-modal-title">
       <div className="flex items-center justify-between">
-        <h3 id="routine-modal-title" className="title-serif text-xl" style={{ color: 'var(--text)' }}>Primeni rutinu</h3>
+        <h3 id="routine-modal-title" className="title-serif text-xl" style={{ color: 'var(--text)' }}>{t.routine.title}</h3>
         <button onClick={onClose} className="text-lg leading-none opacity-60 hover:opacity-100 transition-opacity" style={{ color: 'var(--text-muted)' }}>✕</button>
       </div>
 
       {routines.length === 0 ? (
         <div className="text-center py-4 flex flex-col gap-2">
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Još nema sačuvanih rutina.</p>
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Napravi rutine u sekciji Alati.</p>
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{t.routine.empty}</p>
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{t.routine.emptyHint}</p>
         </div>
       ) : (
         <div className="flex flex-col gap-2">
@@ -43,7 +45,7 @@ export default function RoutineModal({
         </div>
       )}
 
-      <Button variant="ghost" className="w-full" onClick={onClose}>Zatvori</Button>
+      <Button variant="ghost" className="w-full" onClick={onClose}>{t.common.close}</Button>
     </Modal>
   )
 }

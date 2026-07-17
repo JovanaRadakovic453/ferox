@@ -1,6 +1,7 @@
 import Button from '@/components/ui/Button'
 import LogoutButton from '@/components/LogoutButton'
 import { tomorrowKey } from '@/lib/date'
+import { useT } from '@/components/i18n/I18nProvider'
 
 // Akcije za plan (sticky rail na desktopu). Navigacija je name-bazirana
 // (window.location.href) da server pročita svež finished_at posle završetka dana.
@@ -17,35 +18,36 @@ export default function ActionRail({
   onRoutine: () => void
   onResetDay: () => void
 }) {
+  const t = useT()
   return (
     <aside className="flex flex-col gap-3 rail-sticky">
       {!dayFinished && (
         <Button size="lg" className="w-full" onClick={onFinishDay} loading={savingEod}>
-          {allDone ? '🎉 Završi dan' : '✅ Završi dan'}
+          {allDone ? t.actions.finishDayDone : t.actions.finishDay}
         </Button>
       )}
       {dayFinished && isToday && tomorrowPlanned && (
         <Button size="lg" className="w-full" onClick={() => { window.location.href = '/plan?date=' + tomorrowKey() }}>
-          🌙 Pogledaj plan za sutra →
+          {t.actions.seeTomorrow}
         </Button>
       )}
       <div className="flex flex-col gap-2">
         <Button size="sm" variant="secondary" className="w-full" onClick={onAddTask}>
-          ➕ Dodaj zadatak
+          {t.actions.addTask}
         </Button>
         {!dayFinished && (
           <Button size="sm" variant="secondary" className="w-full" onClick={onRoutine}>
-            📋 Primeni rutinu
+            {t.actions.applyRoutine}
           </Button>
         )}
         {isToday && tomorrowPlanned && (
           <Button size="sm" variant="secondary" className="w-full" onClick={() => { window.location.href = '/plan?date=' + tomorrowKey() }}>
-            🌙 Pogledaj sutra
+            {t.actions.peekTomorrow}
           </Button>
         )}
         {!isToday && (
           <Button size="sm" variant="secondary" className="w-full" onClick={() => { window.location.href = '/plan' }}>
-            ← Nazad na današnji plan
+            {t.actions.backToToday}
           </Button>
         )}
       </div>
@@ -57,7 +59,7 @@ export default function ActionRail({
         className="w-full text-xs text-center py-2.5 opacity-45 hover:opacity-80 transition-opacity"
         style={{ color: 'var(--text-muted)' }}
       >
-        🗑️ Obriši sve za danas i počni iznova
+        {t.actions.resetDay}
       </button>
     </aside>
   )

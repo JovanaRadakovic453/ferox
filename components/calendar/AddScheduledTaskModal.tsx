@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Modal from '@/components/ui/Modal'
 import Button from '@/components/ui/Button'
 import WhenFields from '@/components/calendar/WhenFields'
+import { useT } from '@/components/i18n/I18nProvider'
 
 type ScheduledTask = {
   id: string
@@ -35,6 +36,7 @@ export default function AddScheduledTaskModal({
   const [deadlineDate, setDeadlineDate] = useState(date)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const t = useT()
 
   useEffect(() => {
     if (open) {
@@ -77,14 +79,14 @@ export default function AddScheduledTaskModal({
         }),
       })
       if (!res.ok) {
-        setError('Zadatak nije sačuvan — pokušaj ponovo')
+        setError(t.sched.saveFailed)
         return
       }
       const data = await res.json()
       onAdd(data)
       onClose()
     } catch {
-      setError('Greška pri čuvanju — pokušaj ponovo')
+      setError(t.sched.saveError)
     } finally {
       setSubmitting(false)
     }
@@ -94,7 +96,7 @@ export default function AddScheduledTaskModal({
     <Modal open={open} onClose={onClose} titleId="add-sched-title">
       <div className="flex items-center justify-between">
         <h3 id="add-sched-title" className="title-serif text-xl" style={{ color: 'var(--text)' }}>
-          Novi zadatak
+          {t.sched.newTask}
         </h3>
         <button
           onClick={onClose}
@@ -108,20 +110,20 @@ export default function AddScheduledTaskModal({
         value={name}
         onChange={e => setName(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter') submit() }}
-        placeholder="Naziv zadatka..."
+        placeholder={t.sched.taskName}
         className="field h-12 px-3.5 text-sm"
       />
 
       <div>
-        <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Prioritet</label>
+        <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>{t.sched.priorityLabel}</label>
         <select
           value={priority}
           onChange={e => setPriority(e.target.value)}
           className="field field-select h-11 px-2 text-sm"
         >
-          <option value="high">🔴 Visok</option>
-          <option value="medium">🟡 Srednji</option>
-          <option value="low">🟢 Nizak</option>
+          <option value="high">{t.priority.high}</option>
+          <option value="medium">{t.priority.medium}</option>
+          <option value="low">{t.priority.low}</option>
         </select>
       </div>
 
@@ -136,7 +138,7 @@ export default function AddScheduledTaskModal({
             borderColor: reminderEnabled ? 'var(--gold)' : 'var(--border)',
           }}
         >
-          <span style={{ color: 'var(--text)' }}>🔔 Podsetnik</span>
+          <span style={{ color: 'var(--text)' }}>{t.sched.reminder}</span>
           <div
             className="w-10 h-5 rounded-full flex items-center px-0.5 transition-all"
             style={{
@@ -150,7 +152,7 @@ export default function AddScheduledTaskModal({
 
         {reminderEnabled && (
           <div className="mt-2">
-            <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Koliko ranije?</label>
+            <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>{t.sched.howEarly}</label>
             <div className="grid grid-cols-[1fr_auto] gap-1.5">
               <input
                 type="number"
@@ -165,9 +167,9 @@ export default function AddScheduledTaskModal({
                 onChange={e => setReminderUnit(e.target.value as 'dana' | 'sati' | 'minuta')}
                 className="field field-select h-11 px-3 text-sm w-28"
               >
-                <option value="dana">dan/a</option>
-                <option value="sati">sat/i</option>
-                <option value="minuta">minut/a</option>
+                <option value="dana">{t.sched.unitDays}</option>
+                <option value="sati">{t.sched.unitHours}</option>
+                <option value="minuta">{t.sched.unitMinutes}</option>
               </select>
             </div>
           </div>
@@ -187,7 +189,7 @@ export default function AddScheduledTaskModal({
       )}
 
       <Button size="md" className="w-full" onClick={submit} loading={submitting} disabled={!name.trim()}>
-        Dodaj zadatak
+        {t.sched.addTask}
       </Button>
     </Modal>
   )

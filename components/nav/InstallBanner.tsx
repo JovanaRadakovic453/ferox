@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useT } from '@/components/i18n/I18nProvider'
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => void
@@ -8,6 +9,7 @@ type BeforeInstallPromptEvent = Event & {
 }
 
 export default function InstallBanner() {
+  const t = useT()
   const [evt, setEvt] = useState<BeforeInstallPromptEvent | null>(null)
 
   useEffect(() => {
@@ -25,17 +27,17 @@ export default function InstallBanner() {
     >
       <div className="glass rounded-[var(--r-md)] px-4 py-3 flex items-center gap-3" style={{ border: '1px solid var(--hairline)', boxShadow: 'var(--sh-md)' }}>
         <span className="text-xl">📲</span>
-        <p className="text-sm flex-1" style={{ color: 'var(--text)' }}>Dodaj Ferox na početni ekran</p>
+        <p className="text-sm flex-1" style={{ color: 'var(--text)' }}>{t.common.installBanner}</p>
         <button
           onClick={async () => { evt.prompt(); await evt.userChoice; setEvt(null) }}
           className="text-xs font-semibold px-3 py-1.5 rounded-full text-white shrink-0"
           style={{ backgroundImage: 'linear-gradient(135deg, var(--gold), var(--gold-deep))' }}
         >
-          Dodaj
+          {t.common.add}
         </button>
         <button
           onClick={() => { localStorage.setItem('ferox_install_dismissed', '1'); setEvt(null) }}
-          aria-label="Zatvori"
+          aria-label={t.common.close}
           className="text-sm opacity-50 hover:opacity-100 shrink-0"
           style={{ color: 'var(--text-muted)' }}
         >

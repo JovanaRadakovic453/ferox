@@ -5,11 +5,13 @@ import Button from '@/components/ui/Button'
 import type { PlanTask, PlanAppt, BrainDumpPlan } from '@/components/setup/BrainDumpPlanModal'
 import { SectionHeader } from '@/components/setup/primitives'
 import { useSpeechToText } from '@/lib/useSpeechToText'
+import { useT, useLocale } from '@/components/i18n/I18nProvider'
+import type { Dict } from '@/lib/i18n/dict'
 
 type ApiTask = { name: string; type?: PlanTask['type']; priority?: PlanTask['priority']; note?: string; dayOffset?: number; deadlineDayOffset?: number | null; reason?: string }
 type ApiAppt = { name: string; time: string; dayOffset?: number }
 
-async function fetchBrainDump(text: string): Promise<BrainDumpPlan> {
+async function fetchBrainDump(text: string, t: Dict): Promise<BrainDumpPlan> {
   const res = await fetch('/api/ai/brain-dump', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -17,7 +19,7 @@ async function fetchBrainDump(text: string): Promise<BrainDumpPlan> {
   })
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
-    throw new Error(body.error?.message ?? body.error ?? `Greška ${res.status}`)
+    throw new Error(body.error?.message ?? body.error ?? t.brain.httpError(res.status))
   }
   const { tasks, appointments } = await res.json()
   return {
@@ -47,18 +49,21 @@ export default function BrainDumpCard({
   onPlan: (plan: BrainDumpPlan) => void
   onLoadingChange?: (loading: boolean) => void
 }) {
+  const t = useT()
+  const locale = useLocale()
   const [text, setText] = useState('')
   const [show, setShow] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Govor → tekst (srpski). Izgovoreno se dopisuje u polje; korisnik zatim potvrdi.
+  // Govor → tekst na jeziku korisnika. Izgovoreno se dopisuje u polje.
   const { supported: micSupported, listening, start: startMic, stop: stopMic } = useSpeechToText({
+    lang: locale === 'en' ? 'en-US' : 'sr-RS',
     onResult: chunk => setText(prev => (prev ? prev.trim() + ' ' : '') + chunk),
     onError: code => setError(
       code === 'not-allowed' || code === 'service-not-allowed'
-        ? 'Mikrofon nije dozvoljen — uključi dozvolu za mikrofon u pregledaču.'
-        : 'Glasovni unos trenutno ne radi — probaj da otkucaš.'
+        ? t.brain.micDenied
+        : t.brain.voiceFailed
     ),
   })
 
@@ -79,16 +84,16 @@ export default function BrainDumpCard({
     setBusy(true)
     setError(null)
     try {
-      const plan = await fetchBrainDump(text)
+      const plan = await fetchBrainDump(text, t)
       if (plan.tasks.length === 0 && plan.appointments.length === 0) {
-        setError('AI nije pronašao zadatke. Pokušaj opisati konkretnije, npr: "Moram da kupim mleko, nazovem Marka, završim izveštaj"')
+        setError(t.brain.noTasks)
         return
       }
       onPlan(plan)
       setText('')
       setShow(false)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Nepoznata greška')
+      setError(err instanceof Error ? err.message : t.brain.unknownError)
     } finally {
       setBusy(false)
     }
@@ -101,7 +106,7 @@ export default function BrainDumpCard({
     >
       <SectionHeader
         icon="✨"
-        title="Brain dump"
+        title={t.brain.title}
         trailing={
           <span className="text-[0.65rem] font-bold tracking-wide px-2.5 py-1 rounded-full" style={{ background: 'var(--gold)', color: '#fff', boxShadow: 'var(--sh-gold)' }}>
             AI
@@ -109,14 +114,14 @@ export default function BrainDumpCard({
         }
       />
       <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-        Izbaci sve iz glave — ne mora uredno ni redom. Dodaj samo <b>kad</b> („u utorak“, „u 11h“, „do petka“) i <b>šta je hitno</b> — po tome AI raspoređuje po danima, a ti potvrdiš.
+        {t.brain.intro}
       </p>
       {show ? (
         <div className="flex flex-col gap-3">
           <textarea
             value={text}
             onChange={e => setText(e.target.value)}
-            placeholder="Npr: Zubar u utorak u 11h, izveštaj šefu do petka — hitno, kupiti namirnice danas, teretana 2x ove nedelje, pozvati baku kad stignem..."
+            placeholder={t.brain.textPh}
             rows={4}
             autoFocus
             className="field p-3.5 text-sm resize-none"
@@ -132,20 +137,20 @@ export default function BrainDumpCard({
               }
             >
               {listening
-                ? <><span className="w-2 h-2 rounded-full animate-pulse" style={{ background: 'var(--danger)' }} /> Slušam… dodirni da završiš</>
-                : <>🎤 Reci naglas</>}
+                ? <><span className="w-2 h-2 rounded-full animate-pulse" style={{ background: 'var(--danger)' }} /> {t.brain.listening}</>
+                : <>{t.brain.sayAloud}</>}
             </button>
           )}
           {error && (
-            <p className="text-xs px-1" style={{ color: 'var(--danger)' }}>Greška: {error}</p>
+            <p className="text-xs px-1" style={{ color: 'var(--danger)' }}>{t.brain.errorPrefix}{error}</p>
           )}
           <div className="flex gap-2">
             <Button size="sm" onClick={handle} loading={loading}
               disabled={!text.trim()} className="flex-1">
-              {loading ? 'Pravim plan...' : '✨ Napravi plan'}
+              {loading ? t.brain.makingPlan : t.brain.makePlan}
             </Button>
             <Button size="sm" variant="ghost" onClick={() => { if (listening) stopMic(); setShow(false); setText(''); setError(null) }}>
-              Otkaži
+              {t.common.cancel}
             </Button>
           </div>
         </div>
@@ -154,13 +159,13 @@ export default function BrainDumpCard({
           <button onClick={() => setShow(true)}
             className="flex items-center gap-2 p-4 rounded-[var(--r-md)] border-[1.5px] border-dashed text-sm w-full transition-colors"
             style={{ borderColor: 'color-mix(in srgb, var(--gold) 40%, var(--border))', color: 'var(--gold)' }}>
-            <span>✨</span> Piši slobodno, AI izvlači zadatke
+            {t.brain.writeFreely}
           </button>
           {micSupported && (
             <button onClick={beginVoice}
               className="flex items-center gap-2 p-4 rounded-[var(--r-md)] border-[1.5px] border-dashed text-sm w-full transition-colors"
               style={{ borderColor: 'color-mix(in srgb, var(--gold) 40%, var(--border))', color: 'var(--gold)' }}>
-              <span>🎤</span> Reci naglas, AI zapisuje umesto tebe
+              {t.brain.sayAloudLong}
             </button>
           )}
         </div>
