@@ -10,7 +10,7 @@
 // Uslov 2 je ono što dozvoljava da budilnik lupa svaki sat bez spamovanja: prvi
 // pogodak u prozoru pošalje, ostali u istom danu preskoče.
 
-import { hourInTimezone, todayKey, toTimezone } from '@/lib/date'
+import { hourInTimezone, dayKey, toTimezone } from '@/lib/date'
 import { REMINDERS } from '@/lib/config'
 import { toLocale } from '@/lib/locale'
 import type { Locale } from '@/types/ferox'
@@ -50,7 +50,11 @@ export function reminderDue(
   // Zonu normalizujemo JEDNOM ovde: pokvarena vrednost iz baze ne sme da baci i
   // obori ceo prolaz podsetnika (todayKey bi na nevažećoj zoni pukao).
   const zone = toTimezone(tz)
-  const today = todayKey(zone)
+  // Datum MORA da se računa iz istog trenutka kao i sat (`now`) — todayKey uvek
+  // gleda stvarni časovnik, pa su se sat i datum razilazili čim se `now` prosledi
+  // (zone ispred UTC-a dobijale sutrašnji ključ). U produkciji `now` je sadašnjost,
+  // pa se ponašanje ne menja; ovim funkcija postaje stvarno čista i testabilna.
+  const today = dayKey(now, zone)
   const hour = hourInTimezone(zone, now)
   const inMorning = hour >= REMINDERS.morningHour && hour <= REMINDERS.latestHour
   return { today, hour, due: inMorning && lastReminderKey !== today }
