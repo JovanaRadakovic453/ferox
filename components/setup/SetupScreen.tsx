@@ -104,8 +104,9 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
   function addTask(draft: { name: string; note: string; priority: Priority; type: TaskType }) {
     setTasks(prev => [...prev, { ...draft, done: false }])
   }
-  function addAppointment(a: { name: string; time: string; reminder: number }) {
-    setAppointments(prev => [...prev, { ...a, done: false }])
+  function addAppointment(a: { name: string; time: string; reminder: number; endTime?: string | null }) {
+    const { endTime, ...rest } = a
+    setAppointments(prev => [...prev, { ...rest, end_time: endTime ?? null, done: false }])
   }
   // Potvrđen predlog plana iz brain dump-a: stavke za DANAŠNJI (tj. prikazani)
   // dan idu u editor; sve ostalo se zakaže za svoj dan (scheduled_tasks) i pojaviće
@@ -404,7 +405,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
                       onClick={() => {
                         // Sa vremenom → termin; celodnevni → obican zadatak tog dana
                         // (ranije je celodnevni postajao lazan termin u 09:00).
-                        if (event.time) addAppointment({ name: event.title, time: event.time, reminder: 0 })
+                        if (event.time) addAppointment({ name: event.title, time: event.time, endTime: event.endTime, reminder: 0 })
                         else addTask({ name: event.title, note: '', priority: 'medium', type: 'light' })
                         setGoogleAdded(prev => new Set([...prev, event.id]))
                       }}

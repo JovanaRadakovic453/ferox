@@ -38,7 +38,9 @@ export default function AppointmentEditor({
         <div className="flex flex-col gap-2.5">
           {appointments.map((a, i) => (
             <div key={i} className="flex items-center gap-3 p-3.5 rounded-[var(--r-md)]" style={{ background: 'var(--surface2)' }}>
-              <span className="text-sm font-semibold shrink-0 tabular-nums" style={{ color: 'var(--gold)' }}>{a.time}</span>
+              <span className="text-sm font-semibold shrink-0 tabular-nums" style={{ color: 'var(--gold)' }}>
+                {a.end_time ? `${a.time} – ${a.end_time}` : a.time}
+              </span>
               <p className="text-sm flex-1 truncate">{a.name}</p>
               <button onClick={() => onRemove(i)}
                 className="text-xs opacity-50 hover:opacity-100 shrink-0" style={{ color: 'var(--text-muted)' }}>✕</button>

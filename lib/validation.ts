@@ -28,6 +28,8 @@ export const zTaskInput = z.object({
 export const zAppointmentInput = z.object({
   name: z.string().trim().min(1).max(120),
   time: zTime,
+  /** Kraj termina — stiže iz Google Kalendara; ručni unos ga nema. */
+  end_time: zTime.nullable().optional(),
   reminder: z.number().int().min(0).max(1440).optional().default(DEFAULTS.reminderMinutes),
   done: z.boolean().optional().default(false),
 })

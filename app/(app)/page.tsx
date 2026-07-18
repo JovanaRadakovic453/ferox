@@ -104,7 +104,7 @@ export default async function SetupPage({
         .order('position'),
       supabase
         .from('appointments')
-        .select('id, name, time, reminder, done')
+        .select('id, name, time, end_time, reminder, done')
         .eq('user_id', user.id)
         .eq('date_key', targetDate)
         .order('time'),
@@ -143,7 +143,7 @@ export default async function SetupPage({
       // Već sačuvani termini za taj dan (npr. iz brain dump-a) — da se učitaju i prežive.
       supabase
         .from('appointments')
-        .select('id, name, time, reminder, done')
+        .select('id, name, time, end_time, reminder, done')
         .eq('user_id', user.id)
         .eq('date_key', targetDate)
         .order('time'),

@@ -32,7 +32,8 @@ export default function AppointmentItem({ appt, onToggle, onDelete, onMove, curr
           className="text-sm font-semibold tabular-nums shrink-0 transition-all duration-200"
           style={{ color: appt.done ? 'var(--text-muted)' : 'var(--gold)', opacity: appt.done ? 0.6 : 1 }}
         >
-          {appt.time}
+          {/* Kraj se prikazuje samo ako ga znamo (npr. iz Google Kalendara). */}
+          {appt.end_time ? `${appt.time} – ${appt.end_time}` : appt.time}
         </span>
         <p
           className="text-sm flex-1 truncate transition-all duration-200"

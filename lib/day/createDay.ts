@@ -66,7 +66,7 @@ export async function createDay(
   if (delApptErr) return { ok: false, code: 'DB_DEL_APPT', message: 'Greška pri brisanju termina', detail: delApptErr.message }
   if (appointments && appointments.length > 0) {
     const { error } = await supabase.from('appointments').insert(appointments.map(a => ({
-      user_id: userId, date_key: dateKey, name: a.name, time: a.time, reminder: a.reminder || DEFAULTS.reminderMinutes, done: a.done ?? false,
+      user_id: userId, date_key: dateKey, name: a.name, time: a.time, end_time: a.end_time ?? null, reminder: a.reminder || DEFAULTS.reminderMinutes, done: a.done ?? false,
     })))
     if (error) return { ok: false, code: 'DB_INSERT_APPT', message: 'Greška pri čuvanju termina', detail: error.message }
   }

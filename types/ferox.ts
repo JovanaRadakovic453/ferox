@@ -42,7 +42,10 @@ export interface Task {
 export interface Appointment {
   id?: string
   name: string
+  /** Početak (HH:MM). */
   time: string
+  /** Kraj (HH:MM) — popunjen npr. kad dođe iz Google Kalendara. null = nepoznat. */
+  end_time?: string | null
   reminder: number
   done: boolean
   date_key?: string
