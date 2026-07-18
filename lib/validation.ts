@@ -37,6 +37,12 @@ export const zAppointmentInput = z.object({
   end_time: zTime.nullable().optional(),
   reminder: z.number().int().min(0).max(1440).optional().default(DEFAULTS.reminderMinutes),
   done: z.boolean().optional().default(false),
+  /**
+   * Veza ka Google događaju iz kog je termin uvezen. Mora da preživi ponovno
+   * snimanje dana — po njoj se sklanjanje (✕) trajno pamti, da se događaj ne
+   * uvuče ponovo.
+   */
+  google_event_id: z.string().min(1).max(1024).nullable().optional(),
 })
 
 export const createDaySchema = z.object({

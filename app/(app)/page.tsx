@@ -121,15 +121,19 @@ export default async function SetupPage({
     const [{ data: existingTasks }, { data: existingAppts }, { data: pendingScheduled }] = await Promise.all([
       supabase
         .from('tasks')
-        .select('name, note, priority, type, done, position, deadline_date')
+        .select('name, note, priority, type, done, position, deadline_date, scheduled_id')
         .eq('entry_id', entry.id)
         .eq('user_id', user.id)
         .order('position'),
+      // Bez "nadgrobnih" (dismissed) redova — to su sklonjeni Google događaji;
+      // u editoru bi vaskrsli kao obični termini. google_event_id ide s redom
+      // da veza preživi ponovno snimanje.
       supabase
         .from('appointments')
-        .select('id, name, time, end_time, reminder, done')
+        .select('id, name, time, end_time, reminder, done, google_event_id')
         .eq('user_id', user.id)
         .eq('date_key', targetDate)
+        .eq('dismissed', false)
         .order('time'),
       supabase
         .from('scheduled_tasks')
@@ -138,11 +142,18 @@ export default async function SetupPage({
         .lte('for_date', targetDate)
         .eq('done', false),
     ])
-    initialTasks = (existingTasks ?? []) as Task[]
+    // Vezu ka Kalendaru (scheduled_id) vraćamo kao klijentski `scheduledId`, da
+    // preživi ponovno snimanje — inače bi se izmenom dana veza tiho izgubila.
+    initialTasks = ((existingTasks ?? []) as (Task & { scheduled_id?: string | null })[])
+      .map(({ scheduled_id, ...t }) => ({ ...t, scheduledId: scheduled_id ?? undefined }))
     initialAppointments = (existingAppts ?? []) as Appointment[]
     // Zakazan zadatak dodat POSLE kreiranja dana: ubaci ga u editor umesto da se tiho proguta.
     // Rok ide sa njim — inače bi nestao čim zadatak uđe u plan.
+    // Od migracije 0022 zakazan zadatak ostaje otvoren (done=false) i dok JESTE u
+    // planu, pa se već uneti preskaču po vezi — inače bi se u editoru duplirali.
+    const linkedIds = new Set(initialTasks.map(t => t.scheduledId).filter(Boolean))
     const pending = scheduledOnDay((pendingScheduled ?? []) as ScheduledPick[], targetDate)
+      .filter(t => !linkedIds.has(t.id))
     if (pending.length > 0) {
       initialTasks = [
         ...initialTasks,
@@ -166,9 +177,10 @@ export default async function SetupPage({
       // Već sačuvani termini za taj dan (npr. iz brain dump-a) — da se učitaju i prežive.
       supabase
         .from('appointments')
-        .select('id, name, time, end_time, reminder, done')
+        .select('id, name, time, end_time, reminder, done, google_event_id')
         .eq('user_id', user.id)
         .eq('date_key', targetDate)
+        .eq('dismissed', false)
         .order('time'),
     ])
     initialAppointments = (apptRows ?? []) as Appointment[]

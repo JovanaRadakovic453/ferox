@@ -64,12 +64,15 @@ export async function createDay(
     }
   }
 
-  // 3. Appointments (replace for the day)
-  const { error: delApptErr } = await supabase.from('appointments').delete().eq('user_id', userId).eq('date_key', dateKey)
+  // 3. Appointments (replace for the day). "Nadgrobni" (dismissed) redovi se NE
+  // brišu — oni pamte sklonjene Google događaje da se ne uvuku ponovo.
+  const { error: delApptErr } = await supabase.from('appointments').delete()
+    .eq('user_id', userId).eq('date_key', dateKey).eq('dismissed', false)
   if (delApptErr) return { ok: false, code: 'DB_DEL_APPT', message: 'Greška pri brisanju termina', detail: delApptErr.message }
   if (appointments && appointments.length > 0) {
     const { error } = await supabase.from('appointments').insert(appointments.map(a => ({
       user_id: userId, date_key: dateKey, name: a.name, time: a.time, end_time: a.end_time ?? null, reminder: a.reminder || DEFAULTS.reminderMinutes, done: a.done ?? false,
+      google_event_id: a.google_event_id ?? null,
     })))
     if (error) return { ok: false, code: 'DB_INSERT_APPT', message: 'Greška pri čuvanju termina', detail: error.message }
   }
