@@ -15,6 +15,9 @@ import AppointmentEditor from '@/components/setup/AppointmentEditor'
 import PreviewRail from '@/components/setup/PreviewRail'
 import { useT, useLocale, useTimezone } from '@/components/i18n/I18nProvider'
 
+/** Pamti da je Google veza pukla, da upozorenje ne nestane pri osvežavanju. */
+const GOOGLE_WARN_KEY = 'ferox-google-reconnect'
+
 export default function SetupScreen({ profile, targetDate, transferredTasks = [], autoTasks = [], initialAppointments = [], showTransferBanner = false, streak = 0 }: { profile: UserProfile; targetDate?: string; transferredTasks?: Task[]; autoTasks?: Task[]; initialAppointments?: Appointment[]; showTransferBanner?: boolean; streak?: number }) {
   const t = useT()
   const locale = useLocale()
@@ -66,10 +69,17 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
     } catch { /* ignore */ }
   }, [hydrated, draftKey, tasks, appointments])
 
-  type GoogleEvent = { id: string; title: string; time: string | null; endTime: string | null }
+  type GoogleEvent = { id: string; title: string; time: string | null; endTime: string | null; allDay?: boolean }
   const [googleEvents, setGoogleEvents] = useState<GoogleEvent[]>([])
   const [googleAdded, setGoogleAdded] = useState<Set<string>>(new Set())
   const [googleNeedsReconnect, setGoogleNeedsReconnect] = useState(false)
+
+  // Upozorenje o pukloj Google vezi mora da PREŽIVI osvežavanje: kad token
+  // istekne, server ga obriše, pa se sledeći put i ne pokušava dohvat — signal
+  // bljesne jednom i nestane, a korisnik ostane u uverenju da veza radi.
+  useEffect(() => {
+    try { if (localStorage.getItem(GOOGLE_WARN_KEY)) setGoogleNeedsReconnect(true) } catch { /* ignore */ }
+  }, [])
 
   useEffect(() => {
     if (!profile.google_refresh_token) return
@@ -77,7 +87,14 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
     fetch(`/api/integrations/google/events?date=${date}`)
       .then(r => r.ok ? r.json() : null)
       .then(json => {
-        if (json?.needsReconnect) setGoogleNeedsReconnect(true)
+        if (json?.needsReconnect) {
+          setGoogleNeedsReconnect(true)
+          try { localStorage.setItem(GOOGLE_WARN_KEY, '1') } catch { /* ignore */ }
+        } else if (json?.connected) {
+          // Veza opet radi → skloni upozorenje.
+          setGoogleNeedsReconnect(false)
+          try { localStorage.removeItem(GOOGLE_WARN_KEY) } catch { /* ignore */ }
+        }
         if (json?.events?.length) setGoogleEvents(json.events)
       })
       .catch(() => {})
@@ -385,7 +402,10 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
                     </div>
                     <button
                       onClick={() => {
-                        addAppointment({ name: event.title, time: event.time ?? '09:00', reminder: 0 })
+                        // Sa vremenom → termin; celodnevni → obican zadatak tog dana
+                        // (ranije je celodnevni postajao lazan termin u 09:00).
+                        if (event.time) addAppointment({ name: event.title, time: event.time, reminder: 0 })
+                        else addTask({ name: event.title, note: '', priority: 'medium', type: 'light' })
                         setGoogleAdded(prev => new Set([...prev, event.id]))
                       }}
                       className="shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full transition-opacity hover:opacity-80"

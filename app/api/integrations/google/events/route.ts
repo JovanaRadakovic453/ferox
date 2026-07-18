@@ -47,7 +47,9 @@ export async function GET(request: NextRequest) {
     .eq('id', user.id)
     .single()
 
-  if (!profile?.google_refresh_token) return apiOk({ events: [] })
+  // `connected` govori klijentu stanje veze — bez toga "nema događaja" i
+  // "veza je pukla" izgledaju isto, pa app ćuti kad prestane da radi.
+  if (!profile?.google_refresh_token) return apiOk({ events: [], connected: false })
 
   let accessToken = profile.google_access_token
   const expiresAt = profile.google_token_expires_at ? new Date(profile.google_token_expires_at) : null
@@ -64,7 +66,7 @@ export async function GET(request: NextRequest) {
           google_refresh_token: null,
           google_token_expires_at: null,
         }).eq('id', user.id)
-        return apiOk({ events: [], needsReconnect: true })
+        return apiOk({ events: [], connected: false, needsReconnect: true })
       }
       // Tranzijentna greška (mreža/5xx) — NE diramo tokene.
       console.error('google events: refresh nije uspeo (tranzijentno)', user.id, refreshed.status)
@@ -101,24 +103,44 @@ export async function GET(request: NextRequest) {
   }
 
   const calData = await calRes.json()
-  // dateTime je u korisnikovoj zoni (timeZone param gore), npr.
-  // "2026-07-18T09:30:00+02:00" → dan = prvih 10, vreme = 11-16.
-  // Celodnevni termini nemaju dateTime pa ispadaju već na filteru.
-  const events = ((calData.items ?? []) as Record<string, unknown>[])
-    .filter(e => {
-      const start = e.start as Record<string, string> | undefined
-      return !!start?.dateTime && start.dateTime.slice(0, 10) === date
-    })
-    .map(e => {
-      const start = e.start as Record<string, string>
-      const end = e.end as Record<string, string> | undefined
-      return {
-        id: e.id as string,
-        title: (e.summary as string) ?? 'Bez naziva',
-        time: start.dateTime.slice(11, 16),
-        endTime: end?.dateTime ? end.dateTime.slice(11, 16) : null,
-      }
-    })
 
-  return apiOk({ events })
+  type GEvent = { id: string; title: string; time: string | null; endTime: string | null; allDay: boolean }
+
+  // Google daje DVE vrste događaja i obe nas zanimaju:
+  //  • sa vremenom → `start.dateTime` u korisnikovoj zoni (timeZone param gore),
+  //    npr. "2026-07-18T09:30:00+02:00" → dan = prvih 10, vreme = 11-16;
+  //  • celodnevni → samo `start.date`, BEZ vremena. `end.date` je EKSKLUZIVAN
+  //    (jednodnevni 18.07 → start 18.07, end 19.07), pa poredimo opsegom da bi
+  //    i višednevni događaj bio vidljiv na svakom svom danu.
+  const events = ((calData.items ?? []) as Record<string, unknown>[])
+    .map((e): GEvent | null => {
+      const start = e.start as Record<string, string> | undefined
+      const end = e.end as Record<string, string> | undefined
+      const id = e.id as string
+      const title = (e.summary as string) ?? 'Bez naziva'
+
+      if (start?.dateTime) {
+        if (start.dateTime.slice(0, 10) !== date) return null
+        return {
+          id,
+          title,
+          time: start.dateTime.slice(11, 16),
+          endTime: end?.dateTime ? end.dateTime.slice(11, 16) : null,
+          allDay: false,
+        }
+      }
+
+      if (start?.date) {
+        const from = start.date
+        const to = end?.date
+        const inRange = to ? from <= date && date < to : from === date
+        if (!inRange) return null
+        return { id, title, time: null, endTime: null, allDay: true }
+      }
+
+      return null
+    })
+    .filter((e): e is GEvent => e !== null)
+
+  return apiOk({ events, connected: true })
 }
