@@ -31,6 +31,8 @@ export interface Task {
   block_index?: number | null
   /** Rok: do kada mora biti gotovo (YYYY-MM-DD). Prati zadatak i kad uđe u dan. */
   deadline_date?: string | null
+  /** Ako je zadatak uvučen iz Google Kalendara (celodnevni događaj) — id tog događaja. */
+  google_event_id?: string | null
   /**
    * Klijentska oznaka (NIJE kolona u bazi): zadatak potiče iz zakazanog
    * (scheduled_tasks.id). Pri snimanju se SAMO zakazani koji su stvarno u planu
@@ -97,6 +99,8 @@ export interface DayEntry {
   reflection?: string | null
   eod_recap?: string | null
   finished_at?: string | null
+  /** Google događaji koje je korisnik sklonio (✕) sa ovog dana — da se ne uvuku ponovo. */
+  google_dismissed?: string[] | null
   tasks?: Task[]
   appointments?: Appointment[]
 }

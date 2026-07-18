@@ -71,7 +71,6 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
 
   type GoogleEvent = { id: string; title: string; time: string | null; endTime: string | null; allDay?: boolean }
   const [googleEvents, setGoogleEvents] = useState<GoogleEvent[]>([])
-  const [googleAdded, setGoogleAdded] = useState<Set<string>>(new Set())
   const [googleNeedsReconnect, setGoogleNeedsReconnect] = useState(false)
 
   // Upozorenje o pukloj Google vezi mora da PREŽIVI osvežavanje: kad token
@@ -237,9 +236,14 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
   const totalItems = tasks.length + appointments.length
   const canSubmit = totalItems > 0 && !brainDumpLoading
 
-  // Google događaji koji još nisu dodati (ni u ovoj sesiji, ni ranije kao termin).
-  const apptNames = new Set(appointments.map(a => a.name))
-  const visibleGoogleEvents = googleEvents.filter(e => !googleAdded.has(e.id) && !apptNames.has(e.title))
+  // Google događaji tog dana — SAMO pregled, bez dugmeta. U plan ulaze sami čim
+  // se plan napravi (server ih uvuče: sa vremenom kao termin, celodnevne kao
+  // običan zadatak). Ručno dodavanje bi napravilo duplikat i vratilo bi klikanje
+  // koje smo baš uklonili. Ne prikazujemo ono što je korisnik već sam uneo.
+  const draftNames = new Set(
+    [...appointments.map(a => a.name), ...tasks.map(t => t.name)].map(n => n.trim().toLowerCase())
+  )
+  const visibleGoogleEvents = googleEvents.filter(e => !draftNames.has(e.title.trim().toLowerCase()))
 
   const hour = new Date().getHours()
   const dayPart = hour < 5 ? t.setup.goodEvening : hour < 12 ? t.setup.goodMorning : hour < 18 ? t.setup.goodDay : t.setup.goodEvening
@@ -392,28 +396,11 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
                   <span className="section-label">{t.setup.fromGoogle}</span>
                 </div>
                 {visibleGoogleEvents.map(event => (
-                  <div key={event.id} className="flex items-center justify-between gap-3">
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>{event.title}</span>
-                      {event.time && (
-                        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                          {event.time}{event.endTime ? ` – ${event.endTime}` : ''}
-                        </span>
-                      )}
-                    </div>
-                    <button
-                      onClick={() => {
-                        // Sa vremenom → termin; celodnevni → obican zadatak tog dana
-                        // (ranije je celodnevni postajao lazan termin u 09:00).
-                        if (event.time) addAppointment({ name: event.title, time: event.time, endTime: event.endTime, reminder: 0 })
-                        else addTask({ name: event.title, note: '', priority: 'medium', type: 'light' })
-                        setGoogleAdded(prev => new Set([...prev, event.id]))
-                      }}
-                      className="shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full transition-opacity hover:opacity-80"
-                      style={{ background: 'var(--gold-tint)', color: 'var(--gold)', border: '1px solid var(--gold)' }}
-                    >
-                      {t.setup.add}
-                    </button>
+                  <div key={event.id} className="flex items-center gap-3">
+                    <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>{event.title}</span>
+                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                      {event.time ? `${event.time}${event.endTime ? ` – ${event.endTime}` : ''}` : ''}
+                    </span>
                   </div>
                 ))}
               </div>

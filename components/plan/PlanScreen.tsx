@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import confetti from 'canvas-confetti'
 
@@ -79,9 +79,13 @@ export default function PlanScreen({
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
   const [appts, setAppts] = useState<Appointment[]>(appointments)
 
-  // Google događaji tog dana se SAMI uvlače u plan kao pravi termini — pa se
-  // odmah broje i mogu da se štikliraju, bez ručnog "Dodaj". Server je
-  // idempotentan (google_event_id), a sklonjeni (✕) se ne vraćaju.
+  // Sklonjeni (✕) Google događaji ovog dana — u refu, da drugo sklanjanje ne
+  // pregazi prvo (prop `entry` se ne osvežava bez reload-a).
+  const googleDismissed = useRef<string[]>(entry.google_dismissed ?? [])
+
+  // Google događaji tog dana se SAMI uvlače u plan — sa vremenom kao termin,
+  // celodnevni kao običan zadatak — pa se odmah broje i mogu da se štikliraju,
+  // bez ručnog "Dodaj". Server je idempotentan, a sklonjeni se ne vraćaju.
   useEffect(() => {
     if (!profile.google_refresh_token || dayFinished) return
     let cancelled = false
@@ -91,12 +95,20 @@ export default function PlanScreen({
       body: JSON.stringify({ date: entry.date_key }),
     })
       .then(r => (r.ok ? r.json() : null))
-      .then((json: { imported?: Appointment[] } | null) => {
-        if (cancelled || !json?.imported?.length) return
-        setAppts(prev => {
-          const known = new Set(prev.map(a => a.id))
-          return [...prev, ...json.imported!.filter(a => !known.has(a.id))]
-        })
+      .then((json: { imported?: Appointment[]; importedTasks?: Task[] } | null) => {
+        if (cancelled || !json) return
+        if (json.imported?.length) {
+          setAppts(prev => {
+            const known = new Set(prev.map(a => a.id))
+            return [...prev, ...json.imported!.filter(a => !known.has(a.id))]
+          })
+        }
+        if (json.importedTasks?.length) {
+          setTasks(prev => {
+            const known = new Set(prev.map(t => t.id))
+            return [...prev, ...json.importedTasks!.filter(t => !known.has(t.id))]
+          })
+        }
       })
       .catch(() => {})
     return () => { cancelled = true }
@@ -290,11 +302,36 @@ export default function PlanScreen({
     }
   }
 
+  /**
+   * Dan pamti koje je Google događaje korisnik sklonio — inače bi se pri
+   * sledećem otvaranju uvukli ponovo. Zapisuje se PRE brisanja zadatka: ako
+   * upis padne, zadatak ostaje i ništa se tiho ne izgubi.
+   */
+  async function markGoogleDismissed(
+    supabase: ReturnType<typeof createClient>, googleEventId: string,
+  ): Promise<boolean> {
+    if (!entry.id) return true
+    const next = Array.from(new Set([...googleDismissed.current, googleEventId]))
+    const { error } = await supabase.from('day_entries').update({ google_dismissed: next }).eq('id', entry.id)
+    if (error) return false
+    googleDismissed.current = next
+    return true
+  }
+
   async function deleteTask(taskId: string) {
     const task = tasks.find(t => t.id === taskId)
     if (!task) return
     setTasks(prev => prev.filter(t => t.id !== taskId))
     const supabase = createClient()
+
+    // Zadatak uvučen iz Google-a se stvarno briše (da ne visi u statistici kao
+    // nezavršen), a dan zapamti da ga ne uvlači ponovo. U Google-u ostaje.
+    if (task.google_event_id && !(await markGoogleDismissed(supabase, task.google_event_id))) {
+      setTasks(prev => [...prev, task])
+      toast({ message: t.plan.deleteFailed, variant: 'error' })
+      return
+    }
+
     const { error } = await supabase.from('tasks').delete().eq('id', taskId)
     if (error) {
       setTasks(prev => [...prev, task])
@@ -347,6 +384,11 @@ export default function PlanScreen({
           .upsert({ user_id: user.id, tasks: merged, for_date: targetDateKey }, { onConflict: 'user_id,for_date' })
         if (error) throw error
       }
+
+      // Uvučen iz Google-a: dan mora da zapamti da je otišao, inače bi se sam
+      // vratio pri sledećem otvaranju. Neuspeh ovde nije razlog da se pomeranje
+      // poništi (kopija je već na ciljnom danu) — najgore je da se vrati.
+      if (task.google_event_id) await markGoogleDismissed(supabase, task.google_event_id)
 
       // Tek kad je bezbedno smešten na ciljni dan — ukloni ga sa današnjeg.
       const { error: delErr } = await supabase.from('tasks').delete().eq('id', taskId)

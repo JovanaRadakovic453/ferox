@@ -94,6 +94,29 @@ export function pickEventsForDay(items: Record<string, unknown>[], date: string)
 }
 
 /**
+ * Šta od događaja tek treba uvući u plan. Uvlačenje se pokreće pri SVAKOM
+ * otvaranju plana, pa filtriramo tri stvari:
+ *  • već uvučeno — po `google_event_id`;
+ *  • već ručno uneto — po imenu (razmaci/velika slova nebitni), da se ne udvoji
+ *    ono što je korisnik sam otkucao;
+ *  • sklonjeno (✕) — da se ne vraća.
+ *
+ * Izdvojeno i izvezeno da može da se testira bez baze.
+ */
+export function eventsToImport(
+  events: GoogleEvent[],
+  existing: { name: string; google_event_id?: string | null }[],
+  dismissedIds: string[] = [],
+): GoogleEvent[] {
+  const norm = (s: string) => s.trim().toLowerCase()
+  const knownIds = new Set(existing.map(r => r.google_event_id).filter((v): v is string => !!v))
+  const knownNames = new Set(existing.map(r => norm(r.name)))
+  const dismissed = new Set(dismissedIds)
+  return events.filter(e =>
+    !dismissed.has(e.id) && !knownIds.has(e.id) && !knownNames.has(norm(e.title)))
+}
+
+/**
  * Dohvata događaje korisnika za jedan dan. Osvežava access token po potrebi i,
  * ako je dozvola opozvana, čisti vezu (pa UI može da traži ponovno povezivanje).
  */

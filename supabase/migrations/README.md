@@ -3,9 +3,16 @@
 ## Stanje
 
 Na produkciji (Supabase projekat `scwsifonygvfxiixaiak`) primenjene su **sve
-migracije zaključno sa `0019_appointment_end_time.sql`** (0019 primenjena
-2026-07-19 kroz SQL Editor; provereno preko PostgREST-a da `appointments.end_time`
-postoji — kontrolni test: izmišljena kolona vraća 42703, `end_time` prolazi).
+migracije zaključno sa `0020_appointment_google_link.sql`**.
+
+⏳ **`0021_task_google_link.sql` čeka da se pusti** (`tasks.google_event_id`,
+`day_entries.google_dismissed`). Dok ne prođe, celodnevni Google događaji ne
+ulaze sami u plan.
+
+0020 primenjena 2026-07-18 kroz SQL Editor; provereno preko PostgREST-a da
+`appointments.google_event_id` i `dismissed` postoje.
+0019 primenjena 2026-07-19 kroz SQL Editor (`appointments.end_time`;
+kontrolni test: izmišljena kolona vraća 42703, prava prolazi).
 
 Ranije: 0018 primenjena (provereno: tabela `task_repeats` postoji).
 0017 primenjena 2026-07-19 kroz SQL Editor (`profiles.last_reminder_key`).
@@ -18,6 +25,8 @@ ranije su postojali duplikati 0003/0004; sadržaj fajlova nije menjan).
 
 `../schema.sql` je kompletan skript **samo za svež (prazan) Supabase projekat**
 i odgovara stanju posle 0013. Nikad ga ne puštaj na postojeću produkciju.
+⚠️ Zaostaje: 0019–0021 još nisu ubačene u njega (svež projekat mora da pusti i
+te migracije posebno).
 
 ## Kako se primenjuje nova migracija
 
