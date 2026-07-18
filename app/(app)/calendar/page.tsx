@@ -55,7 +55,7 @@ export default async function CalendarPage({
       .order('date_key'),
     supabase
       .from('scheduled_tasks')
-      .select('id, for_date, name, priority, note, remind_before_minutes, deadline_date')
+      .select('id, for_date, name, priority, note, remind_before_minutes, deadline_date, repeat_id')
       .eq('user_id', user.id)
       .gte('for_date', expandedFrom)
       .lte('for_date', expandedTo)

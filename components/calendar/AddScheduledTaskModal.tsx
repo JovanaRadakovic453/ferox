@@ -16,19 +16,26 @@ type ScheduledTask = {
   deadline_date: string | null
 }
 
+type RepeatChoice = 'none' | 'daily' | 'weekdays' | 'weekly' | 'monthly'
+
 export default function AddScheduledTaskModal({
   open,
   onClose,
   onAdd,
+  onRepeated,
   date,
 }: {
   open: boolean
   onClose: () => void
   onAdd: (task: ScheduledTask) => void
+  /** Serija pravi zadatke na više dana — ekran mora da se osveži, ne samo dopuni. */
+  onRepeated?: () => void
   date: string
 }) {
   const [name, setName] = useState('')
   const [priority, setPriority] = useState('medium')
+  const [repeat, setRepeat] = useState<RepeatChoice>('none')
+  const [repeatUntil, setRepeatUntil] = useState('')
   const [reminderValue, setReminderValue] = useState(1)
   const [reminderUnit, setReminderUnit] = useState<'dana' | 'sati' | 'minuta'>('dana')
   const [reminderEnabled, setReminderEnabled] = useState(false)
@@ -42,6 +49,8 @@ export default function AddScheduledTaskModal({
     if (open) {
       setName('')
       setPriority('medium')
+      setRepeat('none')
+      setRepeatUntil('')
       setReminderValue(1)
       setReminderUnit('dana')
       setReminderEnabled(false)
@@ -74,8 +83,11 @@ export default function AddScheduledTaskModal({
           priority,
           for_date: date,
           remind_before_minutes,
-          deadline_date: deadlineEnabled ? deadlineDate : null,
+          // Rok se namerno ne šalje uz ponavljanje — jedan fiksan rok bi značio da
+          // su sva buduća pojavljivanja odmah probijena.
+          deadline_date: repeat === 'none' && deadlineEnabled ? deadlineDate : null,
           note: '',
+          repeat: repeat === 'none' ? null : { freq: repeat, until: repeatUntil || null },
         }),
       })
       if (!res.ok) {
@@ -83,7 +95,8 @@ export default function AddScheduledTaskModal({
         return
       }
       const data = await res.json()
-      onAdd(data)
+      if (repeat !== 'none') onRepeated?.()
+      else onAdd(data)
       onClose()
     } catch {
       setError(t.sched.saveError)
@@ -125,6 +138,38 @@ export default function AddScheduledTaskModal({
           <option value="medium">{t.priority.medium}</option>
           <option value="low">{t.priority.low}</option>
         </select>
+      </div>
+
+      {/* Ponavljanje — dan u nedelji i datum u mesecu se izvode iz izabranog dana */}
+      <div>
+        <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>{t.sched.repeatLabel}</label>
+        <select
+          value={repeat}
+          onChange={e => setRepeat(e.target.value as RepeatChoice)}
+          className="field field-select h-11 px-2 text-sm"
+        >
+          <option value="none">{t.sched.repeatNone}</option>
+          <option value="daily">{t.sched.repeatDaily}</option>
+          <option value="weekdays">{t.sched.repeatWeekdays}</option>
+          <option value="weekly">{t.sched.repeatWeekly}</option>
+          <option value="monthly">{t.sched.repeatMonthly}</option>
+        </select>
+        {repeat !== 'none' && (
+          <>
+            <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>{t.sched.repeatHint}</p>
+            <div className="mt-2">
+              <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>{t.sched.repeatUntil}</label>
+              <input
+                type="date"
+                value={repeatUntil}
+                min={date}
+                onChange={e => setRepeatUntil(e.target.value)}
+                className="field h-11 px-3 text-sm w-full"
+              />
+              <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{t.sched.repeatUntilHint}</p>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Podsetnik toggle + unos */}
@@ -176,13 +221,15 @@ export default function AddScheduledTaskModal({
         )}
       </div>
 
-      <WhenFields
-        startDate={date}
-        deadlineEnabled={deadlineEnabled}
-        onToggleDeadline={() => setDeadlineEnabled(p => !p)}
-        deadlineDate={deadlineDate}
-        onDeadlineChange={setDeadlineDate}
-      />
+      {repeat === 'none' && (
+        <WhenFields
+          startDate={date}
+          deadlineEnabled={deadlineEnabled}
+          onToggleDeadline={() => setDeadlineEnabled(p => !p)}
+          deadlineDate={deadlineDate}
+          onDeadlineChange={setDeadlineDate}
+        />
+      )}
 
       {error && (
         <p className="text-xs" style={{ color: 'var(--danger)' }}>{error}</p>

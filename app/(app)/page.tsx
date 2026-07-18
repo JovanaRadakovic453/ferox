@@ -4,7 +4,30 @@ import SetupScreen from '@/components/setup/SetupScreen'
 import EodLanding from '@/components/plan/EodLanding'
 import { todayKey, tomorrowKey, toTimezone } from '@/lib/date'
 import { computeStreak } from '@/lib/streak'
+import { scheduledOnDay } from '@/lib/schedule'
 import type { UserProfile, Task, Appointment } from '@/types/ferox'
+
+// Bez ovoga pregledač pamti prethodni prikaz ove strane: zakažeš zadatak u
+// Kalendaru, vratiš se na "Danas" — i vidiš STARU sliku bez njega. Primećivalo se
+// tako što se zadatak pojavi tek posle "Obriši sve i počni iznova" (to radi pravi
+// reload strane). Ista zaštita već stoji na /plan.
+export const dynamic = 'force-dynamic'
+
+// Red iz `scheduled_tasks` onako kako ga ove dve strane povlače (bez `done` — filtriran je upitom).
+//
+// Koji dani "hvataju" zadatak određuje `scheduledOnDay` (lib/schedule.ts) — ISTO
+// pravilo po kom se crta i Kalendar, da se prikaz i plan nikad ne raziđu:
+//   • ima rok  → svaki dan od početka do roka (projekat se radi više dana)
+//   • bez roka → samo svoj dan (inače bi se svaki ikad zakazan zadatak vraćao doveka)
+//   • serija   → samo svoj dan (propušten utorak se ne gomila u sredu)
+type ScheduledPick = Pick<Task, 'name' | 'priority'> & {
+  id: string
+  type?: Task['type']
+  note?: string | null
+  deadline_date?: string | null
+  for_date: string
+  repeat_id: string | null
+}
 
 export default async function SetupPage({
   searchParams,
@@ -110,16 +133,16 @@ export default async function SetupPage({
         .order('time'),
       supabase
         .from('scheduled_tasks')
-        .select('id, name, priority, type, note, deadline_date')
+        .select('id, name, priority, type, note, deadline_date, for_date, repeat_id')
         .eq('user_id', user.id)
-        .eq('for_date', targetDate)
+        .lte('for_date', targetDate)
         .eq('done', false),
     ])
     initialTasks = (existingTasks ?? []) as Task[]
     initialAppointments = (existingAppts ?? []) as Appointment[]
     // Zakazan zadatak dodat POSLE kreiranja dana: ubaci ga u editor umesto da se tiho proguta.
     // Rok ide sa njim — inače bi nestao čim zadatak uđe u plan.
-    const pending = (pendingScheduled ?? []) as (Task & { id: string })[]
+    const pending = scheduledOnDay((pendingScheduled ?? []) as ScheduledPick[], targetDate)
     if (pending.length > 0) {
       initialTasks = [
         ...initialTasks,
@@ -136,9 +159,9 @@ export default async function SetupPage({
         .maybeSingle(),
       supabase
         .from('scheduled_tasks')
-        .select('id, name, priority, type, note, deadline_date')
+        .select('id, name, priority, type, note, deadline_date, for_date, repeat_id')
         .eq('user_id', user.id)
-        .eq('for_date', targetDate)
+        .lte('for_date', targetDate)
         .eq('done', false),
       // Već sačuvani termini za taj dan (npr. iz brain dump-a) — da se učitaju i prežive.
       supabase
@@ -150,7 +173,7 @@ export default async function SetupPage({
     ])
     initialAppointments = (apptRows ?? []) as Appointment[]
     const filtered = ((transferred?.tasks ?? []) as Task[]).filter((t: Task) => !t.done)
-    const scheduled = (scheduledRows ?? []) as (Task & { id: string })[]
+    const scheduled = scheduledOnDay((scheduledRows ?? []) as ScheduledPick[], targetDate)
     // Zakazani za ovaj dan idu PRAVO u plan (korisnik ih je u kalendaru već
     // zakazao za taj dan) — ne kao predlog. scheduledId putuje s njima da bi se
     // pri snimanju označili SAMO oni koji su stvarno ostali u planu.

@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import PlanScreen from '@/components/plan/PlanScreen'
 import { todayKey, tomorrowKey, isValidDayKey, addDays, toTimezone } from '@/lib/date'
 import { computeStreak } from '@/lib/streak'
+import { scheduledOnDay } from '@/lib/schedule'
 import type { Task, Appointment, DayEntry, UserProfile } from '@/types/ferox'
 
 export const dynamic = 'force-dynamic'
@@ -53,10 +54,50 @@ export default async function PlanPage({
   const finishedSet = new Set((finishedRows ?? []).map(r => r.date_key as string))
   const streak = computeStreak(finishedSet, profile?.rest_days ?? [0, 6], today)
 
+  // Zakazani zadaci koji su POČELI a nisu završeni ulaze u plan sami — i to pri
+  // SVAKOM otvaranju dana, ne samo kad se plan pravi.
+  //
+  // Bez ovoga: zadatak zakazan pošto je plan već napravljen nikad ne uđe (tiho se
+  // izgubi), a projekat koji traje više dana ne bi se vratio sutra.
+  //
+  // Serije koje se ponavljaju važe samo za svoj dan (propušten utorak se ne gomila),
+  // pa ulaze samo ako je `for_date` baš taj dan.
+  const dayTasks = [...((tasks ?? []) as Task[])]
+  if (!dayFinished) {
+    const { data: openScheduled } = await supabase
+      .from('scheduled_tasks')
+      .select('id, name, priority, type, note, deadline_date, for_date, repeat_id')
+      .eq('user_id', user.id)
+      .lte('for_date', viewDate)
+      .eq('done', false)
+
+    const alreadyIn = new Set(dayTasks.map(t => t.scheduled_id).filter(Boolean))
+    const toAdd = scheduledOnDay(openScheduled ?? [], viewDate)
+      .filter(s => !alreadyIn.has(s.id))
+
+    if (toAdd.length > 0) {
+      const { data: addedRows } = await supabase.from('tasks').insert(
+        toAdd.map((s, i) => ({
+          entry_id: entry.id,
+          user_id: user.id,
+          name: s.name,
+          priority: s.priority,
+          type: s.type ?? 'light',
+          note: s.note ?? '',
+          done: false,
+          position: dayTasks.length + i,
+          deadline_date: s.deadline_date ?? null,
+          scheduled_id: s.id,
+        }))
+      ).select('*')
+      dayTasks.push(...((addedRows ?? []) as Task[]))
+    }
+  }
+
   return (
     <PlanScreen
       entry={entry as DayEntry}
-      tasks={(tasks ?? []) as Task[]}
+      tasks={dayTasks}
       appointments={(appointments ?? []) as Appointment[]}
       profile={profile as UserProfile}
       dayFinished={dayFinished}

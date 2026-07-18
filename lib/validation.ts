@@ -23,6 +23,11 @@ export const zTaskInput = z.object({
   block_index: z.number().int().min(0).max(3).nullable().optional(),
   /** Rok — prati zadatak i kad uđe u dan (može biti i u prošlosti: propušten rok). */
   deadline_date: zStrictDate.nullable().optional(),
+  /**
+   * Veza ka zakazanom zadatku iz Kalendara (scheduled_tasks.id), ako je odatle došao.
+   * Po njoj se pri štikliranju zatvara original — vidi migraciju 0022.
+   */
+  scheduledId: z.string().uuid().nullable().optional(),
 })
 
 export const zAppointmentInput = z.object({

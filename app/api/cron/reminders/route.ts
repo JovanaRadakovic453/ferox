@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { apiOk, ERR } from '@/lib/api'
 import { toTimezone } from '@/lib/date'
 import { reminderDue, pushText } from '@/lib/reminders'
+import { topUpRepeats } from '@/lib/repeatTopUp'
 import { toLocale } from '@/lib/locale'
 import { deadlineReminderBody } from '@/lib/deadline'
 import type { NextRequest } from 'next/server'
@@ -41,12 +42,22 @@ export async function GET(request: NextRequest) {
   const supabase = createAdminClient()
   if (!supabase) return ERR.server('Admin klijent nije konfigurisan')
 
+  // Dopuna zadataka koji se ponavljaju — vozi se na istom satnom budilniku, da
+  // serija ne bi tiho presušila kad se istroši horizont (vidi lib/repeatTopUp.ts).
+  // Namerno u try/catch: greška u dopuni ne sme da spreči jutarnje podsetnike.
+  let repeats = { rules: 0, created: 0 }
+  try {
+    repeats = await topUpRepeats(supabase)
+  } catch (err) {
+    console.error('repeat top-up error:', err instanceof Error ? err.message : String(err))
+  }
+
   const { data: profiles } = await supabase
     .from('profiles')
     .select('id, push_subscription, timezone, last_reminder_key, locale')
     .not('push_subscription', 'is', null)
 
-  const nothing = { sent: 0, deadlineSent: 0, skippedPlanned: 0, cleaned: 0, candidates: 0 }
+  const nothing = { sent: 0, deadlineSent: 0, skippedPlanned: 0, cleaned: 0, candidates: 0, repeats }
   if (!profiles?.length) return apiOk(nothing)
 
   // Ko je SAD u svom jutru i taj dan još nije dobio podsetnik.
@@ -164,5 +175,5 @@ export async function GET(request: NextRequest) {
       .in('id', stale)
   }
 
-  return apiOk({ sent, deadlineSent, skippedPlanned, cleaned: stale.length, candidates: candidates.length })
+  return apiOk({ sent, deadlineSent, skippedPlanned, cleaned: stale.length, candidates: candidates.length, repeats })
 }

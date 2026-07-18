@@ -14,6 +14,8 @@ type ScheduledTask = {
   note: string
   remind_before_minutes: number | null
   deadline_date: string | null
+  /** Postoji ako je zadatak pojavljivanje serije koja se ponavlja. */
+  repeat_id?: string | null
 }
 
 function initReminder(mins: number | null): { enabled: boolean; value: number; unit: 'dana' | 'sati' | 'minuta' } {
@@ -28,11 +30,14 @@ export default function EditScheduledTaskModal({
   onClose,
   onUpdate,
   onDelete,
+  onSeriesDeleted,
 }: {
   task: ScheduledTask | null
   onClose: () => void
   onUpdate: (updated: ScheduledTask) => void
   onDelete: (id: string) => void
+  /** Cela serija je zaustavljena — traži pun osvežaj (menja više dana). */
+  onSeriesDeleted?: () => void
 }) {
   const open = task !== null
 
@@ -104,6 +109,22 @@ export default function EditScheduledTaskModal({
       const res = await fetch(`/api/scheduled-tasks/${task.id}`, { method: 'DELETE' })
       if (!res.ok) { setError(t.sched.deleteFailed); setDeleting(false); return }
       onDelete(task.id)
+      onClose()
+    } catch {
+      setError(t.sched.networkError)
+      setDeleting(false)
+    }
+  }
+
+  // Zaustavlja celu seriju. Server briše samo buduća, nezavršena pojavljivanja —
+  // istorija ostaje. Menja više dana odjednom, pa traži pun osvežaj ekrana.
+  async function removeSeries() {
+    if (!task?.repeat_id) return
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/task-repeats/${task.repeat_id}`, { method: 'DELETE' })
+      if (!res.ok) { setError(t.sched.deleteFailed); setDeleting(false); return }
+      onSeriesDeleted?.()
       onClose()
     } catch {
       setError(t.sched.networkError)
@@ -213,13 +234,29 @@ export default function EditScheduledTaskModal({
         {t.sched.saveChanges}
       </Button>
 
+      {task?.repeat_id && (
+        <div className="flex flex-col gap-1.5">
+          <p className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>
+            🔁 {t.sched.repeatSeriesNote}
+          </p>
+          <button
+            onClick={removeSeries}
+            disabled={deleting}
+            className="w-full py-2.5 text-sm font-medium rounded-[var(--r-md)] transition-colors disabled:opacity-50"
+            style={{ color: 'var(--danger)', background: 'var(--danger-tint)' }}
+          >
+            {t.sched.repeatDeleteSeries}
+          </button>
+        </div>
+      )}
+
       <button
         onClick={remove}
         disabled={deleting}
         className="w-full py-2.5 text-sm font-medium rounded-[var(--r-md)] transition-colors disabled:opacity-50"
         style={{ color: 'var(--danger)', background: 'var(--danger-tint)' }}
       >
-        {deleting ? t.sched.deleting : t.sched.deleteTask}
+        {deleting ? t.sched.deleting : task?.repeat_id ? t.sched.repeatDeleteOne : t.sched.deleteTask}
       </button>
     </Modal>
   )

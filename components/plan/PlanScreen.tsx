@@ -277,6 +277,14 @@ export default function PlanScreen({
     if (error) {
       setTasks(prev => prev.map(t => t.id === taskId ? { ...t, done: !newDone } : t))
       toast({ message: t.plan.notSaved, variant: 'error', action: { label: t.common.retry, onClick: () => toggleTask(taskId) } })
+      return
+    }
+
+    // Zadatak došao iz Kalendara: štikliranje ZATVARA original, odštikliravanje ga
+    // vraća. Bez ovoga bi se zakazan zadatak (koji sada ostaje dok se ne završi)
+    // pojavljivao i sutra iako je odrađen. Vidi migraciju 0022.
+    if (task.scheduled_id) {
+      await supabase.from('scheduled_tasks').update({ done: newDone }).eq('id', task.scheduled_id)
     }
   }
 

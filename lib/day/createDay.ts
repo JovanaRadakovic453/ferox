@@ -50,10 +50,13 @@ export async function createDay(
     priority: t.priority, type: t.type, note: t.note ?? '',
     position: t.position ?? i, block_index: t.block_index ?? null,
     deadline_date: t.deadline_date ?? null,
+    // Veza ka originalu iz Kalendara — po njoj se pri štikliranju zatvara zakazani
+    // zadatak (migracija 0022).
+    scheduled_id: t.scheduledId ?? null,
   }))
   if (taskRows.length > 0) {
     const { data, error } = await supabase.from('tasks').insert(taskRows)
-      .select('id, name, done, priority, type, note, position, block_index, deadline_date')
+      .select('id, name, done, priority, type, note, position, block_index, deadline_date, scheduled_id')
     if (error) return { ok: false, code: 'DB_INSERT_TASKS', message: 'Greška pri ubacivanju zadataka', detail: error.message }
     inserted = (data ?? []) as Task[]
     if (inserted.length !== taskRows.length) {
@@ -71,16 +74,29 @@ export async function createDay(
     if (error) return { ok: false, code: 'DB_INSERT_APPT', message: 'Greška pri čuvanju termina', detail: error.message }
   }
 
-  // 4. Clear transferred tasks; mark done SAMO zakazane zadatke koji su stvarno ušli u plan
-  //    (blanket update je ranije gutao zakazane zadatke dodate posle kreiranja dana).
+  // 4. Clear transferred tasks + uskladi stanje zakazanih zadataka.
+  //
+  // KLJUČNO (migracija 0022): zakazan zadatak se NE zatvara time što je ušao u plan.
+  // "done" sada znači "korisnik ga je štiklirao". Zato ovde prepisujemo stanje iz
+  // plana: štiklirano → zatvori, neštiklirano → ostavi otvoreno (pa se sutra opet
+  // pojavi, jer projekat traje više dana).
   const cleanup: PromiseLike<unknown>[] = [
     supabase.from('transferred_tasks').delete().eq('user_id', userId).eq('for_date', dateKey),
   ]
-  if (body.scheduledTaskIds.length > 0) {
-    cleanup.push(
-      supabase.from('scheduled_tasks').update({ done: true })
-        .eq('user_id', userId).eq('for_date', dateKey).in('id', body.scheduledTaskIds),
-    )
+
+  const schedIds = (done: boolean) => [...new Set(
+    tasks.filter(t => t.scheduledId && (t.done ?? false) === done)
+      .map(t => t.scheduledId as string)
+  )]
+
+  for (const done of [true, false]) {
+    const ids = schedIds(done)
+    if (ids.length > 0) {
+      // `id in (...)` + user_id su dovoljna zaštita — to su njegovi zadaci.
+      cleanup.push(
+        supabase.from('scheduled_tasks').update({ done }).eq('user_id', userId).in('id', ids),
+      )
+    }
   }
   await Promise.all(cleanup)
 

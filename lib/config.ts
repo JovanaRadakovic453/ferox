@@ -79,6 +79,19 @@ export const REMINDERS = {
   latestHour: 10,
 } as const
 
+/**
+ * Zadaci koji se ponavljaju. Pravilo unapred PRAVI obična zakazana pojavljivanja
+ * (vidi lib/repeat.ts), pa ove brojke određuju koliko redova ide u bazu.
+ */
+export const REPEATS = {
+  /** Koliko dana unapred se prave pojavljivanja pri čuvanju pravila. */
+  horizonDays: 120,
+  /** Kad do kraja horizonta ostane manje od ovoliko dana — dopuni. */
+  topUpWhenLeftDays: 30,
+  /** Tvrda granica po jednom pravilu — zaštita baze od "svaki dan zauvek". */
+  maxOccurrences: 400,
+} as const
+
 /** Statički identitet aplikacije / metapodaci. */
 export const APP = {
   name: 'Ferox',

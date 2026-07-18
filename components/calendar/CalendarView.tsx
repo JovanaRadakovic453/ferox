@@ -3,12 +3,13 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import CalendarGrid from './CalendarGrid'
+import { scheduledOnDay } from '@/lib/schedule'
 import DayPanel from './DayPanel'
 import { useT } from '@/components/i18n/I18nProvider'
 
 type Entry = { id: string; date_key: string; finished_at: string | null }
 type Appointment = { id: string; date_key: string; name: string; time: string; done: boolean }
-type ScheduledTask = { id: string; for_date: string; name: string; priority: string; note: string; remind_before_minutes: number | null; deadline_date: string | null }
+type ScheduledTask = { id: string; for_date: string; name: string; priority: string; note: string; remind_before_minutes: number | null; deadline_date: string | null; repeat_id?: string | null }
 
 function shiftMonth(month: string, delta: number): string {
   const [y, m] = month.split('-').map(Number)
@@ -39,6 +40,17 @@ export default function CalendarView({
   const [selectedDate, setSelectedDate] = useState<string>(today)
   // Optimistic list — updated immediately on add/remove without waiting for re-fetch
   const [panelScheduled, setPanelScheduled] = useState<ScheduledTask[]>(scheduled)
+
+  // Ali optimistički spisak MORA da se osveži kad server pošalje nove podatke —
+  // inače prelistavanje meseci (i router.refresh posle serije koja se ponavlja)
+  // prikazuje spisak iz prvog otvaranja i noviji zadaci se "ne vide".
+  // Ovo je zvanični React obrazac za usklađivanje stanja sa propom: podešava se
+  // TOKOM rendera, bez efekta (efekt bi dodao još jedan prolaz i lint upozorenje).
+  const [syncedFrom, setSyncedFrom] = useState(scheduled)
+  if (scheduled !== syncedFrom) {
+    setSyncedFrom(scheduled)
+    setPanelScheduled(scheduled)
+  }
 
   const [year, monthNum] = initialMonth.split('-').map(Number)
   const monthName = t.cal.months[monthNum - 1]
@@ -118,8 +130,9 @@ export default function CalendarView({
           today={today}
           entries={entries}
           appointments={appointments.filter(a => a.date_key === selectedDate)}
-          scheduled={panelScheduled.filter(t => t.for_date === selectedDate)}
+          scheduled={scheduledOnDay(panelScheduled, selectedDate)}
           onAddTask={addTask}
+          onRepeatedTasks={() => router.refresh()}
           onRemoveTask={removeTask}
           onUpdateTask={updateTask}
           googleConnected={googleConnected}

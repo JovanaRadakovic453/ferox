@@ -11,7 +11,7 @@ import { INTL_LOCALE } from '@/lib/locale'
 
 type Entry = { id: string; date_key: string; finished_at: string | null }
 type Appointment = { id: string; date_key: string; name: string; time: string; done: boolean }
-type ScheduledTask = { id: string; for_date: string; name: string; priority: string; note: string; remind_before_minutes: number | null; deadline_date: string | null }
+type ScheduledTask = { id: string; for_date: string; name: string; priority: string; note: string; remind_before_minutes: number | null; deadline_date: string | null; repeat_id?: string | null }
 type LoadedTask = { id: string; name: string; priority: string; done: boolean; note: string }
 
 const PRIORITY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 }
@@ -34,6 +34,7 @@ export default function DayPanel({
   appointments,
   scheduled,
   onAddTask,
+  onRepeatedTasks,
   onRemoveTask,
   onUpdateTask,
   googleConnected = false,
@@ -44,6 +45,8 @@ export default function DayPanel({
   appointments: Appointment[]
   scheduled: ScheduledTask[]
   onAddTask: (task: ScheduledTask) => void
+  /** Serija je napravila zadatke na više dana — traži pun osvežaj kalendara. */
+  onRepeatedTasks?: () => void
   onRemoveTask: (id: string) => void
   onUpdateTask: (updated: ScheduledTask) => void
   googleConnected?: boolean
@@ -330,6 +333,7 @@ export default function DayPanel({
         open={addOpen}
         onClose={() => setAddOpen(false)}
         onAdd={task => { onAddTask(task); setAddOpen(false) }}
+        onRepeated={() => { onRepeatedTasks?.(); setAddOpen(false) }}
         date={date}
       />
 
@@ -338,6 +342,7 @@ export default function DayPanel({
         onClose={() => setEditingTask(null)}
         onUpdate={updated => { handleUpdate(updated); setEditingTask(null) }}
         onDelete={id => { onRemoveTask(id); setEditingTask(null) }}
+        onSeriesDeleted={() => { onRepeatedTasks?.(); setEditingTask(null) }}
       />
     </div>
   )

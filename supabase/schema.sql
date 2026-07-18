@@ -202,6 +202,7 @@ create table if not exists public.scheduled_tasks (
   remind_before_minutes integer default null, -- podsetnik N minuta pre (app ograničava na 28 dana)
   deadline_date date default null,
   zone_id uuid references public.zones(id) on delete set null,
+  -- repeat_id se dodaje niže, posle task_repeats (redosled kreiranja tabela)
   created_at timestamptz default now()
 );
 
@@ -211,6 +212,42 @@ create policy "Users manage own scheduled tasks" on public.scheduled_tasks
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 create index if not exists idx_scheduled_tasks_user_date on public.scheduled_tasks(user_id, for_date);
+
+-- ============================
+-- TASK REPEATS — zadaci koji se ponavljaju
+-- Pravilo ne zamenjuje zakazane zadatke, nego ih PRAVI: svako pojavljivanje je
+-- običan red u scheduled_tasks (repeat_id pokazuje na pravilo). Logika datuma je
+-- u lib/repeat.ts. Vidi migraciju 0018.
+-- ============================
+create table if not exists public.task_repeats (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  name text not null,
+  priority text not null default 'medium' check (priority in ('high', 'medium', 'low')),
+  note text not null default '',
+  freq text not null check (freq in ('daily', 'weekdays', 'weekly', 'monthly')),
+  weekdays smallint[] not null default '{}',  -- za 'weekly': 0=nedelja … 6=subota
+  month_day smallint check (month_day is null or month_day between 1 and 31),
+  start_date date not null,
+  end_date date default null,
+  active boolean not null default true,
+  generated_through date,                     -- dokle su napravljena pojavljivanja
+  created_at timestamptz not null default now()
+);
+
+alter table public.task_repeats enable row level security;
+
+create policy "Users manage own task repeats" on public.task_repeats
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+create index if not exists idx_task_repeats_user_active on public.task_repeats(user_id, active);
+
+-- Veza pojavljivanja → pravilo. `set null` (ne cascade): kad se serija obriše,
+-- odrađena pojavljivanja iz prošlosti ostaju u istoriji.
+alter table public.scheduled_tasks
+  add column if not exists repeat_id uuid references public.task_repeats(id) on delete set null;
+
+create index if not exists idx_scheduled_tasks_repeat on public.scheduled_tasks(repeat_id);
 
 -- ============================
 -- ROUTINES — šabloni zadataka (jsonb lista)

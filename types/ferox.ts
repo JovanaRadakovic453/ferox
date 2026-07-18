@@ -35,10 +35,16 @@ export interface Task {
   google_event_id?: string | null
   /**
    * Klijentska oznaka (NIJE kolona u bazi): zadatak potiče iz zakazanog
-   * (scheduled_tasks.id). Pri snimanju se SAMO zakazani koji su stvarno u planu
-   * označe kao prebačeni — inače bi nestali i iz kalendara i iz plana.
+   * (scheduled_tasks.id). Šalje se pri snimanju plana i tamo se upisuje u
+   * `scheduled_id` kolonu.
    */
   scheduledId?: string
+  /**
+   * KOLONA u bazi (migracija 0022) — veza ka `scheduled_tasks.id` iz kog je zadatak
+   * došao. Po njoj štikliranje u planu zatvara original u Kalendaru, pa se zadatak
+   * koji "stoji dok se ne završi" prestane pojavljivati.
+   */
+  scheduled_id?: string | null
 }
 
 export interface Appointment {

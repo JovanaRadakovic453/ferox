@@ -1,10 +1,11 @@
 'use client'
 
 import { useT } from '@/components/i18n/I18nProvider'
+import { scheduledDateSet } from '@/lib/schedule'
 
 type Entry = { id: string; date_key: string; finished_at: string | null }
 type Appointment = { id: string; date_key: string; name: string; time: string; done: boolean }
-type ScheduledTask = { id: string; for_date: string; name: string; priority: string; note: string; remind_before_minutes: number | null; deadline_date: string | null }
+type ScheduledTask = { id: string; for_date: string; name: string; priority: string; note: string; remind_before_minutes: number | null; deadline_date: string | null; repeat_id?: string | null }
 
 function toDateKey(d: Date): string {
   const y = d.getUTCFullYear()
@@ -81,7 +82,8 @@ export default function CalendarGrid({
 
   // Build per-date lookup for appointments and scheduled tasks
   const apptDateSet = new Set(appointments.map(a => a.date_key))
-  const schedDateSet = new Set(scheduled.map(t => t.for_date))
+  // Zadatak sa rokom "zauzima" sve dane od početka do roka — ne samo prvi.
+  const schedDateSet = scheduledDateSet(scheduled)
 
   const isWeek = view === 'week'
 
