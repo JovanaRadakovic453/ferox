@@ -48,7 +48,7 @@ export default function TaskEditor({
                   background: t.priority === 'high' ? 'var(--danger-tint)' : t.priority === 'medium' ? 'var(--warn-tint)' : 'var(--ok-tint)',
                   color: t.priority === 'high' ? 'var(--danger)' : t.priority === 'medium' ? 'var(--warn)' : 'var(--ok)',
                 }}>
-                  {t.priority === 'high' ? 'V' : t.priority === 'medium' ? 'S' : 'N'}
+                  {tr.priorityShort[t.priority]}
                 </span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{t.name}</p>

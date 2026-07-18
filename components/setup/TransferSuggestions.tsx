@@ -38,7 +38,7 @@ export default function TransferSuggestions({
               background: item.priority === 'high' ? 'var(--danger-tint)' : item.priority === 'medium' ? 'var(--warn-tint)' : 'var(--ok-tint)',
               color: item.priority === 'high' ? 'var(--danger)' : item.priority === 'medium' ? 'var(--warn)' : 'var(--ok)',
             }}>
-              {item.priority === 'high' ? 'V' : item.priority === 'medium' ? 'S' : 'N'}
+              {t.priorityShort[item.priority]}
             </span>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{item.name}</p>

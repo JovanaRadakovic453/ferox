@@ -112,6 +112,8 @@ export const sr = {
     themeDark: '🌙 Tamna',
   },
   priority: { high: '🔴 Visok', medium: '🟡 Srednji', low: '🟢 Nizak' },
+  // Slovo u bedžu na zadatku — početno slovo naziva prioriteta, pa mora po jeziku.
+  priorityShort: { high: 'V', medium: 'S', low: 'N' },
   plan: {
     myPlan: 'Moj plan',
     plan: 'Plan',
@@ -585,6 +587,7 @@ export const en = {
     themeDark: '🌙 Dark',
   },
   priority: { high: '🔴 High', medium: '🟡 Medium', low: '🟢 Low' },
+  priorityShort: { high: 'H', medium: 'M', low: 'L' },
   plan: {
     myPlan: 'My plan',
     plan: 'Plan',

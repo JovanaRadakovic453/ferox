@@ -61,7 +61,7 @@ export default function TaskItem({ task, onToggle, onDelete, onSnooze }: {
             color: task.priority === 'high' ? 'var(--danger)' : task.priority === 'medium' ? 'var(--warn)' : 'var(--ok)',
           }}
         >
-          <span aria-hidden>{task.priority === 'high' ? 'V' : task.priority === 'medium' ? 'S' : 'N'}</span>
+          <span aria-hidden>{t.priorityShort[task.priority]}</span>
           <span className="sr-only">{t.priority[task.priority]}</span>
         </span>
       </button>
