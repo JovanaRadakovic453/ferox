@@ -14,6 +14,7 @@ import TaskEditor from '@/components/setup/TaskEditor'
 import AppointmentEditor from '@/components/setup/AppointmentEditor'
 import PreviewRail from '@/components/setup/PreviewRail'
 import { useT, useLocale, useTimezone } from '@/components/i18n/I18nProvider'
+import { readSkipped, addSkipped } from '@/lib/googleSkip'
 
 /** Pamti da je Google veza pukla, da upozorenje ne nestane pri osvežavanju. */
 const GOOGLE_WARN_KEY = 'ferox-google-reconnect'
@@ -71,6 +72,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
 
   type GoogleEvent = { id: string; title: string; time: string | null; endTime: string | null; allDay?: boolean }
   const [googleEvents, setGoogleEvents] = useState<GoogleEvent[]>([])
+  const [googleSkipped, setGoogleSkipped] = useState<string[]>([])
   const [googleNeedsReconnect, setGoogleNeedsReconnect] = useState(false)
 
   // Upozorenje o pukloj Google vezi mora da PREŽIVI osvežavanje: kad token
@@ -79,6 +81,11 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
   useEffect(() => {
     try { if (localStorage.getItem(GOOGLE_WARN_KEY)) setGoogleNeedsReconnect(true) } catch { /* ignore */ }
   }, [])
+
+  // Ranije izbačeni (✕) događaji — da se ne vrate kad se stranica osveži.
+  useEffect(() => {
+    setGoogleSkipped(readSkipped(targetDate ?? todayKey(tz)))
+  }, [targetDate, tz])
 
   useEffect(() => {
     if (!profile.google_refresh_token) return
@@ -192,7 +199,8 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
   }
 
   async function handleSubmit() {
-    if ((tasks.length + appointments.length) === 0) return
+    // Google događaji se broje: dan može da se napravi i samo od njih.
+    if (totalItems === 0) return
     setLoading(true)
     setSubmitError(null)
 
@@ -233,17 +241,28 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
     }
   }
 
-  const totalItems = tasks.length + appointments.length
-  const canSubmit = totalItems > 0 && !brainDumpLoading
-
-  // Google događaji tog dana — SAMO pregled, bez dugmeta. U plan ulaze sami čim
-  // se plan napravi (server ih uvuče: sa vremenom kao termin, celodnevne kao
-  // običan zadatak). Ručno dodavanje bi napravilo duplikat i vratilo bi klikanje
-  // koje smo baš uklonili. Ne prikazujemo ono što je korisnik već sam uneo.
+  // Google događaji tog dana. Bez dugmeta „Dodaj" — u plan ulaze sami čim se
+  // plan napravi (server ih uvuče: sa vremenom kao termin, celodnevne kao običan
+  // zadatak). Zato se ovde i BROJE: već su deo dana. ✕ izbacuje jedan događaj.
+  // Ne prikazujemo ono što je korisnik već sam uneo pod istim imenom.
   const draftNames = new Set(
     [...appointments.map(a => a.name), ...tasks.map(t => t.name)].map(n => n.trim().toLowerCase())
   )
-  const visibleGoogleEvents = googleEvents.filter(e => !draftNames.has(e.title.trim().toLowerCase()))
+  const visibleGoogleEvents = googleEvents.filter(e =>
+    !googleSkipped.includes(e.id) && !draftNames.has(e.title.trim().toLowerCase()))
+
+  // Sa vremenom → termin, bez vremena → zadatak; brojke moraju da odgovaraju
+  // onome što će stvarno osvanuti u planu.
+  const taskCount = tasks.length + visibleGoogleEvents.filter(e => !e.time).length
+  const apptCount = appointments.length + visibleGoogleEvents.filter(e => e.time).length
+  const totalItems = taskCount + apptCount
+  const canSubmit = totalItems > 0 && !brainDumpLoading
+
+  function skipGoogleEvent(eventId: string) {
+    const date = targetDate ?? todayKey(tz)
+    addSkipped(date, eventId)
+    setGoogleSkipped(prev => [...prev, eventId])
+  }
 
   const hour = new Date().getHours()
   const dayPart = hour < 5 ? t.setup.goodEvening : hour < 12 ? t.setup.goodMorning : hour < 18 ? t.setup.goodDay : t.setup.goodEvening
@@ -398,9 +417,16 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
                 {visibleGoogleEvents.map(event => (
                   <div key={event.id} className="flex items-center gap-3">
                     <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>{event.title}</span>
-                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                    <span className="text-xs flex-1" style={{ color: 'var(--text-muted)' }}>
                       {event.time ? `${event.time}${event.endTime ? ` – ${event.endTime}` : ''}` : ''}
                     </span>
+                    {/* Događaj ipak ne treba u planu — izbacujemo ga, u Google-u ostaje. */}
+                    <button
+                      onClick={() => skipGoogleEvent(event.id)}
+                      aria-label={`${t.common.delete} ${event.title}`}
+                      className="shrink-0 text-sm opacity-25 hover:opacity-70 transition-opacity"
+                      style={{ color: 'var(--text-muted)' }}
+                    >✕</button>
                   </div>
                 ))}
               </div>
@@ -460,8 +486,8 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
 
           <PreviewRail
             isSutraMode={isSutraMode}
-            taskCount={tasks.length}
-            apptCount={appointments.length}
+            taskCount={taskCount}
+            apptCount={apptCount}
             totalItems={totalItems}
             canSubmit={canSubmit}
             loading={loading}

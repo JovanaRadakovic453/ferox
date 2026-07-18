@@ -78,4 +78,13 @@ describe('eventsToImport', () => {
     const out = eventsToImport([ev('a', 'Godisnji'), ev('b', 'Put')], [], ['a'])
     expect(out.map(e => e.id)).toEqual(['b'])
   })
+
+  it('dva Google dogadjaja istog naziva se ne ponistavaju (npr. oba bez naziva)', () => {
+    // Prvi je vec uvucen; drugi se zove isto, ali je drugi dogadjaj.
+    const out = eventsToImport(
+      [ev('a', 'Bez naziva'), ev('b', 'Bez naziva')],
+      [{ name: 'Bez naziva', google_event_id: 'a' }],
+    )
+    expect(out.map(e => e.id)).toEqual(['b'])
+  })
 })

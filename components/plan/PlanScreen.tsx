@@ -24,6 +24,7 @@ import ReminderBanner from '@/components/plan/ReminderBanner'
 import { AnimatePresence } from 'framer-motion'
 import type { Routine, Locale } from '@/types/ferox'
 import { useT, useLocale, useTimezone } from '@/components/i18n/I18nProvider'
+import { readSkipped, clearSkipped } from '@/lib/googleSkip'
 import type { Dict } from '@/lib/i18n/dict'
 
 // Spaja "prenesene" zadatke bez dupliranja (po imenu, case-insensitive).
@@ -89,14 +90,22 @@ export default function PlanScreen({
   useEffect(() => {
     if (!profile.google_refresh_token || dayFinished) return
     let cancelled = false
+    // Događaji izbačeni (✕) još na ekranu za pravljenje plana — dan tada nije
+    // postojao, pa ih server tek sada trajno pamti.
+    const skipped = readSkipped(entry.date_key)
     fetch('/api/integrations/google/import', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ date: entry.date_key }),
+      body: JSON.stringify({ date: entry.date_key, dismiss: skipped }),
     })
       .then(r => (r.ok ? r.json() : null))
       .then((json: { imported?: Appointment[]; importedTasks?: Task[] } | null) => {
         if (cancelled || !json) return
+        // Zapamćeno je na serveru — pregledač više ne mora da ih drži.
+        if (skipped.length) {
+          googleDismissed.current = Array.from(new Set([...googleDismissed.current, ...skipped]))
+          clearSkipped(entry.date_key)
+        }
         if (json.imported?.length) {
           setAppts(prev => {
             const known = new Set(prev.map(a => a.id))
@@ -293,6 +302,9 @@ export default function PlanScreen({
     const supabase = createClient()
     // Termin uvučen iz Google-a se SKLANJA, ne briše: red ostaje kao "nadgrobni"
     // pa se događaj ne uvuče ponovo pri sledećem otvaranju. U Google-u ostaje.
+    // Isto pamti i dan — jer ponovno pravljenje plana obriše sve termine tog
+    // dana, pa bi se sklonjeni događaj bez toga vratio.
+    if (appt.google_event_id) await markGoogleDismissed(supabase, appt.google_event_id)
     const { error } = appt.google_event_id
       ? await supabase.from('appointments').update({ dismissed: true }).eq('id', apptId)
       : await supabase.from('appointments').delete().eq('id', apptId)

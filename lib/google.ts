@@ -101,6 +101,9 @@ export function pickEventsForDay(items: Record<string, unknown>[], date: string)
  *    ono što je korisnik sam otkucao;
  *  • sklonjeno (✕) — da se ne vraća.
  *
+ * Poređenje po imenu gleda SAMO ručno unete stavke: dva Google događaja smeju da
+ * se zovu isto (npr. dva bez naziva), a njih ionako razlikuje `google_event_id`.
+ *
  * Izdvojeno i izvezeno da može da se testira bez baze.
  */
 export function eventsToImport(
@@ -110,7 +113,7 @@ export function eventsToImport(
 ): GoogleEvent[] {
   const norm = (s: string) => s.trim().toLowerCase()
   const knownIds = new Set(existing.map(r => r.google_event_id).filter((v): v is string => !!v))
-  const knownNames = new Set(existing.map(r => norm(r.name)))
+  const knownNames = new Set(existing.filter(r => !r.google_event_id).map(r => norm(r.name)))
   const dismissed = new Set(dismissedIds)
   return events.filter(e =>
     !dismissed.has(e.id) && !knownIds.has(e.id) && !knownNames.has(norm(e.title)))

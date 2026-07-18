@@ -27,17 +27,38 @@ export async function POST(request: NextRequest) {
   if (!(await checkRateLimit(supabase, 'google-events', rl.limit, rl.windowSec))) return ERR.rateLimited()
 
   const json = await request.json().catch(() => null)
-  const date = (json as { date?: string } | null)?.date
+  const body = json as { date?: string; dismiss?: unknown } | null
+  const date = body?.date
   if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return ERR.invalidInput('Datum nije validan')
+
+  // Događaji izbačeni (✕) još dok se plan pravio — tada dan nije postojao, pa
+  // stižu tek sada da bi se trajno zapamtili.
+  const incoming = Array.isArray(body?.dismiss)
+    ? body.dismiss.filter((v): v is string => typeof v === 'string').slice(0, 50)
+    : []
 
   const res = await fetchGoogleEventsForDay(supabase, user.id, date)
   if (res.status === 'disconnected') return apiOk({ imported: [], importedTasks: [], connected: false })
   if (res.status === 'needsReconnect') return apiOk({ imported: [], importedTasks: [], connected: false, needsReconnect: true })
   if (res.status === 'degraded') return apiOk({ imported: [], importedTasks: [], degraded: true })
 
+  // Spisak sklonjenih stoji na danu i važi za obe vrste (i termine i zadatke).
+  const { data: entry } = await supabase
+    .from('day_entries')
+    .select('id, google_dismissed')
+    .eq('user_id', user.id)
+    .eq('date_key', date)
+    .maybeSingle()
+
+  const stored = (entry?.google_dismissed ?? []) as string[]
+  const dismissed = Array.from(new Set([...stored, ...incoming]))
+  if (entry && dismissed.length !== stored.length) {
+    await supabase.from('day_entries').update({ google_dismissed: dismissed }).eq('id', entry.id)
+  }
+
   const [imported, importedTasks] = await Promise.all([
-    importAppointments(supabase, user.id, date, res.events.filter(e => e.time)),
-    importTasks(supabase, user.id, date, res.events.filter(e => !e.time)),
+    importAppointments(supabase, user.id, date, res.events.filter(e => e.time), dismissed),
+    importTasks(supabase, user.id, entry?.id, res.events.filter(e => !e.time), dismissed),
   ])
 
   if (imported.error || importedTasks.error) {
@@ -51,7 +72,7 @@ type Result<T> = { rows: T[]; error?: string }
 
 /** Događaji SA VREMENOM → termini. */
 async function importAppointments(
-  supabase: Client, userId: string, date: string, timed: GoogleEvent[],
+  supabase: Client, userId: string, date: string, timed: GoogleEvent[], dismissed: string[],
 ): Promise<Result<Record<string, unknown>>> {
   if (timed.length === 0) return { rows: [] }
 
@@ -63,7 +84,8 @@ async function importAppointments(
     .eq('user_id', userId)
     .eq('date_key', date)
 
-  const missing = eventsToImport(timed, (existing ?? []) as { name: string; google_event_id: string | null }[])
+  const missing = eventsToImport(
+    timed, (existing ?? []) as { name: string; google_event_id: string | null }[], dismissed)
   if (missing.length === 0) return { rows: [] }
 
   const { data: inserted, error } = await supabase
@@ -86,27 +108,19 @@ async function importAppointments(
 
 /** CELODNEVNI događaji → obični zadaci tog dana. */
 async function importTasks(
-  supabase: Client, userId: string, date: string, allDay: GoogleEvent[],
+  supabase: Client, userId: string, entryId: string | undefined, allDay: GoogleEvent[], dismissed: string[],
 ): Promise<Result<Record<string, unknown>>> {
-  if (allDay.length === 0) return { rows: [] }
-
   // Zadaci vise o danu (entry_id) — ako plan za taj dan još nije napravljen,
   // nema gde da se uvuku. Pojaviće se čim se plan napravi.
-  const { data: entry } = await supabase
-    .from('day_entries')
-    .select('id, google_dismissed')
-    .eq('user_id', userId)
-    .eq('date_key', date)
-    .maybeSingle()
-  if (!entry) return { rows: [] }
+  if (allDay.length === 0 || !entryId) return { rows: [] }
 
   const { data: existing } = await supabase
     .from('tasks')
     .select('name, position, google_event_id')
-    .eq('entry_id', entry.id)
+    .eq('entry_id', entryId)
 
   const rows = (existing ?? []) as { name: string; position: number | null; google_event_id: string | null }[]
-  const missing = eventsToImport(allDay, rows, (entry.google_dismissed ?? []) as string[])
+  const missing = eventsToImport(allDay, rows, dismissed)
   if (missing.length === 0) return { rows: [] }
 
   // Idu na kraj spiska — korisnikov redosled se ne dira.
@@ -115,7 +129,7 @@ async function importTasks(
   const { data: inserted, error } = await supabase
     .from('tasks')
     .insert(missing.map((e, i) => ({
-      entry_id: entry.id,
+      entry_id: entryId,
       user_id: userId,
       name: e.title,
       done: false,
