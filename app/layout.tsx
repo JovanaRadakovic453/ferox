@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Outfit, Cormorant_Garamond } from 'next/font/google'
+import { Outfit, Cormorant_Garamond, Source_Sans_3 } from 'next/font/google'
 import './globals.css'
 import Providers from './providers'
 import { APP } from '@/lib/config'
@@ -18,6 +18,15 @@ const cormorant = Cormorant_Garamond({
   subsets: ['latin', 'latin-ext'],
   weight: ['300', '400', '500', '600'],
   variable: '--font-logo',
+  display: 'swap',
+})
+
+// Source Sans 3 — samo za glavnu navigaciju (Danas, Kalendar…). Humanistički
+// sans klasičnih proporcija: mirniji i „ozbiljniji" od geometrijskog Outfit-a.
+const sourceSans = Source_Sans_3({
+  subsets: ['latin', 'latin-ext'],
+  weight: ['300', '400', '500'],
+  variable: '--font-nav',
   display: 'swap',
 })
 
@@ -47,7 +56,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="sr" suppressHydrationWarning className={`${outfit.variable} ${cormorant.variable}`}>
+    <html lang="sr" suppressHydrationWarning className={`${outfit.variable} ${cormorant.variable} ${sourceSans.variable}`}>
       <body className="min-h-dvh antialiased">
         <Providers>{children}</Providers>
       </body>

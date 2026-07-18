@@ -412,6 +412,12 @@ body > * {
   }
 }
 
+/* Navigacija koristi humanistički sans (Source Sans 3) — klasičnije i mirnije
+   od geometrijskog Outfit-a, i tanje težine. */
+.nav-font {
+  font-family: var(--font-nav), var(--font-sans), system-ui, sans-serif;
+}
+
 .nav-item {
   position: relative;
   display: flex;
@@ -420,8 +426,10 @@ body > * {
   padding: 0.72rem 0.85rem;
   border-radius: var(--r-md);
   color: var(--text-muted);
-  font-size: 0.95rem;
-  font-weight: 500;
+  font-family: var(--font-nav), var(--font-sans), system-ui, sans-serif;
+  font-size: 0.98rem;
+  font-weight: 400;
+  letter-spacing: 0.005em;
   transition: background var(--dur-base) var(--ease-out),
     color var(--dur-base) var(--ease-out);
 }
@@ -429,7 +437,7 @@ body > * {
 .nav-item[aria-current="page"] {
   background: var(--gold-tint);
   color: var(--gold);
-  font-weight: 600;
+  font-weight: 500;
 }
 .nav-item[aria-current="page"]::before {
   content: '';
