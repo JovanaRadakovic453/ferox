@@ -78,6 +78,29 @@ export default function PlanScreen({
   const tz = useTimezone()
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
   const [appts, setAppts] = useState<Appointment[]>(appointments)
+
+  // Google događaji tog dana se SAMI uvlače u plan kao pravi termini — pa se
+  // odmah broje i mogu da se štikliraju, bez ručnog "Dodaj". Server je
+  // idempotentan (google_event_id), a sklonjeni (✕) se ne vraćaju.
+  useEffect(() => {
+    if (!profile.google_refresh_token || dayFinished) return
+    let cancelled = false
+    fetch('/api/integrations/google/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ date: entry.date_key }),
+    })
+      .then(r => (r.ok ? r.json() : null))
+      .then((json: { imported?: Appointment[] } | null) => {
+        if (cancelled || !json?.imported?.length) return
+        setAppts(prev => {
+          const known = new Set(prev.map(a => a.id))
+          return [...prev, ...json.imported!.filter(a => !known.has(a.id))]
+        })
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [entry.date_key, profile.google_refresh_token, dayFinished])
   const [savingEod, setSavingEod] = useState(false)
   const [dayJustFinished, setDayJustFinished] = useState(false)
   const [showAddTask, setShowAddTask] = useState(false)
@@ -256,7 +279,11 @@ export default function PlanScreen({
     if (!appt) return
     setAppts(prev => prev.filter(a => a.id !== apptId))
     const supabase = createClient()
-    const { error } = await supabase.from('appointments').delete().eq('id', apptId)
+    // Termin uvučen iz Google-a se SKLANJA, ne briše: red ostaje kao "nadgrobni"
+    // pa se događaj ne uvuče ponovo pri sledećem otvaranju. U Google-u ostaje.
+    const { error } = appt.google_event_id
+      ? await supabase.from('appointments').update({ dismissed: true }).eq('id', apptId)
+      : await supabase.from('appointments').delete().eq('id', apptId)
     if (error) {
       setAppts(prev => [...prev, appt])
       toast({ message: t.plan.deleteFailed, variant: 'error' })

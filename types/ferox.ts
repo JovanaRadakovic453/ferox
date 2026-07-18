@@ -46,6 +46,8 @@ export interface Appointment {
   time: string
   /** Kraj (HH:MM) — popunjen npr. kad dođe iz Google Kalendara. null = nepoznat. */
   end_time?: string | null
+  /** Ako je termin uvučen iz Google Kalendara — id tog događaja (sprečava duplo uvlačenje). */
+  google_event_id?: string | null
   reminder: number
   done: boolean
   date_key?: string

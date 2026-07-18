@@ -37,7 +37,9 @@ export default async function PlanPage({
 
   const [{ data: tasks }, { data: appointments }, { data: tomorrowEntry }, { data: finishedRows }, { data: tomorrowScheduled }, { data: overdueDeadlines }] = await Promise.all([
     supabase.from('tasks').select('*').eq('entry_id', entry.id).order('position'),
-    supabase.from('appointments').select('*').eq('user_id', user.id).eq('date_key', viewDate).order('time'),
+    // `dismissed` termini su "nadgrobni" redovi sklonjenih Google događaja —
+    // postoje samo da se ne uvuku ponovo, i nikad se ne prikazuju.
+    supabase.from('appointments').select('*').eq('user_id', user.id).eq('date_key', viewDate).eq('dismissed', false).order('time'),
     supabase.from('day_entries').select('id').eq('user_id', user.id).eq('date_key', tomorrowKey(tz)).maybeSingle(),
     supabase.from('day_entries').select('date_key').eq('user_id', user.id).not('finished_at', 'is', null).order('date_key', { ascending: false }).limit(60),
     isToday
