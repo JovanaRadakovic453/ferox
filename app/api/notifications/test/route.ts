@@ -1,6 +1,7 @@
 import webpush from 'web-push'
 import { createClient } from '@/lib/supabase/server'
 import { apiOk, ERR } from '@/lib/api'
+import { pushText } from '@/lib/reminders'
 import { RATE_LIMITS } from '@/lib/config'
 import { checkRateLimit } from '@/lib/rateLimit'
 
@@ -14,7 +15,7 @@ export async function POST() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('push_subscription')
+    .select('push_subscription, locale')
     .eq('id', user.id)
     .single()
 
@@ -30,7 +31,7 @@ export async function POST() {
   try {
     await webpush.sendNotification(
       profile.push_subscription as webpush.PushSubscription,
-      JSON.stringify({ title: 'Ferox', body: 'Test uspešan! Dobijaćeš ovakve podsetnike svako jutro.' })
+      JSON.stringify({ title: 'Ferox', body: pushText(profile.locale).test })
     )
     return apiOk({})
   } catch {

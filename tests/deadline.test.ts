@@ -67,6 +67,14 @@ describe('deadlineReminderBody', () => {
     ], TODAY)
     expect(body).toBe('⚠️ Probijen rok: „Stari" (i još 1)')
   })
+  it('na engleskom kad je locale en', () => {
+    expect(deadlineReminderBody([{ name: 'Report', deadline_date: TODAY }], TODAY, 'en'))
+      .toBe('⏳ Due today: "Report"')
+    expect(deadlineReminderBody([
+      { name: 'Today', deadline_date: TODAY },
+      { name: 'Old', deadline_date: '2026-07-10' },
+    ], TODAY, 'en')).toBe('⚠️ Overdue: "Old" (+1 more)')
+  })
 })
 
 describe('daysUntil', () => {

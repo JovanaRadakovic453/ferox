@@ -3,18 +3,21 @@ import type { NextRequest } from 'next/server'
 import { apiOk, ERR } from '@/lib/api'
 import { z } from 'zod'
 import { zStrictDate, zPriority } from '@/lib/validation'
-import { todayKey } from '@/lib/date'
+import { todayKey, toTimezone } from '@/lib/date'
 import { RATE_LIMITS } from '@/lib/config'
 import { checkRateLimit } from '@/lib/rateLimit'
 
 // Podsetnik najviše 28 dana unapred (40320 min) — realan prozor, ne 99 dana.
 const REMIND_MAX_MINUTES = 40320
 
-const createSchema = z.object({
+// `today` = KORISNIKOV današnji dan (po profiles.timezone), ne serverski/Beograd
+// — inače provera "nije u prošlosti" uveče odbija današnji datum korisnicima
+// zapadno od Beograda.
+const createSchema = (today: string) => z.object({
   name: z.string().trim().min(1).max(120),
   priority: zPriority.default('medium'),
   note: z.string().max(500).default(''),
-  for_date: zStrictDate.refine(d => d >= todayKey(), 'Datum ne može biti u prošlosti'),
+  for_date: zStrictDate.refine(d => d >= today, 'Datum ne može biti u prošlosti'),
   remind_before_minutes: z.number().int().min(1).max(REMIND_MAX_MINUTES).nullable().default(null),
   deadline_date: zStrictDate.nullable().default(null),
 })
@@ -50,8 +53,11 @@ export async function POST(request: NextRequest) {
   const rl = RATE_LIMITS.scheduledWrite
   if (!(await checkRateLimit(supabase, 'scheduled-write', rl.limit, rl.windowSec))) return ERR.rateLimited()
 
+  const { data: prof } = await supabase.from('profiles').select('timezone').eq('id', user.id).maybeSingle()
+  const today = todayKey(toTimezone(prof?.timezone))
+
   const json = await request.json().catch(() => null)
-  const parsed = createSchema.safeParse(json)
+  const parsed = createSchema(today).safeParse(json)
   if (!parsed.success) return ERR.invalidInput(parsed.error.issues)
 
   const { data, error } = await supabase

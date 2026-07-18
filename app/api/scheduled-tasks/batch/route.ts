@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import type { NextRequest } from 'next/server'
 import { apiOk, ERR } from '@/lib/api'
 import { scheduledBatchSchema } from '@/lib/validation'
+import { todayKey, toTimezone } from '@/lib/date'
 import { RATE_LIMITS } from '@/lib/config'
 import { checkRateLimit } from '@/lib/rateLimit'
 
@@ -16,8 +17,12 @@ export async function POST(request: NextRequest) {
   const rl = RATE_LIMITS.scheduledWrite
   if (!(await checkRateLimit(supabase, 'scheduled-write', rl.limit, rl.windowSec))) return ERR.rateLimited()
 
+  // "Danas" po zoni korisnika — provera "nije u prošlosti" mora njegov dan.
+  const { data: prof } = await supabase.from('profiles').select('timezone').eq('id', user.id).maybeSingle()
+  const today = todayKey(toTimezone(prof?.timezone))
+
   const json = await request.json().catch(() => null)
-  const parsed = scheduledBatchSchema.safeParse(json)
+  const parsed = scheduledBatchSchema(today).safeParse(json)
   if (!parsed.success) return ERR.invalidInput(parsed.error.issues)
 
   const { tasks, appointments } = parsed.data

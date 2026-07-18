@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { addDays, toTimezone } from '@/lib/date'
 import { apiOk, ERR } from '@/lib/api'
 import type { NextRequest } from 'next/server'
 import { RATE_LIMITS } from '@/lib/config'
@@ -42,7 +43,7 @@ export async function GET(request: NextRequest) {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('google_access_token, google_refresh_token, google_token_expires_at')
+    .select('google_access_token, google_refresh_token, google_token_expires_at, timezone')
     .eq('id', user.id)
     .single()
 
@@ -76,11 +77,15 @@ export async function GET(request: NextRequest) {
     }).eq('id', user.id)
   }
 
-  const timeMin = `${date}T00:00:00Z`
-  const timeMax = `${date}T23:59:59Z`
+  // "Dan" je dan KORISNIKA, ne UTC dan: prozor širimo za dan sa obe strane
+  // (pokriva svaku zonu), tražimo od Google-a vremena u korisnikovoj zoni
+  // (timeZone param), pa dole zadržimo samo termine čiji lokalni datum je baš
+  // traženi. Sa UTC granicama je termin u 00:30 upadao u pogrešan dan.
+  const tz = toTimezone(profile.timezone)
   const params = new URLSearchParams({
-    timeMin,
-    timeMax,
+    timeMin: `${addDays(date, -1)}T00:00:00Z`,
+    timeMax: `${addDays(date, 1)}T23:59:59Z`,
+    timeZone: tz,
     singleEvents: 'true',
     orderBy: 'startTime',
   })
@@ -96,17 +101,24 @@ export async function GET(request: NextRequest) {
   }
 
   const calData = await calRes.json()
-  const events = (calData.items ?? []).map((e: Record<string, unknown>) => {
-    const start = e.start as Record<string, string>
-    const end = e.end as Record<string, string>
-    return {
-      id: e.id as string,
-      title: (e.summary as string) ?? 'Bez naziva',
-      time: start.dateTime ? start.dateTime.slice(11, 16) : null,
-      endTime: end?.dateTime ? end.dateTime.slice(11, 16) : null,
-      allDay: !!start.date,
-    }
-  }).filter((e: { allDay: boolean }) => !e.allDay)
+  // dateTime je u korisnikovoj zoni (timeZone param gore), npr.
+  // "2026-07-18T09:30:00+02:00" → dan = prvih 10, vreme = 11-16.
+  // Celodnevni termini nemaju dateTime pa ispadaju već na filteru.
+  const events = ((calData.items ?? []) as Record<string, unknown>[])
+    .filter(e => {
+      const start = e.start as Record<string, string> | undefined
+      return !!start?.dateTime && start.dateTime.slice(0, 10) === date
+    })
+    .map(e => {
+      const start = e.start as Record<string, string>
+      const end = e.end as Record<string, string> | undefined
+      return {
+        id: e.id as string,
+        title: (e.summary as string) ?? 'Bez naziva',
+        time: start.dateTime.slice(11, 16),
+        endTime: end?.dateTime ? end.dateTime.slice(11, 16) : null,
+      }
+    })
 
   return apiOk({ events })
 }

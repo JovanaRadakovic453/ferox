@@ -12,6 +12,26 @@
 
 import { hourInTimezone, todayKey, toTimezone } from '@/lib/date'
 import { REMINDERS } from '@/lib/config'
+import { toLocale } from '@/lib/locale'
+import type { Locale } from '@/types/ferox'
+
+// Tekstovi push poruka po jeziku korisnika (profiles.locale). Server-side pandan
+// UI rečniku — push ne ide kroz React pa ne može kroz useT.
+const PUSH_TEXT: Record<Locale, { morning: string; test: string }> = {
+  sr: {
+    morning: 'Dobro jutro! Vreme je da napraviš plan za danas.',
+    test: 'Test uspešan! Dobijaćeš ovakve podsetnike svako jutro.',
+  },
+  en: {
+    morning: 'Good morning! Time to plan your day.',
+    test: 'Test successful! You will get reminders like this every morning.',
+  },
+}
+
+/** Push tekstovi na jeziku korisnika; sve nepoznato → srpski. */
+export function pushText(locale: unknown): { morning: string; test: string } {
+  return PUSH_TEXT[toLocale(locale)]
+}
 
 export type ReminderCheck = {
   /** Lokalni datum korisnika (YYYY-MM-DD) — pod njim se pamti da je poslato. */

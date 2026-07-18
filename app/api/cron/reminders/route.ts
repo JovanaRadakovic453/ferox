@@ -2,7 +2,8 @@ import webpush from 'web-push'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { apiOk, ERR } from '@/lib/api'
 import { toTimezone } from '@/lib/date'
-import { reminderDue } from '@/lib/reminders'
+import { reminderDue, pushText } from '@/lib/reminders'
+import { toLocale } from '@/lib/locale'
 import { deadlineReminderBody } from '@/lib/deadline'
 import type { NextRequest } from 'next/server'
 
@@ -42,7 +43,7 @@ export async function GET(request: NextRequest) {
 
   const { data: profiles } = await supabase
     .from('profiles')
-    .select('id, push_subscription, timezone, last_reminder_key')
+    .select('id, push_subscription, timezone, last_reminder_key, locale')
     .not('push_subscription', 'is', null)
 
   const nothing = { sent: 0, deadlineSent: 0, skippedPlanned: 0, cleaned: 0, candidates: 0 }
@@ -57,7 +58,7 @@ export async function GET(request: NextRequest) {
         p.last_reminder_key as string | null,
         now,
       )
-      return { id: p.id as string, sub: p.push_subscription, today, due }
+      return { id: p.id as string, sub: p.push_subscription, today, due, locale: toLocale(p.locale) }
     })
     .filter(c => c.due)
 
@@ -121,8 +122,6 @@ export async function GET(request: NextRequest) {
   const recipients = candidates.filter(c => dueByUser.has(c.id) || !plannedSet.has(c.id))
   const skippedPlanned = candidates.length - recipients.length
 
-  const morningBody = 'Dobro jutro! Vreme je da napraviš plan za danas.'
-
   let sent = 0
   let deadlineSent = 0
   const stale: string[] = []
@@ -133,7 +132,8 @@ export async function GET(request: NextRequest) {
   await Promise.allSettled(
     recipients.map(async (c) => {
       const due = dueByUser.get(c.id)
-      const body = (due && deadlineReminderBody(due, c.today)) || morningBody
+      // Poruka na jeziku korisnika (profiles.locale) — i rok i jutarnji pozdrav.
+      const body = (due && deadlineReminderBody(due, c.today, c.locale)) || pushText(c.locale).morning
       const payload = JSON.stringify({ title: 'Ferox', body })
       try {
         await webpush.sendNotification(c.sub as webpush.PushSubscription, payload)

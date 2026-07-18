@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { isValidDayKey, todayKey } from '@/lib/date'
+import { isValidDayKey } from '@/lib/date'
 import { DEFAULTS } from '@/lib/config'
 import { TASK_TYPES, PRIORITIES } from '@/types/ferox'
 
@@ -75,19 +75,22 @@ export const aiBrainDumpResult = z.object({
 
 // Batch upis budućeg dela plana iz brain dump-a: zakazani zadaci + termini
 // (stavke sa satnicom postaju pravi termini sa podsetnikom).
-export const scheduledBatchSchema = z.object({
+// `today` = KORISNIKOV današnji dan (po profiles.timezone). Provera "nije u
+// prošlosti" ne sme da računa danas po serverskoj/Beograd zoni — korisniku
+// zapadno od Beograda bi uveče odbijala njegov današnji datum.
+export const scheduledBatchSchema = (today: string) => z.object({
   tasks: z.array(z.object({
     name: z.string().trim().min(1).max(120),
     priority: zPriority.default('medium'),
     type: zTaskType.default('light'),
     note: z.string().max(500).default(''),
-    for_date: zStrictDate.refine(d => d >= todayKey(), 'Datum ne može biti u prošlosti'),
+    for_date: zStrictDate.refine(d => d >= today, 'Datum ne može biti u prošlosti'),
     deadline_date: zStrictDate.nullable().default(null),
   })).max(60).default([]),
   appointments: z.array(z.object({
     name: z.string().trim().min(1).max(120),
     time: zTime,
-    date_key: zStrictDate.refine(d => d >= todayKey(), 'Datum ne može biti u prošlosti'),
+    date_key: zStrictDate.refine(d => d >= today, 'Datum ne može biti u prošlosti'),
     reminder: z.number().int().min(0).max(1440).default(DEFAULTS.reminderMinutes),
   })).max(60).default([]),
 }).refine(d => d.tasks.length + d.appointments.length > 0, { message: 'Plan je prazan' })

@@ -59,19 +59,34 @@ export function sortTasksForDay<T extends DeadlineTask>(tasks: T[], today: strin
   })
 }
 
+// Tekstovi push podsetnika za rok, po jeziku (isti obrazac kao BADGE_TEXT).
+const REMINDER_TEXT = {
+  sr: {
+    overdue: (name: string, suffix: string) => `⚠️ Probijen rok: „${name}"${suffix}`,
+    dueToday: (name: string, suffix: string) => `⏳ Danas ističe rok: „${name}"${suffix}`,
+    more: (n: number) => ` (i još ${n})`,
+  },
+  en: {
+    overdue: (name: string, suffix: string) => `⚠️ Overdue: "${name}"${suffix}`,
+    dueToday: (name: string, suffix: string) => `⏳ Due today: "${name}"${suffix}`,
+    more: (n: number) => ` (+${n} more)`,
+  },
+} satisfies Record<Locale, unknown>
+
 /**
  * Tekst push podsetnika za rokove. Uzima najhitniji (najraniji) rok i pominje ga
- * imenom — gola brojka ne kaže ništa.
+ * imenom — gola brojka ne kaže ništa. `locale` opcioni (default 'sr').
  */
-export function deadlineReminderBody(items: { name: string; deadline_date: string }[], today: string): string | null {
+export function deadlineReminderBody(items: { name: string; deadline_date: string }[], today: string, locale: Locale = 'sr'): string | null {
   if (items.length === 0) return null
+  const T = REMINDER_TEXT[locale] ?? REMINDER_TEXT.sr
   const sorted = [...items].sort((a, b) => a.deadline_date.localeCompare(b.deadline_date))
   const first = sorted[0]
   const rest = sorted.length - 1
-  const suffix = rest > 0 ? ` (i još ${rest})` : ''
+  const suffix = rest > 0 ? T.more(rest) : ''
   return first.deadline_date < today
-    ? `⚠️ Probijen rok: „${first.name}"${suffix}`
-    : `⏳ Danas ističe rok: „${first.name}"${suffix}`
+    ? T.overdue(first.name, suffix)
+    : T.dueToday(first.name, suffix)
 }
 
 /** Koliko dana do roka (negativno = rok je prošao). */
