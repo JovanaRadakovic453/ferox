@@ -5,7 +5,9 @@ import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
 import type { Task, TaskType, Priority } from '@/types/ferox'
 import { SectionHeader, CountChip, EMPTY_TASK } from '@/components/setup/primitives'
-import { useT } from '@/components/i18n/I18nProvider'
+import { useT, useLocale, useTimezone } from '@/components/i18n/I18nProvider'
+import { getDeadlineBadge } from '@/lib/deadline'
+import { todayKey } from '@/lib/date'
 
 type TaskDraft = { name: string; note: string; priority: Priority; type: TaskType }
 type TaskPatch = { priority?: Priority }
@@ -19,6 +21,9 @@ export default function TaskEditor({
   onUpdate?: (index: number, patch: TaskPatch) => void
 }) {
   const tr = useT()
+  const locale = useLocale()
+  const tz = useTimezone()
+  const today = todayKey(tz)
   const priorityOptions: { value: Priority; label: string }[] = [
     { value: 'high', label: tr.priority.high },
     { value: 'medium', label: tr.priority.medium },
@@ -52,6 +57,19 @@ export default function TaskEditor({
                 </span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{t.name}</p>
+                  {/* Rok se vidi već DOK se pravi plan, ne tek u planu — zadatak iz
+                      Kalendara često dolazi sa rokom, pa korisnik odmah zna dokle ima. */}
+                  {(() => {
+                    const dl = t.deadline_date ? getDeadlineBadge(t.deadline_date, today, locale) : null
+                    return dl ? (
+                      <span
+                        className="inline-flex items-center gap-1 text-[0.62rem] font-semibold px-2 py-0.5 rounded-full mt-1"
+                        style={{ color: dl.color, background: 'color-mix(in srgb, currentColor 12%, transparent)' }}
+                      >
+                        <span aria-hidden>▲</span> {dl.text}
+                      </span>
+                    ) : null
+                  })()}
                 </div>
                 {onUpdate && (
                   <button onClick={() => setEditingIndex(editingIndex === i ? null : i)}
