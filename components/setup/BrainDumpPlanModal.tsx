@@ -26,6 +26,8 @@ export type PlanTask = {
 export type PlanAppt = {
   name: string
   time: string
+  /** Kraj termina kad ga korisnik pomene ("od 17 do 19h"). null = samo početak. */
+  endTime: string | null
   dayOffset: number
 }
 export type BrainDumpPlan = { tasks: PlanTask[]; appointments: PlanAppt[] }
@@ -159,7 +161,8 @@ export default function BrainDumpPlanModal({
               {dayAppts.map(({ a, i }) => (
                 <div key={`a-${i}`} className="rounded-[var(--r-md)] p-3 flex flex-col gap-2" style={{ background: 'var(--surface2)', border: '1px solid var(--hairline)' }}>
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>🕐 {a.name} · {a.time}</span>
+                    {/* Raspon (17:00 – 19:00) da korisnik pre potvrde vidi i trajanje, ne samo početak. */}
+                    <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>🕐 {a.name} · {a.time}{a.endTime ? ` – ${a.endTime}` : ''}</span>
                     <button onClick={() => setAppts(prev => prev.filter((_, idx) => idx !== i))} className="text-xs opacity-50 hover:opacity-100" style={{ color: 'var(--danger)' }} aria-label={t.brain.remove}>✕</button>
                   </div>
                   <div className="flex flex-wrap gap-1.5">

@@ -45,7 +45,8 @@ const extractTool = (locale: Locale) => ({
           type: 'object',
           properties: {
             name: { type: 'string' },
-            time: { type: 'string', description: 'HH:MM, 24h' },
+            time: { type: 'string', description: 'HH:MM, 24h — POČETAK termina' },
+            endTime: { type: 'string', description: 'HH:MM, 24h — KRAJ termina. Postavi SAMO ako korisnik pomene raspon ("od 17 do 19h", "17-19", "od 9 ujutru do podne"). Ako pomene samo početak, izostavi.' },
             dayOffset: { type: 'number', description: '0 = danas, 1 = sutra … najviše 7' },
           },
           required: ['name', 'time', 'dayOffset'],
@@ -97,6 +98,7 @@ export async function POST(request: NextRequest) {
           `Ako se taj dan u nedelji pojavljuje više puta u listi (jednom kao danas, jednom sledeće nedelje), izaberi PRVU NAREDNU pojavu (ne danas), osim ako korisnik izričito kaže "danas". ` +
           `Predloži prioritet za svaki zadatak (visok/srednji/nizak) po hitnosti, rokovima i po tome kako korisnik obično prioritetizuje slične zadatke (vidi dole) — nemoj sve staviti na srednji. ` +
           `Ako tekst pominje konkretno vreme (npr. "u 14h", "sastanak u 9", "zubar u 11:30"), to je TERMIN sa "time" u HH:MM; inače je zadatak. ` +
+          `Ako je naveden i kraj ("trening od 17 do 19h", "sastanak 9-10:30"), OBAVEZNO popuni i "endTime" — inače se trajanje gubi. ` +
           (contextText ? `\n\n${contextText}\n` : '') +
           `\nTekst korisnika: "${text}"`,
       }],

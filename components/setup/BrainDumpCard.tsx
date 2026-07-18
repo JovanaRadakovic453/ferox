@@ -9,7 +9,7 @@ import { useT, useLocale } from '@/components/i18n/I18nProvider'
 import type { Dict } from '@/lib/i18n/dict'
 
 type ApiTask = { name: string; type?: PlanTask['type']; priority?: PlanTask['priority']; note?: string; dayOffset?: number; deadlineDayOffset?: number | null; reason?: string }
-type ApiAppt = { name: string; time: string; dayOffset?: number }
+type ApiAppt = { name: string; time: string; endTime?: string | null; dayOffset?: number }
 
 async function fetchBrainDump(text: string, t: Dict): Promise<BrainDumpPlan> {
   const res = await fetch('/api/ai/brain-dump', {
@@ -35,6 +35,7 @@ async function fetchBrainDump(text: string, t: Dict): Promise<BrainDumpPlan> {
     appointments: (appointments ?? []).map((a: ApiAppt): PlanAppt => ({
       name: a.name,
       time: a.time,
+      endTime: a.endTime ?? null,
       dayOffset: a.dayOffset ?? 0,
     })),
   }

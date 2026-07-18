@@ -79,6 +79,9 @@ export const aiTaskSchema = z.object({
 export const aiAppointmentSchema = z.object({
   name: z.string().trim().min(1).max(120),
   time: zTime,
+  /** Kraj termina kad ga korisnik pomene ("od 17 do 19h"). `catch` jer AI ume da
+   *  vrati smeće — tada radije nemamo kraj nego da cela stavka otpadne. */
+  endTime: zTime.nullable().optional().catch(null),
   dayOffset: zDayOffset,
 })
 export const aiBrainDumpResult = z.object({
@@ -103,6 +106,8 @@ export const scheduledBatchSchema = (today: string) => z.object({
   appointments: z.array(z.object({
     name: z.string().trim().min(1).max(120),
     time: zTime,
+    /** Kraj termina ("od 17 do 19h") — bez ovoga bi zod odsekao trajanje pri čuvanju. */
+    end_time: zTime.nullable().default(null),
     date_key: zStrictDate.refine(d => d >= today, 'Datum ne može biti u prošlosti'),
     reminder: z.number().int().min(0).max(1440).default(DEFAULTS.reminderMinutes),
   })).max(60).default([]),

@@ -59,4 +59,21 @@ describe('AI sheme — bezbedni default-i', () => {
     expect(parsed.dayOffset).toBe(2)
     expect(parsed.time).toBe('11:00')
   })
+
+  it('"trening od 17 do 19h" čuva i kraj termina', () => {
+    const parsed = aiAppointmentSchema.parse({ name: 'Trening', time: '17:00', endTime: '19:00', dayOffset: 0 })
+    expect(parsed.time).toBe('17:00')
+    expect(parsed.endTime).toBe('19:00')
+  })
+
+  it('bez navedenog kraja termin radi kao i pre', () => {
+    const parsed = aiAppointmentSchema.parse({ name: 'Zubar', time: '11:00', dayOffset: 0 })
+    expect(parsed.endTime ?? null).toBe(null)
+  })
+
+  it('neispravan kraj ne obara ceo termin — samo ostane bez kraja', () => {
+    const parsed = aiAppointmentSchema.parse({ name: 'Kafa', time: '10:00', endTime: 'kasnije', dayOffset: 0 })
+    expect(parsed.name).toBe('Kafa')
+    expect(parsed.endTime).toBe(null)
+  })
 })

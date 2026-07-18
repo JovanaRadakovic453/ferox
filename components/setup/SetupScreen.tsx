@@ -125,7 +125,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
     const todayTasks: Task[] = []
     const todayAppts: Appointment[] = []
     const scheduled: { name: string; priority: Priority; type: TaskType; note: string; for_date: string; deadline_date: string | null }[] = []
-    const futureAppts: { name: string; time: string; date_key: string; reminder: number }[] = []
+    const futureAppts: { name: string; time: string; end_time: string | null; date_key: string; reminder: number }[] = []
 
     for (const t of planTasks) {
       const forDate = addDays(today, t.dayOffset)
@@ -140,10 +140,11 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
     for (const a of planAppts) {
       const forDate = addDays(today, a.dayOffset)
       if (forDate === base) {
-        todayAppts.push({ name: a.name, time: a.time, reminder: DEFAULTS.reminderMinutes, done: false })
+        // end_time ide sa terminom — inače se "trening od 17 do 19h" pretvori u puki 17:00.
+        todayAppts.push({ name: a.name, time: a.time, end_time: a.endTime ?? null, reminder: DEFAULTS.reminderMinutes, done: false })
       } else {
         // Budući termin sa satnicom → pravi termin sa podsetnikom (zvončić), za svoj dan.
-        futureAppts.push({ name: a.name, time: a.time, date_key: forDate, reminder: DEFAULTS.reminderMinutes })
+        futureAppts.push({ name: a.name, time: a.time, end_time: a.endTime ?? null, date_key: forDate, reminder: DEFAULTS.reminderMinutes })
       }
     }
 
