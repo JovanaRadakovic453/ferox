@@ -3,12 +3,10 @@
 ## Stanje
 
 Na produkciji (Supabase projekat `scwsifonygvfxiixaiak`) primenjene su **sve
-migracije zaključno sa `0020_appointment_google_link.sql`**.
+migracije zaključno sa `0021_task_google_link.sql`**.
 
-⏳ **`0021_task_google_link.sql` čeka da se pusti** (`tasks.google_event_id`,
-`day_entries.google_dismissed`). Dok ne prođe, celodnevni Google događaji ne
-ulaze sami u plan.
-
+0021 primenjena 2026-07-18 kroz SQL Editor; provereno preko PostgREST-a da
+`tasks.google_event_id` i `day_entries.google_dismissed` postoje.
 0020 primenjena 2026-07-18 kroz SQL Editor; provereno preko PostgREST-a da
 `appointments.google_event_id` i `dismissed` postoje.
 0019 primenjena 2026-07-19 kroz SQL Editor (`appointments.end_time`;
