@@ -3,10 +3,11 @@
 ## Stanje
 
 Na produkciji (Supabase projekat `scwsifonygvfxiixaiak`) primenjene su **sve
-migracije zaključno sa `0016_timezone.sql`** (0016 primenjena 2026-07-18 kroz SQL
-Editor; provereno preko PostgREST-a da `profiles.timezone` postoji).
+migracije zaključno sa `0017_last_reminder_key.sql`** (0017 primenjena 2026-07-19
+kroz SQL Editor; provereno preko PostgREST-a da `profiles.last_reminder_key` postoji).
 
-Ranije: 0015 primenjena 2026-07-16 kroz SQL Editor (`profiles.locale`).
+Ranije: 0016 primenjena 2026-07-18 kroz SQL Editor (`profiles.timezone`).
+0015 primenjena 2026-07-16 kroz SQL Editor (`profiles.locale`).
 0014 primenjena 2026-07-16 kroz SQL Editor (`tasks.deadline_date`).
 0013 primenjena 2026-07-02 kroz Management API (FK na profiles, cascade).
 Fajlovi su numerisani po stvarnom redosledu primene (renumerisano jul 2026 —

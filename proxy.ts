@@ -34,9 +34,14 @@ export async function proxy(request: NextRequest) {
   // reset link "vraća na login". Mora ostati javan.
   const isCallback = pathname.startsWith('/auth')
   const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register')
+  // /api/cron/* zove BUDILNIK (GitHub Actions / Vercel cron), a ne prijavljen
+  // korisnik — takav poziv nema kolačić sesije. Bez ovog izuzetka guard ga
+  // redirektuje na /login, ruta se nikad ne izvrši i podsetnik tiho ne stigne
+  // (tako je i bilo dok se nije primetilo). Ruta se sama štiti CRON_SECRET-om.
+  const isCron = pathname.startsWith('/api/cron')
   // /reset-password se otvara sa recovery sesijom; ne smemo ga gurati na login
   // (nema sesije pre callbacka) ni na / (ima je posle) — tretiramo ga kao javan.
-  const isPublic = isAuthPage || isCallback || pathname.startsWith('/reset-password')
+  const isPublic = isAuthPage || isCallback || isCron || pathname.startsWith('/reset-password')
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone()

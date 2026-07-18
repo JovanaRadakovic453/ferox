@@ -63,6 +63,22 @@ export const RATE_LIMITS = {
   googleEvents: { limit: 30, windowSec: 60 },
 } as const
 
+/**
+ * Jutarnji push podsetnik — kad sme da stigne, po LOKALNOM vremenu korisnika
+ * (profiles.timezone), a ne po vremenu servera.
+ *
+ * Budilnik (.github/workflows/reminders.yml) lupa rutu svaki sat; ruta šalje samo
+ * onima koji su u ovom prozoru. Prozor (a ne tačan sat) jer GitHub-ov budilnik ume
+ * da kasni — tako zakašnjenje ne preskoči nikoga. Duplikat sprečava
+ * profiles.last_reminder_key (vidi lib/reminders.ts).
+ */
+export const REMINDERS = {
+  /** Od kog lokalnog sata (8 = 08:00 kod korisnika). */
+  morningHour: 8,
+  /** Do kog lokalnog sata zaključno (10 = do 10:59 kod korisnika). */
+  latestHour: 10,
+} as const
+
 /** Statički identitet aplikacije / metapodaci. */
 export const APP = {
   name: 'Ferox',

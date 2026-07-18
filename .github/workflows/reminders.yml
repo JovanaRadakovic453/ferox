@@ -1,0 +1,33 @@
+name: Jutarnji podsetnik
+
+# BUDILNIK. Lupa Ferox server svaki sat; server onda sam odluči kome je BAŠ SADA
+# jutro (po zoni korisnika) i pošalje podsetnik — vidi app/api/cron/reminders.
+#
+# Zašto ovde a ne na Vercelu: Vercel Hobby (besplatan) plan pušta cron samo jednom
+# dnevno, pa bi podsetnik svima stizao po istom, serverskom vremenu. GitHub Actions
+# sme svaki sat i besplatan je.
+#
+# Traži tajnu CRON_SECRET (Settings → Secrets and variables → Actions), istu onu
+# koja stoji u Vercel env-u. Bez nje server vraća 401 i workflow pukne — namerno,
+# da se tiho ne ugasi.
+#
+# ⚠️ GitHub gasi zakazane workflow-e u repou koji 60 dana nema aktivnosti.
+
+on:
+  schedule:
+    - cron: '0 * * * *' # svaki pun sat (UTC)
+  workflow_dispatch: # dugme za ručno pokretanje (testiranje)
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probudi podsetnik
+        run: |
+          code=$(curl -sS -o response.json -w '%{http_code}' \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            https://ferox-phi.vercel.app/api/cron/reminders)
+          echo "HTTP $code"
+          cat response.json
+          echo
+          test "$code" = "200"

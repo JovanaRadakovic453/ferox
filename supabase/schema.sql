@@ -36,6 +36,7 @@ create table if not exists public.profiles (
   pomodoro_minutes smallint not null default 25 check (pomodoro_minutes between 5 and 90),
   reminder_time text check (reminder_time is null or reminder_time ~ '^([01]\d|2[0-3]):[0-5]\d$'), -- legacy (podsetnik je sada fiksno jutarnji)
   push_subscription jsonb,
+  last_reminder_key text, -- lokalni datum (YYYY-MM-DD) kad je poslat jutarnji podsetnik; sprečava duplikat kad budilnik lupa svaki sat
   google_access_token text,
   google_refresh_token text,
   google_token_expires_at timestamptz,

@@ -58,6 +58,21 @@ export function dayKey(d: Date = new Date(), tz: string = DEFAULT_TZ): string {
   }).format(d)
 }
 
+// Trenutni sat (0-23) u zoni `tz` — za odluku "je li KOD KORISNIKA sada jutro"
+// (jutarnji push podsetnik, vidi lib/reminders.ts).
+export function hourInTimezone(tz: string = DEFAULT_TZ, d: Date = new Date()): number {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    // Namerno kroz toTimezone: pokvarena zona u bazi sme da falbekuje na Beograd,
+    // ali NE sme da baci — inače jedan loš red obori podsetnik svim korisnicima.
+    timeZone: toTimezone(tz),
+    hour: '2-digit',
+    hour12: false,
+  }).formatToParts(d)
+  const raw = Number(parts.find(p => p.type === 'hour')?.value)
+  // Neki Intl za ponoć vrati "24" umesto "00" — otud % 24.
+  return Number.isFinite(raw) ? raw % 24 : 0
+}
+
 // Pomeri YYYY-MM-DD ključ za n dana (n može biti negativan).
 // Čista UTC kalendarska matematika — bez zone, tačno u svakoj zoni.
 export function addDays(key: string, n: number): string {
