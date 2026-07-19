@@ -128,7 +128,7 @@ function MobileNav({ pathname }: { pathname: string }) {
               style={{ color: active ? 'var(--gold)' : 'var(--text-muted)', background: active ? 'var(--gold-tint)' : 'transparent' }}
             >
               <span className="text-lg leading-none" aria-hidden>{tab.icon}</span>
-              <span className="nav-font text-[0.62rem] font-normal tracking-wide">{tab.label(t)}</span>
+              <span className="nav-font text-[0.68rem] font-normal tracking-wide">{tab.label(t)}</span>
             </Link>
           )
         })}
