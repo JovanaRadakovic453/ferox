@@ -127,6 +127,7 @@ export default function PlanScreen({
   const [pending, setPending] = useState(0)
   const [savingEod, setSavingEod] = useState(false)
   const [dayJustFinished, setDayJustFinished] = useState(false)
+  const [reopening, setReopening] = useState(false)
   const [showAddTask, setShowAddTask] = useState(false)
   const [showRoutines, setShowRoutines] = useState(false)
   const [routines, setRoutines] = useState<Routine[]>([])
@@ -654,6 +655,26 @@ export default function PlanScreen({
     setDayJustFinished(true)
   }
 
+  // Poništava „Završi dan". Ništa se ne briše — zadaci, štikliranja i termini
+  // ostaju; vraćaju se i nedovršeni zadaci koje je završetak gurnuo za sutra.
+  async function reopenDay() {
+    setReopening(true)
+    try {
+      const res = await fetch('/api/day/reopen', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dateKey: entry.date_key }),
+      })
+      if (!res.ok) throw new Error('reopen')
+      // Pun reload: `dayJustFinished` je klijentsko stanje, a server tek sad
+      // ponovo čita dan kao otvoren.
+      window.location.href = '/plan'
+    } catch {
+      setReopening(false)
+      toast({ message: t.eod.reopenFailed, variant: 'error' })
+    }
+  }
+
   async function handleAddTask({ name, type, priority, note }: { name: string; type: TaskType; priority: Priority; note: string }): Promise<boolean> {
     // Id pravi aplikacija, ne baza — zato zadatak može da nastane i bez mreže, a
     // ponovno slanje ne pravi duplikat (upsert po istom id-u).
@@ -733,13 +754,19 @@ export default function PlanScreen({
           <h1 className="display text-4xl" style={{ color: 'var(--gold)' }}>{t.plan.dayComplete}</h1>
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{t.plan.restUp}</p>
         </div>
-        {tomorrowPlanned && (
-          <div className="flex flex-col gap-3 w-full max-w-xs">
+        <div className="flex flex-col items-center gap-4 w-full max-w-xs">
+          {tomorrowPlanned && (
             <Button size="lg" className="w-full" onClick={() => { window.location.href = '/plan?date=' + addDays(entry.date_key, 1) }}>
               {t.plan.seeTomorrow}
             </Button>
-          </div>
-        )}
+          )}
+          {/* Izlaz sa ovog ekrana. Bez njega je „Završi dan" ćorsokak: kliknut
+              greškom, dan ostaje zatvoren do ponoći. Isti izlaz stoji i na
+              EodLanding — na ovaj ekran se dolazi sa /plan, na onaj sa /. */}
+          <Button variant="ghost" className="w-full" onClick={reopenDay} disabled={reopening}>
+            {reopening ? t.eod.reopening : t.eod.backToPlan}
+          </Button>
+        </div>
       </main>
     )
   }
