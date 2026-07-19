@@ -137,14 +137,51 @@ export function pendingDeleted(queue: PendingOp[]): Set<string> {
   )
 }
 
+/**
+ * Rezerva za pregledače bez crypto.randomUUID: RFC-4122 v4 OBLIK iz Math.random.
+ * Kolone id u bazi su tipa uuid, pa i rezerva MORA imati važeći uuid oblik —
+ * inače bi upis sa takvim id-jem zauvek padao i red se nikad ne bi ispraznio.
+ */
+export function fallbackId(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = (Math.random() * 16) | 0
+    const v = c === 'x' ? r : (r & 0x3) | 0x8
+    return v.toString(16)
+  })
+}
+
 /** Id koji pravi aplikacija — zato je ponovno slanje bezopasno. */
 export function newId(): string {
   try {
     return crypto.randomUUID()
   } catch {
-    // Stariji pregledači: dovoljno je da bude jedinstveno, ne kriptografski jako.
-    return `${Date.now().toString(16)}-${Math.random().toString(16).slice(2, 10)}`
+    return fallbackId()
   }
+}
+
+/**
+ * Šalje red REDOM i na prvoj grešci staje: potez koji je pao i svi POSLE njega
+ * ostaju da čekaju. Ne sme se nastaviti preko neuspelog poteza — "dodaj pa
+ * štikliraj" bi izgubio kvačicu: štikliranje reda koji još ne postoji u bazi
+ * "prođe" u prazno (update bez pogođenih redova nije greška) i ispadne iz reda,
+ * a dodavanje ostane; pri sledećem slanju zadatak osvane neštikliran.
+ *
+ * `exec` vraća true kad je potez uspeo; izuzetak se računa kao neuspeh.
+ */
+export async function flushQueue(
+  queue: PendingOp[],
+  exec: (op: PendingOp) => Promise<boolean>,
+): Promise<PendingOp[]> {
+  for (let i = 0; i < queue.length; i++) {
+    let ok = false
+    try {
+      ok = await exec(queue[i])
+    } catch {
+      ok = false
+    }
+    if (!ok) return queue.slice(i)
+  }
+  return []
 }
 
 /** `navigator.onLine` je samo nagoveštaj — ali dovoljno dobar da ne čekamo timeout. */

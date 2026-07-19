@@ -15,7 +15,7 @@ import Button from '@/components/ui/Button'
 import { useCountUp } from '@/lib/useCountUp'
 import DayProgress from '@/components/plan/DayProgress'
 import { useToast } from '@/components/ui/Toast'
-import { enqueue, readQueue, writeQueue, isOffline, newId, pendingTasks, pendingAppts, pendingDone, pendingDeleted } from '@/lib/offlineQueue'
+import { enqueue, readQueue, writeQueue, flushQueue, isOffline, newId, pendingTasks, pendingAppts, pendingDone, pendingDeleted } from '@/lib/offlineQueue'
 import TaskItem from '@/components/plan/TaskItem'
 import AppointmentItem from '@/components/plan/AppointmentItem'
 import ActionRail from '@/components/plan/ActionRail'
@@ -292,34 +292,33 @@ export default function PlanScreen({
 
       if (isOffline()) return
 
-      // Redosledom — dodavanje pa štikliranje. `upsert` (a ne `insert`) znači da
-      // ponovljeno slanje ne pravi duplikat, jer id već postoji.
+      // Redosledom — dodavanje pa štikliranje; `upsert` (a ne `insert`) znači da
+      // ponovljeno slanje ne pravi duplikat. Redosled i "stani na prvoj grešci"
+      // garantuje flushQueue (lib/offlineQueue.ts, pokriveno testovima).
       const supabase = createClient()
-      const stuck: typeof queue = []
-      for (const op of queue) {
-        let failed = false
+      const stuck = await flushQueue(queue, async op => {
         if (op.kind === 'toggle') {
           const { error } = await supabase.from('tasks').update({ done: op.done }).eq('id', op.taskId)
-          failed = !!error
           if (!error && op.scheduledId) {
             await supabase.from('scheduled_tasks').update({ done: op.done }).eq('id', op.scheduledId)
           }
-        } else if (op.kind === 'toggleAppt') {
-          const { error } = await supabase.from('appointments').update({ done: op.done }).eq('id', op.apptId)
-          failed = !!error
-        } else if (op.kind === 'addTask') {
-          const { error } = await supabase.from('tasks').upsert(op.row)
-          failed = !!error
-        } else if (op.kind === 'addAppt') {
-          const { error } = await supabase.from('appointments').upsert(op.row)
-          failed = !!error
-        } else {
-          const { error } = await supabase.from('tasks').delete().eq('id', op.taskId)
-          failed = !!error
+          return !error
         }
-        // Ako upis padne, sve posle njega ostaje da čeka — da se redosled ne pokvari.
-        if (failed) stuck.push(op)
-      }
+        if (op.kind === 'toggleAppt') {
+          const { error } = await supabase.from('appointments').update({ done: op.done }).eq('id', op.apptId)
+          return !error
+        }
+        if (op.kind === 'addTask') {
+          const { error } = await supabase.from('tasks').upsert(op.row)
+          return !error
+        }
+        if (op.kind === 'addAppt') {
+          const { error } = await supabase.from('appointments').upsert(op.row)
+          return !error
+        }
+        const { error } = await supabase.from('tasks').delete().eq('id', op.taskId)
+        return !error
+      })
       writeQueue(stuck)
       setPending(stuck.length)
       if (stuck.length === 0) toast({ message: t.plan.offlineSynced, variant: 'success' })

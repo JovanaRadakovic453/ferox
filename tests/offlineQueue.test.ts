@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  mergeOp, pendingTasks, pendingAppts, pendingDone, pendingDeleted, newId,
+  mergeOp, pendingTasks, pendingAppts, pendingDone, pendingDeleted, newId, fallbackId, flushQueue,
   type PendingOp, type TaskRow,
 } from '@/lib/offlineQueue'
 
@@ -116,5 +116,43 @@ describe('newId', () => {
   it('pravi jedinstvene id-jeve (zato je ponovno slanje bezopasno)', () => {
     const ids = new Set(Array.from({ length: 50 }, () => newId()))
     expect(ids.size).toBe(50)
+  })
+})
+
+describe('fallbackId', () => {
+  it('ima važeći uuid v4 oblik (kolone id u bazi su tipa uuid)', () => {
+    const rx = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+    for (let i = 0; i < 20; i++) expect(fallbackId()).toMatch(rx)
+  })
+})
+
+describe('flushQueue — redosled i zaustavljanje', () => {
+  const q: PendingOp[] = [
+    { kind: 'addTask', row: task('t1') },
+    { kind: 'toggle', taskId: 't1', done: true },
+    { kind: 'toggleAppt', apptId: 'a1', done: true },
+  ]
+
+  it('kad sve prođe → red je prazan', async () => {
+    const seen: string[] = []
+    const stuck = await flushQueue(q, async op => { seen.push(op.kind); return true })
+    expect(stuck).toEqual([])
+    expect(seen).toEqual(['addTask', 'toggle', 'toggleAppt'])
+  })
+
+  it('na prvoj grešci STAJE — pali potez i SVI posle njega ostaju (kvačica se ne gubi)', async () => {
+    const seen: string[] = []
+    const stuck = await flushQueue(q, async op => { seen.push(op.kind); return op.kind !== 'addTask' })
+    // addTask pao → toggle (i sve posle) NE SME ni da se pokuša, ostaje u redu
+    expect(seen).toEqual(['addTask'])
+    expect(stuck).toEqual(q)
+  })
+
+  it('izuzetak u slanju se računa kao neuspeh, ne ruši red', async () => {
+    const stuck = await flushQueue(q, async op => {
+      if (op.kind === 'toggle') throw new Error('mreža pukla')
+      return true
+    })
+    expect(stuck).toEqual(q.slice(1))
   })
 })
