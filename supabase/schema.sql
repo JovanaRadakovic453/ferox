@@ -110,6 +110,7 @@ create table if not exists public.day_entries (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   finished_at timestamptz,  -- NULL = aktivan dan; != NULL = dan je završen
+  google_dismissed text[] not null default '{}', -- sklonjeni (✕) Google događaji tog dana; migracija 0021
   unique(user_id, date_key)
 );
 
@@ -139,8 +140,14 @@ create table if not exists public.tasks (
   block_index smallint check (block_index is null or block_index between 0 and 3), -- legacy (blokovi uklonjeni)
   zone_id uuid references public.zones(id) on delete set null, -- legacy (oblasti uklonjene iz app-a)
   deadline_date date default null, -- rok: do kada mora biti gotovo (prati zadatak i kad uđe u dan)
+  google_event_id text, -- celodnevni Google događaj uvučen kao zadatak; migracija 0021
   created_at timestamptz not null default now()
 );
+
+-- Isti celodnevni Google događaj ne sme dvaput u isti dan.
+create unique index if not exists idx_tasks_google_event
+  on public.tasks(entry_id, google_event_id)
+  where google_event_id is not null;
 
 alter table public.tasks enable row level security;
 
@@ -157,11 +164,19 @@ create table if not exists public.appointments (
   date_key date not null,
   name text not null,
   time text not null,
+  end_time text check (end_time is null or end_time ~ '^([01]\d|2[0-3]):[0-5]\d$'), -- kraj termina (Google uvoz, "od 17 do 19h"); migracija 0019
   reminder int not null default 15,
   done boolean not null default false,
+  google_event_id text, -- id događaja iz Google Kalendara (sprečava duplo uvlačenje); migracija 0020
+  dismissed boolean not null default false, -- "nadgrobni" red sklonjenog Google događaja: postoji da se ne vrati, nikad se ne prikazuje
   zone_id uuid references public.zones(id) on delete set null,
   created_at timestamptz not null default now()
 );
+
+-- Isti Google događaj ne sme dvaput u isti dan.
+create unique index if not exists idx_appointments_google_event
+  on public.appointments(user_id, date_key, google_event_id)
+  where google_event_id is not null;
 
 alter table public.appointments enable row level security;
 
@@ -248,6 +263,15 @@ alter table public.scheduled_tasks
   add column if not exists repeat_id uuid references public.task_repeats(id) on delete set null;
 
 create index if not exists idx_scheduled_tasks_repeat on public.scheduled_tasks(repeat_id);
+
+-- Veza zadatka u planu → zakazani zadatak iz kog je došao (migracija 0022).
+-- Po njoj štikliranje u planu zatvara original, pa se zadatak koji "stoji dok se ne
+-- završi" prestane pojavljivati. `set null` da istorija preživi brisanje originala.
+-- Stoji ovde (a ne u create table tasks) jer scheduled_tasks nastaje kasnije.
+alter table public.tasks
+  add column if not exists scheduled_id uuid references public.scheduled_tasks(id) on delete set null;
+
+create index if not exists idx_tasks_scheduled on public.tasks(scheduled_id);
 
 -- ============================
 -- ROUTINES — šabloni zadataka (jsonb lista)

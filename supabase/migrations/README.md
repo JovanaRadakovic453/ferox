@@ -24,9 +24,13 @@ Fajlovi su numerisani po stvarnom redosledu primene (renumerisano jul 2026 —
 ranije su postojali duplikati 0003/0004; sadržaj fajlova nije menjan).
 
 `../schema.sql` je kompletan skript **samo za svež (prazan) Supabase projekat**
-i odgovara stanju posle 0013. Nikad ga ne puštaj na postojeću produkciju.
-⚠️ Zaostaje: 0019–0021 još nisu ubačene u njega (svež projekat mora da pusti i
-te migracije posebno).
+i **sustignut je sa migracijama zaključno sa 0022** (2026-07-19). Nikad ga ne
+puštaj na postojeću produkciju.
+
+Napomena o redosledu: kolone koje pokazuju na tabelu koja nastaje KASNIJE u fajlu
+(`tasks.scheduled_id` → `scheduled_tasks`, `scheduled_tasks.repeat_id` →
+`task_repeats`) dodate su preko `alter table` posle tih tabela, ne u `create table`.
+Ako dodaješ sličnu vezu, drži se istog obrasca — inače svež projekat pukne.
 
 ## Kako se primenjuje nova migracija
 
