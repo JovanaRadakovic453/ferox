@@ -15,7 +15,7 @@ import Button from '@/components/ui/Button'
 import { useCountUp } from '@/lib/useCountUp'
 import DayProgress from '@/components/plan/DayProgress'
 import { useToast } from '@/components/ui/Toast'
-import { enqueueToggle, readQueue, writeQueue, isOffline } from '@/lib/offlineQueue'
+import { enqueue, readQueue, writeQueue, isOffline, newId, pendingTasks, pendingAppts, pendingDone, pendingDeleted } from '@/lib/offlineQueue'
 import TaskItem from '@/components/plan/TaskItem'
 import AppointmentItem from '@/components/plan/AppointmentItem'
 import ActionRail from '@/components/plan/ActionRail'
@@ -264,15 +264,60 @@ export default function PlanScreen({
     async function flush() {
       const queue = readQueue()
       setPending(queue.length)
-      if (queue.length === 0 || isOffline()) return
+      if (queue.length === 0) return
+
+      // Stavke dodate offline server još ne zna — bez ovoga bi posle zatvaranja
+      // aplikacije nestale sa ekrana iako uredno čekaju u redu.
+      const doneMap = pendingDone(queue)
+      const deleted = pendingDeleted(queue)
+      const applyDone = <T extends { id?: string; done: boolean }>(x: T): T =>
+        (x.id && doneMap.has(x.id) ? { ...x, done: doneMap.get(x.id) as boolean } : x)
+
+      setTasks(prev => {
+        const known = new Set(prev.map(x => x.id))
+        const extra = pendingTasks(queue, entry.id as string)
+          .filter(r => !known.has(r.id))
+          .map(r => ({ id: r.id, name: r.name, priority: r.priority as Priority, type: r.type as TaskType, note: r.note, done: r.done }))
+        // Obrisano offline ne sme da se vrati na ekran — server to još ne zna.
+        return [...prev, ...extra].filter(x => !(x.id && deleted.has(x.id))).map(applyDone)
+      })
+      setAppts(prev => {
+        const known = new Set(prev.map(x => x.id))
+        const extra = pendingAppts(queue, entry.date_key)
+          .filter(r => !known.has(r.id))
+          .map(r => ({ id: r.id, name: r.name, time: r.time, reminder: r.reminder, done: r.done }))
+        return [...prev, ...extra].map(applyDone)
+      })
+
+      if (isOffline()) return
+
+      // Redosledom — dodavanje pa štikliranje. `upsert` (a ne `insert`) znači da
+      // ponovljeno slanje ne pravi duplikat, jer id već postoji.
       const supabase = createClient()
       const stuck: typeof queue = []
-      for (const item of queue) {
-        const { error } = await supabase.from('tasks').update({ done: item.done }).eq('id', item.taskId)
-        if (error) { stuck.push(item); continue }
-        if (item.scheduledId) {
-          await supabase.from('scheduled_tasks').update({ done: item.done }).eq('id', item.scheduledId)
+      for (const op of queue) {
+        let failed = false
+        if (op.kind === 'toggle') {
+          const { error } = await supabase.from('tasks').update({ done: op.done }).eq('id', op.taskId)
+          failed = !!error
+          if (!error && op.scheduledId) {
+            await supabase.from('scheduled_tasks').update({ done: op.done }).eq('id', op.scheduledId)
+          }
+        } else if (op.kind === 'toggleAppt') {
+          const { error } = await supabase.from('appointments').update({ done: op.done }).eq('id', op.apptId)
+          failed = !!error
+        } else if (op.kind === 'addTask') {
+          const { error } = await supabase.from('tasks').upsert(op.row)
+          failed = !!error
+        } else if (op.kind === 'addAppt') {
+          const { error } = await supabase.from('appointments').upsert(op.row)
+          failed = !!error
+        } else {
+          const { error } = await supabase.from('tasks').delete().eq('id', op.taskId)
+          failed = !!error
         }
+        // Ako upis padne, sve posle njega ostaje da čeka — da se redosled ne pokvari.
+        if (failed) stuck.push(op)
       }
       writeQueue(stuck)
       setPending(stuck.length)
@@ -282,7 +327,7 @@ export default function PlanScreen({
     flush()
     window.addEventListener('online', flush)
     return () => window.removeEventListener('online', flush)
-  }, [t, toast])
+  }, [t, toast, entry.id, entry.date_key])
 
   // Optimistički toggle PO ID-u (ne po imenu — dva ista naziva se više ne sudaraju).
   // Na grešku vraćamo stanje i nudimo retry preko toasta.
@@ -303,7 +348,7 @@ export default function PlanScreen({
 
     const supabase = createClient()
     const queueIt = () => {
-      enqueueToggle({ taskId, done: newDone, scheduledId: task.scheduled_id ?? null })
+      enqueue({ kind: 'toggle', taskId, done: newDone, scheduledId: task.scheduled_id ?? null })
       setPending(readQueue().length)
     }
 
@@ -392,8 +437,21 @@ export default function PlanScreen({
       return
     }
 
+    // Bez mreže brisanje čeka u redu. Ako je zadatak i NASTAO offline, mergeOp
+    // poništi oba poteza — na server nikad ništa nije ni otišlo.
+    if (isOffline()) {
+      enqueue({ kind: 'deleteTask', taskId })
+      setPending(readQueue().length)
+      return
+    }
+
     const { error } = await supabase.from('tasks').delete().eq('id', taskId)
     if (error) {
+      if (isOffline()) {
+        enqueue({ kind: 'deleteTask', taskId })
+        setPending(readQueue().length)
+        return
+      }
       setTasks(prev => [...prev, task])
       toast({ message: t.plan.deleteFailed, variant: 'error' })
     }
@@ -502,8 +560,17 @@ export default function PlanScreen({
     }
 
     const supabase = createClient()
+    const queueIt = () => {
+      enqueue({ kind: 'toggleAppt', apptId, done: newDone })
+      setPending(readQueue().length)
+    }
+
+    // Isto kao za zadatke — štikliranje termina ne sme da propadne bez mreže.
+    if (isOffline()) { queueIt(); return }
+
     const { error } = await supabase.from('appointments').update({ done: newDone }).eq('id', apptId)
     if (error) {
+      if (isOffline()) { queueIt(); return }
       setAppts(prev => prev.map(a => a.id === apptId ? { ...a, done: !newDone } : a))
       toast({ message: t.plan.notSaved, variant: 'error', action: { label: t.common.retry, onClick: () => toggleAppointment(apptId) } })
     }
@@ -517,16 +584,32 @@ export default function PlanScreen({
 
   async function applyRoutine(routine: Routine) {
     if (!routine.tasks.length) return
-    const supabase = createClient()
-    const inserts = routine.tasks.map((t, i) => ({
-      entry_id: entry.id, user_id: entry.user_id, name: t.name,
+    // Id-jeve pravi aplikacija (kao i kod dodavanja) — rutina tako može i offline,
+    // a ponovno slanje ne pravi duplikate.
+    const rows = routine.tasks.map((t, i) => ({
+      id: newId(), entry_id: entry.id as string, user_id: entry.user_id as string, name: t.name,
       done: false, priority: t.priority, type: t.type, note: '', position: tasks.length + i,
-      block_index: t.block_index ?? null,
     }))
-    const { data, error } = await supabase.from('tasks').insert(inserts).select('id, name, type, priority, note, done, position, block_index')
-    if (error) { toast({ message: t.plan.routineFailed, variant: 'error' }); return }
-    setTasks(prev => [...prev, ...(data ?? []).map(t => ({ ...t, done: false as const }))])
-    toast({ message: t.plan.routineApplied(routine.name), variant: 'success' })
+    const show = () => {
+      setTasks(prev => [...prev, ...rows.map(r => ({ id: r.id, name: r.name, priority: r.priority, type: r.type, note: r.note, done: false as const }))])
+      toast({ message: t.plan.routineApplied(routine.name), variant: 'success' })
+    }
+    const queueIt = () => {
+      for (const row of rows) enqueue({ kind: 'addTask', row })
+      setPending(readQueue().length)
+      show()
+    }
+
+    if (isOffline()) { queueIt(); return }
+
+    const supabase = createClient()
+    const { error } = await supabase.from('tasks').insert(rows)
+    if (error) {
+      if (isOffline()) { queueIt(); return }
+      toast({ message: t.plan.routineFailed, variant: 'error' })
+      return
+    }
+    show()
   }
 
   function startFinishDay() {
@@ -572,35 +655,73 @@ export default function PlanScreen({
   }
 
   async function handleAddTask({ name, type, priority, note }: { name: string; type: TaskType; priority: Priority; note: string }): Promise<boolean> {
+    // Id pravi aplikacija, ne baza — zato zadatak može da nastane i bez mreže, a
+    // ponovno slanje ne pravi duplikat (upsert po istom id-u).
+    const row = {
+      id: newId(), entry_id: entry.id as string, user_id: entry.user_id as string,
+      name, done: false, priority, type, note, position: tasks.length,
+    }
+    const show = () => setTasks(prev => [...prev, { id: row.id, name, priority, type, note, done: false }])
+
+    if (isOffline()) {
+      enqueue({ kind: 'addTask', row })
+      setPending(readQueue().length)
+      show()
+      return true
+    }
+
     const supabase = createClient()
-    const { data, error } = await supabase.from('tasks').insert({
-      entry_id: entry.id, user_id: entry.user_id, name, done: false, priority, type, note, position: tasks.length,
-    }).select('id').single()
+    const { error } = await supabase.from('tasks').insert(row)
     if (error) {
+      // Mreža je mogla pući baš sad — tada red čekanja, a ne poruka o grešci.
+      if (isOffline()) {
+        enqueue({ kind: 'addTask', row })
+        setPending(readQueue().length)
+        show()
+        return true
+      }
       toast({ message: t.plan.taskAddFailed, variant: 'error' })
       return false
     }
-    setTasks(prev => [...prev, { id: data?.id, name, priority, type, note, done: false }])
+    show()
     return true
   }
 
   async function handleAddAppointment({ name, time, reminder }: { name: string; time: string; reminder: number }): Promise<boolean> {
+    const row = {
+      id: newId(), user_id: entry.user_id as string, date_key: entry.date_key,
+      name, time, reminder, done: false,
+    }
+    const show = () => {
+      // Ako je vreme podsetnika već prošlo u momentu dodavanja → tiho označi kao prikazano
+      if (reminder > 0) {
+        const [h, m] = time.split(':').map(Number)
+        const apptTime = new Date(); apptTime.setHours(h, m, 0, 0)
+        if (new Date() >= new Date(apptTime.getTime() - reminder * 60_000)) markShown(row.id)
+      }
+      setAppts(prev => [...prev, { id: row.id, name, time, reminder, done: false }])
+    }
+
+    if (isOffline()) {
+      enqueue({ kind: 'addAppt', row })
+      setPending(readQueue().length)
+      show()
+      return true
+    }
+
     const supabase = createClient()
-    const { data, error } = await supabase.from('appointments').insert({
-      user_id: entry.user_id, date_key: entry.date_key, name, time, reminder, done: false,
-    }).select('id').single()
+    const { error } = await supabase.from('appointments').insert(row)
     if (error) {
+      if (isOffline()) {
+        enqueue({ kind: 'addAppt', row })
+        setPending(readQueue().length)
+        show()
+        return true
+      }
       toast({ message: t.plan.apptAddFailed, variant: 'error' })
       return false
     }
-    // Ako je vreme podsetnika već prošlo u momentu dodavanja → tiho označi kao prikazano
-    if (data?.id && reminder > 0) {
-      const [h, m] = time.split(':').map(Number)
-      const apptTime = new Date(); apptTime.setHours(h, m, 0, 0)
-      const reminderTime = new Date(apptTime.getTime() - reminder * 60_000)
-      if (new Date() >= reminderTime) markShown(data.id)
-    }
-    setAppts(prev => [...prev, { id: data?.id, name, time, reminder, done: false }])
+    show()
     return true
   }
 
