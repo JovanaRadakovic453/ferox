@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Outfit, Cormorant_Garamond, Source_Sans_3 } from 'next/font/google'
+import { Outfit, Cormorant_Garamond, Source_Sans_3, EB_Garamond } from 'next/font/google'
 import './globals.css'
 import Providers from './providers'
 import { APP } from '@/lib/config'
@@ -13,10 +13,12 @@ const outfit = Outfit({
   display: 'swap',
 })
 
-// Cormorant Garamond — samo za „Ferox" logo (elegantan tanak serif, stari izgled).
+// Cormorant Garamond — „Ferox" logo (uspravno) i ime korisnika u pozdravu
+// (kurziv): elegantan tanak serif, isti karakter na oba mesta.
 const cormorant = Cormorant_Garamond({
   subsets: ['latin', 'latin-ext'],
   weight: ['300', '400', '500', '600'],
+  style: ['normal', 'italic'],
   variable: '--font-logo',
   display: 'swap',
 })
@@ -27,6 +29,15 @@ const sourceSans = Source_Sans_3({
   subsets: ['latin', 'latin-ext'],
   weight: ['300', '400', '500'],
   variable: '--font-nav',
+  display: 'swap',
+})
+
+// EB Garamond — klasičan serif za pozdrav na Danas („Dobro veče, Jovana").
+// Topao i mek, iste porodice kao Cormorant iz logotipa, pa se prirodno slažu.
+const ebGaramond = EB_Garamond({
+  subsets: ['latin', 'latin-ext'],
+  weight: ['400', '500'],
+  variable: '--font-name',
   display: 'swap',
 })
 
@@ -56,7 +67,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="sr" suppressHydrationWarning className={`${outfit.variable} ${cormorant.variable} ${sourceSans.variable}`}>
+    <html lang="sr" suppressHydrationWarning className={`${outfit.variable} ${cormorant.variable} ${sourceSans.variable} ${ebGaramond.variable}`}>
       <body className="min-h-dvh antialiased">
         <Providers>{children}</Providers>
       </body>

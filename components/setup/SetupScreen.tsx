@@ -374,7 +374,10 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
                 </span>
               )}
             </div>
-            <h1 className="title-serif text-[2.15rem] lg:text-[2.9rem] leading-[1.08]" style={{ color: 'var(--text)', fontWeight: 200 }}>
+            <h1
+              className="text-[1.9rem] lg:text-[2.2rem]"
+              style={{ color: 'var(--text)', fontFamily: 'var(--font-name), Georgia, serif', fontWeight: 400, lineHeight: 1.2 }}
+            >
               {heroTitle},<br />
               <span className="foil">{profile.name}</span>
             </h1>
