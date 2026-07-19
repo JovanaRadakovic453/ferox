@@ -3,6 +3,7 @@
 import type { Aggregates, Bar } from '@/lib/insights'
 import type { ConsistencyCell } from '@/lib/consistency'
 import ProgressRing from '@/components/ui/ProgressRing'
+import ThisWeek from '@/components/insights/ThisWeek'
 import { useT } from '@/components/i18n/I18nProvider'
 
 function BarRow({ label, rate }: { label: string; rate: number }) {
@@ -40,13 +41,17 @@ function StatTile({ icon, value, label }: { icon: string; value: string; label: 
 }
 
 export default function InsightsView({
-  agg, streak = 0, bestStreak = 0, totalDone = 0,
+  agg, streak = 0, bestStreak = 0, totalDone = 0, thisWeek, today, restDays,
 }: {
   agg: Aggregates
   streak?: number
   bestStreak?: number
   totalDone?: number
   consistencyWeeks?: ConsistencyCell[][]
+  /** Tekuća nedelja (pon..ned) — grafikon koji se puni kroz nedelju. */
+  thisWeek?: ConsistencyCell[]
+  today?: string
+  restDays?: number[]
 }) {
   const t = useT()
   return (
@@ -58,6 +63,13 @@ export default function InsightsView({
           {t.insights.subtitle(agg.dayCount)}
         </p>
       </header>
+
+      {/* Ova nedelja — stoji visoko jer je jedino što se menja svakog dana. */}
+      {thisWeek && today && (
+        <div style={{ ['--i' as string]: 1 }}>
+          <ThisWeek week={thisWeek} today={today} restDays={restDays} />
+        </div>
+      )}
 
       {/* Ključne brojke */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3" style={{ ['--i' as string]: 1 }}>

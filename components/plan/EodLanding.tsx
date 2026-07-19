@@ -1,9 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import LogoutButton from '@/components/LogoutButton'
 import ProgressRing from '@/components/ui/ProgressRing'
 import { useT } from '@/components/i18n/I18nProvider'
+import { isSundayKey } from '@/lib/week'
 
 export default function EodLanding({
   doneCount,
@@ -64,6 +66,21 @@ export default function EodLanding({
         <div className="card p-5 lg:p-7">
           <p className="text-sm lg:text-base italic leading-relaxed" style={{ color: 'var(--text)' }}>„{recap}”</p>
         </div>
+      )}
+
+      {/* Nedelja uveče = kraj nedelje. Grafikon u Uvidima radi tiho cele nedelje, pa
+          bi ga korisnik lako propustio — ovo je jedini put kad ga pozovemo da pogleda.
+          Poziv, ne prekid: obična veza, bez modala i bez potvrde. */}
+      {isSundayKey(dateKey) && (
+        <Link
+          href="/insights"
+          className="card p-5 flex items-center justify-between gap-3 transition-opacity hover:opacity-80"
+        >
+          <p className="text-sm lg:text-base" style={{ color: 'var(--text)' }}>
+            🎉 {t.insights.weekDoneNudge}
+          </p>
+          <span aria-hidden style={{ color: 'var(--gold)' }}>→</span>
+        </Link>
       )}
 
       {!recap && recapFailed && (

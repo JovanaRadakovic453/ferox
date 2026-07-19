@@ -6,6 +6,7 @@ import { buildConsistencyWeeks } from '@/lib/consistency'
 import { computeStreak } from '@/lib/streak'
 import { todayKey, toTimezone } from '@/lib/date'
 import InsightsView from '@/components/insights/InsightsView'
+import ThisWeek from '@/components/insights/ThisWeek'
 import { getDict } from '@/lib/i18n/dict'
 import { toLocale } from '@/lib/locale'
 
@@ -80,6 +81,14 @@ export default async function InsightsPage() {
         <header className="pt-2">
           <h1 className="display foil text-3xl">{t.insights.title}</h1>
         </header>
+        {/* Grafikon nedelje ide i PRE praga: statistika traži podatke, a "šta sam
+            uradila ove nedelje" ima smisla od prvog dana — a baš novi korisnici su
+            oni koji odustanu u prve dve nedelje. */}
+        <ThisWeek
+          week={consistencyWeeks[consistencyWeeks.length - 1]}
+          today={todayKey(toTimezone(profile?.timezone))}
+          restDays={profile?.rest_days ?? [0, 6]}
+        />
         <div className="card p-8 text-center flex flex-col items-center gap-3">
           <span className="text-4xl">📈</span>
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
@@ -107,6 +116,10 @@ export default async function InsightsPage() {
       bestStreak={Math.max(profile?.best_streak ?? 0, streak)}
       totalDone={totalDone}
       consistencyWeeks={consistencyWeeks}
+      // Poslednja kolona je po definiciji TEKUĆA nedelja (buildConsistencyWeeks).
+      thisWeek={consistencyWeeks[consistencyWeeks.length - 1]}
+      today={todayKey(toTimezone(profile?.timezone))}
+      restDays={profile?.rest_days ?? [0, 6]}
     />
   )
 }
