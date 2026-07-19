@@ -1,6 +1,6 @@
 // Minimal, versioned service worker — app-shell cache + offline navigation fallback.
 // Kept intentionally small so it never serves a stale app shell for long.
-const CACHE = 'ferox-v3'
+const CACHE = 'ferox-v4'
 
 self.addEventListener('install', (e) => {
   self.skipWaiting()
@@ -35,15 +35,26 @@ self.addEventListener('notificationclick', (e) => {
 self.addEventListener('fetch', (e) => {
   const req = e.request
   if (req.method !== 'GET') return
-  // Network-first for page navigations; fall back to cached shell when offline.
+  // Network-first za stranice; bez mreže se vraća POSLEDNJA verzija BAŠ TE strane.
+  //
+  // Ranije se keširala samo '/', pa je bez interneta svaka adresa (i /plan) davala
+  // početnu — korisnik nije mogao da dođe do svog plana. Sada svaka strana ima svoj
+  // zapis, a '/' ostaje krajnja rezerva.
   if (req.mode === 'navigate') {
     e.respondWith(
       fetch(req)
         .then((res) => {
-          caches.open(CACHE).then((c) => c.put('/', res.clone())).catch(() => {})
+          if (res && res.ok) {
+            const copy = res.clone()
+            caches.open(CACHE).then((c) => c.put(req.url, copy)).catch(() => {})
+          }
           return res
         })
-        .catch(() => caches.match('/').then((r) => r || Response.error()))
+        .catch(() =>
+          caches.match(req.url)
+            .then((r) => r || caches.match('/'))
+            .then((r) => r || Response.error())
+        )
     )
   }
 })

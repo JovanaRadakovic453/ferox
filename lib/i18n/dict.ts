@@ -135,6 +135,9 @@ export const sr = {
     // Toast poruke
     allDone: 'Sve gotovo za danas! 🎉',
     notSaved: 'Nije sačuvano — proveri internet',
+    offlinePending: (n: number): string =>
+      n === 1 ? 'Nema interneta — 1 izmena čeka i sama će se sačuvati.' : `Nema interneta — ${n} izmena čeka i same će se sačuvati.`,
+    offlineSynced: 'Sačuvano — izmene su stigle na server.',
     resetConfirm: 'Obrisati sve podatke za danas i početi ispočetka?',
     deleteFailed: 'Brisanje nije uspelo — pokušaj ponovo',
     snoozeFailed: 'Odlaganje nije uspelo — pokušaj ponovo',
@@ -628,6 +631,9 @@ export const en = {
     // Toast messages
     allDone: 'All done for today! 🎉',
     notSaved: 'Not saved — check your connection',
+    offlinePending: (n: number): string =>
+      n === 1 ? "You're offline — 1 change is waiting and will save itself." : `You're offline — ${n} changes are waiting and will save themselves.`,
+    offlineSynced: 'Saved — your changes reached the server.',
     resetConfirm: 'Delete all of today and start over?',
     deleteFailed: "Couldn't delete — please try again",
     snoozeFailed: "Couldn't move it — please try again",

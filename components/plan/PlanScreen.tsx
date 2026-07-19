@@ -15,6 +15,7 @@ import Button from '@/components/ui/Button'
 import { useCountUp } from '@/lib/useCountUp'
 import DayProgress from '@/components/plan/DayProgress'
 import { useToast } from '@/components/ui/Toast'
+import { enqueueToggle, readQueue, writeQueue, isOffline } from '@/lib/offlineQueue'
 import TaskItem from '@/components/plan/TaskItem'
 import AppointmentItem from '@/components/plan/AppointmentItem'
 import ActionRail from '@/components/plan/ActionRail'
@@ -122,6 +123,8 @@ export default function PlanScreen({
       .catch(() => {})
     return () => { cancelled = true }
   }, [entry.date_key, profile.google_refresh_token, dayFinished])
+  // Koliko štikliranja čeka na mrežu (0 = sve poslato).
+  const [pending, setPending] = useState(0)
   const [savingEod, setSavingEod] = useState(false)
   const [dayJustFinished, setDayJustFinished] = useState(false)
   const [showAddTask, setShowAddTask] = useState(false)
@@ -255,6 +258,32 @@ export default function PlanScreen({
     return () => clearInterval(interval)
   }, [appts, isToday, t])
 
+  // Štikliranje bez interneta: izmene čekaju lokalno i šalju se čim se mreža vrati.
+  // Pokušava se i pri otvaranju (mreža je mogla doći dok je app bio zatvoren).
+  useEffect(() => {
+    async function flush() {
+      const queue = readQueue()
+      setPending(queue.length)
+      if (queue.length === 0 || isOffline()) return
+      const supabase = createClient()
+      const stuck: typeof queue = []
+      for (const item of queue) {
+        const { error } = await supabase.from('tasks').update({ done: item.done }).eq('id', item.taskId)
+        if (error) { stuck.push(item); continue }
+        if (item.scheduledId) {
+          await supabase.from('scheduled_tasks').update({ done: item.done }).eq('id', item.scheduledId)
+        }
+      }
+      writeQueue(stuck)
+      setPending(stuck.length)
+      if (stuck.length === 0) toast({ message: t.plan.offlineSynced, variant: 'success' })
+    }
+
+    flush()
+    window.addEventListener('online', flush)
+    return () => window.removeEventListener('online', flush)
+  }, [t, toast])
+
   // Optimistički toggle PO ID-u (ne po imenu — dva ista naziva se više ne sudaraju).
   // Na grešku vraćamo stanje i nudimo retry preko toasta.
   async function toggleTask(taskId: string) {
@@ -273,8 +302,19 @@ export default function PlanScreen({
     }
 
     const supabase = createClient()
+    const queueIt = () => {
+      enqueueToggle({ taskId, done: newDone, scheduledId: task.scheduled_id ?? null })
+      setPending(readQueue().length)
+    }
+
+    // Bez mreže ne pokušavaj i ne javljaj grešku — kvačica ostaje, upis ide u red.
+    if (isOffline()) { queueIt(); return }
+
     const { error } = await supabase.from('tasks').update({ done: newDone }).eq('id', taskId)
     if (error) {
+      // Mreža je mogla pući baš u tom trenutku — tada je red čekanja ispravniji
+      // odgovor nego poruka o grešci, jer se izmena ne gubi.
+      if (isOffline()) { queueIt(); return }
       setTasks(prev => prev.map(t => t.id === taskId ? { ...t, done: !newDone } : t))
       toast({ message: t.plan.notSaved, variant: 'error', action: { label: t.common.retry, onClick: () => toggleTask(taskId) } })
       return
@@ -585,6 +625,18 @@ export default function PlanScreen({
 
   return (
     <main className="flex flex-col gap-7 lg:gap-9 pb-2">
+      {/* Bez interneta štikliranje i dalje radi — ovo je jedini znak da nešto čeka.
+          Namerno smireno, ne kao greška: korisnik ništa ne treba da uradi. */}
+      {pending > 0 && (
+        <div
+          className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-[var(--r-md)] text-sm"
+          style={{ background: 'var(--warn-tint)', color: 'var(--warn)' }}
+          role="status"
+        >
+          <span aria-hidden>📴</span>
+          <span>{t.plan.offlinePending(pending)}</span>
+        </div>
+      )}
       {!isToday && (
         <Link href="/history" className="flex items-center gap-1.5 text-sm font-medium -mb-1" style={{ color: 'var(--text-muted)' }}>
           {t.plan.historyBack}
