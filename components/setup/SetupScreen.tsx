@@ -335,7 +335,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
             {t.setup.backToday}
           </Link>
         )}
-        <header className="flex flex-col gap-6 pt-3 -mb-5 animate-fade-slide">
+        <header className="flex flex-col gap-6 lg:-mt-4 -mb-5 animate-fade-slide">
           <div className="flex items-center justify-between lg:hidden">
             <span className="logo foil text-2xl tracking-[0.06em]">Ferox</span>
             <div className="flex items-center gap-2">
@@ -381,9 +381,9 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
               {heroTitle},<br />
               <span className="foil">{profile.name}</span>
             </h1>
-            {/* Podnaslov je namerno odvojen od pozdrava i spušten skroz dole:
-                stoji tik iznad Brain dump kartice, kao uvod u nju. */}
-            <p className="text-sm mt-12 lg:mt-16 max-w-[42ch]" style={{ color: 'var(--text-muted)' }}>
+            {/* Podnaslov stoji tik iznad Brain dump kartice (uvod u nju), ali
+                blizu pozdrava — da zaglavlje ostane zbijeno uz vrh strane. */}
+            <p className="text-sm mt-8 lg:mt-11 max-w-[42ch]" style={{ color: 'var(--text-muted)' }}>
               {heroSub}
             </p>
           </div>
