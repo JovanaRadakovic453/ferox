@@ -27,6 +27,28 @@ export default function EodLanding({
   const [recap, setRecap] = useState<string | null>(eodRecap)
   const [recapFailed, setRecapFailed] = useState(false)
   const [attempt, setAttempt] = useState(0)
+  const [reopening, setReopening] = useState(false)
+  const [reopenFailed, setReopenFailed] = useState(false)
+
+  // Izlaz sa ovog ekrana. Bez njega je „Završi dan" ćorsokak: kliknut greškom,
+  // dan ostaje zatvoren do ponoći. Ništa se ne briše — vidi /api/day/reopen.
+  async function backToPlan() {
+    setReopening(true)
+    setReopenFailed(false)
+    try {
+      const res = await fetch('/api/day/reopen', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dateKey }),
+      })
+      if (!res.ok) throw new Error('reopen')
+      // Pun reload, ne router.push — ova strana se bira na serveru po `finished_at`.
+      window.location.href = '/plan'
+    } catch {
+      setReopening(false)
+      setReopenFailed(true)
+    }
+  }
 
   useEffect(() => {
     if (recap) return
@@ -114,7 +136,18 @@ export default function EodLanding({
         </div>
       </div>
 
-      <div className="flex justify-center pb-4">
+      <div className="flex flex-col items-center gap-4 pb-4">
+        <button
+          onClick={backToPlan}
+          disabled={reopening}
+          className="text-sm font-semibold px-4 py-2 rounded-full transition-opacity hover:opacity-75 disabled:opacity-50"
+          style={{ background: 'var(--surface2)', color: 'var(--text-muted)', border: '1px solid var(--hairline)' }}
+        >
+          {reopening ? t.eod.reopening : t.eod.backToPlan}
+        </button>
+        {reopenFailed && (
+          <p className="text-xs" style={{ color: 'var(--danger)' }}>{t.eod.reopenFailed}</p>
+        )}
         <LogoutButton />
       </div>
     </main>

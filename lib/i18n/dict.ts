@@ -191,6 +191,9 @@ export const sr = {
     doneLabel: 'Završeno',
     transferred: (n: number) => `📦 ${n} ${n === 1 ? 'zadatak prenet' : 'zadataka preneto'} za sutra`,
     allClear: '✨ Sve čisto za danas',
+    backToPlan: '↩ Vrati se u plan',
+    reopening: 'Otvaram dan…',
+    reopenFailed: 'Nije uspelo — pokušaj ponovo.',
   },
   snooze: {
     aria: (name: string) => `Odloži ${name} za drugi dan`,
@@ -687,6 +690,9 @@ export const en = {
     doneLabel: 'Done',
     transferred: (n: number) => `📦 ${n} task${n === 1 ? '' : 's'} moved to tomorrow`,
     allClear: '✨ All clear for today',
+    backToPlan: '↩ Back to plan',
+    reopening: 'Reopening day…',
+    reopenFailed: "That didn't work — try again.",
   },
   snooze: {
     aria: (name: string) => `Move ${name} to another day`,
