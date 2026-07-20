@@ -99,7 +99,7 @@ function Sidebar({ pathname, streak }: { pathname: string; streak: number }) {
       {streak > 0 && (
         <div className="px-2 mb-3">
           <span className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-[var(--r-md)] w-full" style={{ background: 'var(--gold-tint)', color: 'var(--gold)' }}>
-            <LineIcon name="flame" size={15} /><span>{t.nav.streak(streak)}</span>
+            🔥 <span>{t.nav.streak(streak)}</span>
           </span>
         </div>
       )}

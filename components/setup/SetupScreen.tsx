@@ -346,7 +346,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
                   ? { background: 'var(--gold-tint)', color: 'var(--gold)', border: '1px solid var(--gold)' }
                   : { background: 'var(--surface2)', color: 'var(--text-muted)', border: '1px solid var(--hairline)' }}
               >
-                <LineIcon name="flame" size={13} className="inline-block align-[-2px] mr-1" />{streak}
+                🔥 {streak}
               </span>
               <span
                 className="text-xs font-medium px-3 py-1.5 rounded-full whitespace-nowrap"
@@ -359,19 +359,21 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
           <div>
             <div className="hidden lg:flex lg:items-center lg:gap-3 mb-3">
               <span className="section-label">{formatDate(targetDate ?? todayKey(tz), locale)}</span>
+              {/* Jedini emodži koji je ostao namerno: vatrica je znak niza dana
+                  zaredom i nosi smisao koji linija ne prenosi. */}
               {streak > 0 ? (
                 <span
                   className="text-xs font-semibold px-2.5 py-1 rounded-full"
                   style={{ background: 'var(--gold-tint)', color: 'var(--gold)', border: '1px solid var(--gold)' }}
                 >
-                  {t.setup.streakDays(streak)}
+                  🔥 {streak}
                 </span>
               ) : (
                 <span
                   className="text-xs font-medium px-2.5 py-1 rounded-full"
                   style={{ background: 'var(--surface2)', color: 'var(--text-muted)', border: '1px solid var(--hairline)' }}
                 >
-                  {t.setup.startStreak}
+                  🔥 {t.setup.startStreak}
                 </span>
               )}
             </div>

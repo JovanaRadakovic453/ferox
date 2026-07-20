@@ -312,7 +312,15 @@ export const sr = {
     finished: '✓ završen',
     weekThis: 'Ova nedelja',
     weekLast: 'Prošla nedelja',
-    weeksAgo: (n: number) => `${n} nedelje pre`,
+    // Srpski ide "pre 2 nedelje", ne "2 nedelje pre". Oblik imenice zavisi od
+    // poslednje cifre: 2-4 → nedelje, ostalo → nedelja (11-14 su izuzetak).
+    weeksAgo: (n: number) => {
+      const d = n % 10, dd = n % 100
+      const word = d === 1 && dd !== 11 ? 'nedelju'
+        : d >= 2 && d <= 4 && (dd < 12 || dd > 14) ? 'nedelje'
+        : 'nedelja'
+      return `pre ${n} ${word}`
+    },
   },
   insights: {
     patterns: 'Tvoji obrasci',
@@ -481,7 +489,7 @@ export const sr = {
   },
   brain: {
     title: 'Brain dump',
-    intro: 'Izbaci sve iz glave — ne mora uredno ni redom. Dopiši vreme ili rok ako ga znaš („u utorak“, „u 11h“, „do petka“) i reci šta je hitno. AI to rasporedi po danima, a ti pregledaš i potvrdiš.',
+    intro: 'Izbaci sve iz glave — ne mora uredno ni redom. Pomeni vreme ili rok ako ga znaš („u utorak“, „u 11h“, „do petka“) i reci šta je hitno. AI to rasporedi po danima, a ti pregledaš i potvrdiš.',
     textPh: 'Npr: Zubar u utorak u 11h, izveštaj šefu do petka — hitno, kupiti namirnice danas, teretana 2x ove nedelje, pozvati baku kad stignem...',
     listening: 'Slušam… dodirni da završiš',
     sayAloud: 'Reci naglas',
@@ -986,7 +994,7 @@ export const en = {
   },
   brain: {
     title: 'Brain dump',
-    intro: 'Get it all out of your head — no need for order or polish. Add a time or deadline if you know one (“on Tuesday”, “at 11”, “by Friday”) and say what’s urgent. The AI spreads it across days, and you review and confirm.',
+    intro: 'Get it all out of your head — no need for order or polish. Mention a time or deadline if you know one (“on Tuesday”, “at 11”, “by Friday”) and say what’s urgent. The AI spreads it across days, and you review and confirm.',
     textPh: 'E.g.: Dentist Tuesday at 11, report to my boss by Friday — urgent, buy groceries today, gym 2x this week, call grandma when I get a chance...',
     listening: 'Listening… tap to finish',
     sayAloud: 'Say it aloud',
