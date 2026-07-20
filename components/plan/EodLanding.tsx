@@ -7,6 +7,7 @@ import ProgressRing from '@/components/ui/ProgressRing'
 import { useT } from '@/components/i18n/I18nProvider'
 import { isSundayKey } from '@/lib/week'
 import { enableMorningReminder } from '@/lib/push'
+import { REMINDERS } from '@/lib/config'
 import LineIcon from '@/components/ui/LineIcon'
 
 export default function EodLanding({
@@ -34,6 +35,7 @@ export default function EodLanding({
   const [attempt, setAttempt] = useState(0)
   const [reopening, setReopening] = useState(false)
   const [reminderState, setReminderState] = useState<'ask' | 'busy' | 'on' | 'failed'>('ask')
+  const [reminderHour, setReminderHour] = useState<number>(REMINDERS.defaultHour)
   const [reopenFailed, setReopenFailed] = useState(false)
 
   // Izlaz sa ovog ekrana. Bez njega je „Završi dan" ćorsokak: kliknut greškom,
@@ -110,23 +112,42 @@ export default function EodLanding({
             {reminderState === 'failed' ? t.eod.reminderFailed : t.eod.reminderSub}
           </p>
           {reminderState !== 'failed' && (
-            <button
-              onClick={async () => {
-                setReminderState('busy')
-                setReminderState(await enableMorningReminder() ? 'on' : 'failed')
-              }}
-              disabled={reminderState === 'busy'}
-              className="self-start mt-1 px-3.5 py-2 text-sm font-medium rounded-[var(--r-md)] transition-opacity disabled:opacity-50"
-              style={{ background: 'var(--gold-tint)', color: 'var(--gold)' }}
-            >
-              {t.eod.reminderYes}
-            </button>
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
+              {/* Podrazumevano je već izabrano, pa je uključivanje i dalje JEDAN klik —
+                  izbor sata je tu samo za onog kome 8h ne odgovara. Samo puni sati:
+                  budilnik radi na pun sat, pa se minuti ne bi mogli ispoštovati. */}
+              <label className="text-xs" style={{ color: 'var(--text-muted)' }} htmlFor="eod-reminder-hour">
+                {t.eod.reminderAtLabel}
+              </label>
+              <select
+                id="eod-reminder-hour"
+                value={reminderHour}
+                onChange={e => setReminderHour(Number(e.target.value))}
+                className="field field-select h-9 px-2 text-sm"
+                style={{ width: 'auto' }}
+              >
+                {Array.from({ length: REMINDERS.maxHour - REMINDERS.minHour + 1 }, (_, i) => REMINDERS.minHour + i).map(h => (
+                  <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>
+                ))}
+              </select>
+              <button
+                onClick={async () => {
+                  setReminderState('busy')
+                  setReminderState(await enableMorningReminder(reminderHour) ? 'on' : 'failed')
+                }}
+                disabled={reminderState === 'busy'}
+                className="px-3.5 py-2 text-sm font-medium rounded-[var(--r-md)] transition-opacity disabled:opacity-50"
+                style={{ background: 'var(--gold-tint)', color: 'var(--gold)' }}
+              >
+                {t.eod.reminderYes}
+              </button>
+            </div>
           )}
         </div>
       )}
 
       {reminderState === 'on' && (
-        <p className="text-sm text-center" style={{ color: 'var(--ok)' }}>{t.eod.reminderOn}</p>
+        <p className="text-sm text-center" style={{ color: 'var(--ok)' }}>{t.eod.reminderOnAt(reminderHour)}</p>
       )}
 
       {/* Nedelja uveče = kraj nedelje. Grafikon u Uvidima radi tiho cele nedelje, pa

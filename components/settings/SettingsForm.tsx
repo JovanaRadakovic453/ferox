@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { REMINDERS } from '@/lib/config'
+import { reminderHourOf } from '@/lib/reminders'
 import { useToast } from '@/components/ui/Toast'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
@@ -53,6 +55,44 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
   const [deleting, setDeleting] = useState(false)
 
   const [notifActive, setNotifActive] = useState(!!profile.push_subscription)
+  // Sat kad podsetnik stiže. Samo puni sati — budilnik radi na pun sat, pa minuti
+  // ne bi mogli da se ispoštuju (vidi lib/reminders.ts).
+  const [reminderHour, setReminderHour] = useState<number>(reminderHourOf(profile.reminder_time))
+  const [hourSaving, setHourSaving] = useState(false)
+
+  async function saveReminderHour(h: number) {
+    setReminderHour(h)
+    setHourSaving(true)
+    const supabase = createClient()
+    const { error } = await supabase
+      .from('profiles')
+      .update({ reminder_time: `${String(h).padStart(2, '0')}:00` })
+      .eq('id', profile.id)
+    setHourSaving(false)
+    toast(error
+      ? { message: t.settings.saveFailed, variant: 'error' }
+      : { message: t.settings.reminderTimeSaved(h), variant: 'success' })
+  }
+
+  const hourPicker = (
+    <div className="flex items-center gap-2">
+      <label className="text-xs" style={{ color: 'var(--text-muted)' }} htmlFor="reminder-hour">
+        {t.settings.reminderTimeLabel}
+      </label>
+      <select
+        id="reminder-hour"
+        value={reminderHour}
+        onChange={e => saveReminderHour(Number(e.target.value))}
+        disabled={hourSaving}
+        className="field field-select h-9 px-2 text-sm"
+        style={{ width: 'auto' }}
+      >
+        {Array.from({ length: REMINDERS.maxHour - REMINDERS.minHour + 1 }, (_, i) => REMINDERS.minHour + i).map(h => (
+          <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>
+        ))}
+      </select>
+    </div>
+  )
   const [notifLoading, setNotifLoading] = useState(false)
   const [testLoading, setTestLoading] = useState(false)
 
@@ -270,6 +310,7 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
                 </span>
                 <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: 'var(--gold-tint)', color: 'var(--gold)' }}>{t.settings.activeBadge}</span>
               </div>
+              {hourPicker}
               <button
                 type="button"
                 onClick={sendTestNotification}
@@ -291,6 +332,7 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
             </div>
           ) : (
             <div className="flex flex-col gap-2">
+              {hourPicker}
               <button
                 type="button"
                 onClick={activateNotifications}

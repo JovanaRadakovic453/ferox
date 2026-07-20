@@ -85,6 +85,8 @@ export interface UserProfile {
   micro_feedback?: boolean
   sound_enabled?: boolean
   pomodoro_minutes?: number
+  /** 'HH:MM' — sat kad korisnik hoće jutarnji podsetnik. Prazno = podrazumevani. */
+  reminder_time?: string | null
   push_subscription?: object | null
   google_refresh_token?: string | null
 }

@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { apiOk, ERR } from '@/lib/api'
 import { z } from 'zod'
-import { RATE_LIMITS } from '@/lib/config'
+import { RATE_LIMITS, REMINDERS } from '@/lib/config'
 import { checkRateLimit } from '@/lib/rateLimit'
 
 const schema = z.object({
@@ -12,6 +12,9 @@ const schema = z.object({
       auth: z.string(),
     }),
   }),
+  // Sat kad korisnik hoce podsetnik. Pun sat jer budilnik radi na pun sat — minuti
+  // se ne bi mogli ispostovati, pa se ni ne obecavaju.
+  hour: z.number().int().min(REMINDERS.minHour).max(REMINDERS.maxHour).optional(),
 })
 
 export async function POST(request: Request) {
@@ -26,11 +29,15 @@ export async function POST(request: Request) {
   const parsed = schema.safeParse(json)
   if (!parsed.success) return ERR.invalidInput(parsed.error.issues)
 
-  const { subscription } = parsed.data
+  const { subscription, hour } = parsed.data
 
   const { error } = await supabase
     .from('profiles')
-    .update({ push_subscription: subscription })
+    .update({
+      push_subscription: subscription,
+      // Prazno = ostavi ranije izabrano (ili podrazumevano).
+      ...(hour !== undefined ? { reminder_time: `${String(hour).padStart(2, '0')}:00` } : {}),
+    })
     .eq('id', user.id)
 
   if (error) return ERR.server(error.message)

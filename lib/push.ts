@@ -9,8 +9,11 @@
 // vraća samo ručno kroz podešavanja pregledača. Zato se ne traži u onboardingu
 // nego tek kad korisnik prvi put završi dan.
 
-/** Uključi jutarnji podsetnik. `false` = korisnik odbio ili nije uspelo. */
-export async function enableMorningReminder(): Promise<boolean> {
+/**
+ * Uključi jutarnji podsetnik. `false` = korisnik odbio ili nije uspelo.
+ * `hour` je PUN sat (budilnik radi na pun sat, pa se minuti ne obećavaju).
+ */
+export async function enableMorningReminder(hour?: number): Promise<boolean> {
   try {
     if (typeof Notification === 'undefined' || typeof navigator === 'undefined') return false
 
@@ -27,7 +30,7 @@ export async function enableMorningReminder(): Promise<boolean> {
     const res = await fetch('/api/notifications/subscribe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ subscription: sub.toJSON() }),
+      body: JSON.stringify({ subscription: sub.toJSON(), ...(hour !== undefined ? { hour } : {}) }),
     })
     return res.ok
   } catch {
