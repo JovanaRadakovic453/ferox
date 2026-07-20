@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
 
   const { data: profiles } = await supabase
     .from('profiles')
-    .select('id, push_subscription, timezone, last_reminder_key, locale')
+    .select('id, push_subscription, timezone, last_reminder_key, locale, reminder_time')
     .not('push_subscription', 'is', null)
 
   const nothing = { sent: 0, deadlineSent: 0, skippedPlanned: 0, cleaned: 0, candidates: 0, repeats }
@@ -68,6 +68,7 @@ export async function GET(request: NextRequest) {
         toTimezone(p.timezone),
         p.last_reminder_key as string | null,
         now,
+        p.reminder_time as string | null,
       )
       return { id: p.id as string, sub: p.push_subscription, today, due, locale: toLocale(p.locale) }
     })

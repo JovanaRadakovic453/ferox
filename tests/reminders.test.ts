@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { reminderDue } from '@/lib/reminders'
+import { reminderDue, reminderHourOf } from '@/lib/reminders'
 import { hourInTimezone } from '@/lib/date'
 
 // Jul 2026 = letnje računanje: Beograd UTC+2, Njujork UTC-4, Tokio UTC+9 (bez DST).
@@ -42,6 +42,48 @@ describe('reminderDue — svako u SVOM jutru', () => {
     const t = new Date('2026-07-18T12:00:00Z')
     expect(reminderDue('America/New_York', null, t).due).toBe(true)
     expect(reminderDue('Europe/Belgrade', null, t).due).toBe(false)
+  })
+})
+
+describe('reminderHourOf — sat koji je korisnik izabrao', () => {
+  it('čita sat iz HH:MM', () => {
+    expect(reminderHourOf('06:30')).toBe(6)
+    expect(reminderHourOf('09:00')).toBe(9)
+  })
+
+  it('prazno / smeće → podrazumevanih 8h (a NE ponoć)', () => {
+    // `Number('')` je 0, ne NaN — zato ovo mora da bude pokriveno testom.
+    expect(reminderHourOf('')).toBe(8)
+    expect(reminderHourOf(null)).toBe(8)
+    expect(reminderHourOf(undefined)).toBe(8)
+    expect(reminderHourOf('kasnije')).toBe(8)
+  })
+
+  it('vreme van jutra se pritegne u dozvoljen opseg (5–11)', () => {
+    expect(reminderHourOf('03:00')).toBe(5)
+    expect(reminderHourOf('23:00')).toBe(11)
+  })
+})
+
+describe('reminderDue — podsetnik poštuje izabrano vreme', () => {
+  // Beograd je UTC+2 u julu.
+  const utcFor = (belgradeHour: number) =>
+    new Date(`2026-07-20T${String(belgradeHour - 2).padStart(2, '0')}:00:00Z`)
+
+  it('ko izabere 06:00 dobija ga u 6, a ne u 8', () => {
+    expect(reminderDue('Europe/Belgrade', null, utcFor(6), '06:00').due).toBe(true)
+    // U 8h je već poslato (prozor 6–8), ali ključ dana to i inače zaustavlja.
+    expect(reminderDue('Europe/Belgrade', null, utcFor(5), '06:00').due).toBe(false)
+  })
+
+  it('ko izabere 10:00 ne dobija ga u 8', () => {
+    expect(reminderDue('Europe/Belgrade', null, utcFor(8), '10:00').due).toBe(false)
+    expect(reminderDue('Europe/Belgrade', null, utcFor(10), '10:00').due).toBe(true)
+  })
+
+  it('tolerancija hvata zakašnjenje budilnika, ali ne ceo dan', () => {
+    expect(reminderDue('Europe/Belgrade', null, utcFor(8), '06:00').due).toBe(true)  // +2h
+    expect(reminderDue('Europe/Belgrade', null, utcFor(9), '06:00').due).toBe(false) // +3h → prekasno
   })
 })
 

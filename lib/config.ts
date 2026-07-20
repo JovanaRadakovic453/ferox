@@ -73,10 +73,21 @@ export const RATE_LIMITS = {
  * profiles.last_reminder_key (vidi lib/reminders.ts).
  */
 export const REMINDERS = {
-  /** Od kog lokalnog sata (8 = 08:00 kod korisnika). */
-  morningHour: 8,
-  /** Do kog lokalnog sata zaključno (10 = do 10:59 kod korisnika). */
-  latestHour: 10,
+  /** Kad korisnik nije izabrao svoje vreme (profiles.reminder_time je prazan). */
+  defaultHour: 8,
+  /**
+   * Koliko sati POSLE izabranog vremena podsetnik još sme da stigne.
+   * Prozor postoji zbog budilnika koji ume da kasni — bez njega bi zakašnjenje od
+   * par minuta preskočilo korisnika za ceo dan.
+   */
+  toleranceHours: 2,
+  /**
+   * Dozvoljen opseg izbora (jutro). Namerno bez prelaska ponoći: prozor koji
+   * pređe u novi dan bi menjao i „danas", pa bi se podsetnik ili duplirao ili
+   * potpuno preskočio.
+   */
+  minHour: 5,
+  maxHour: 11,
 } as const
 
 /**

@@ -42,10 +42,27 @@ export type ReminderCheck = {
   due: boolean
 }
 
+/**
+ * Sat iz `profiles.reminder_time` ('HH:MM'). Prazno/smeće → podrazumevani sat.
+ * Vrednost van jutarnjeg opsega se pritegne, da pokvaren podatak ne pošalje
+ * podsetnik u ponoć.
+ */
+export function reminderHourOf(reminderTime: string | null | undefined): number {
+  // Traži CIFRE izričito: `Number('')` je 0, ne NaN — pa bi prazno polje značilo
+  // ponoć (pritegnuto na 5h) umesto podrazumevanih 8h. Tiha greška za sve koji
+  // nisu birali vreme.
+  const m = /^\s*(\d{1,2})\s*(?::|$)/.exec(String(reminderTime ?? ''))
+  if (!m) return REMINDERS.defaultHour
+  const h = Number(m[1])
+  if (!Number.isInteger(h) || h > 23) return REMINDERS.defaultHour
+  return Math.min(REMINDERS.maxHour, Math.max(REMINDERS.minHour, h))
+}
+
 export function reminderDue(
   tz: string,
   lastReminderKey: string | null | undefined,
   now: Date = new Date(),
+  reminderTime?: string | null,
 ): ReminderCheck {
   // Zonu normalizujemo JEDNOM ovde: pokvarena vrednost iz baze ne sme da baci i
   // obori ceo prolaz podsetnika (todayKey bi na nevažećoj zoni pukao).
@@ -56,6 +73,10 @@ export function reminderDue(
   // pa se ponašanje ne menja; ovim funkcija postaje stvarno čista i testabilna.
   const today = dayKey(now, zone)
   const hour = hourInTimezone(zone, now)
-  const inMorning = hour >= REMINDERS.morningHour && hour <= REMINDERS.latestHour
-  return { today, hour, due: inMorning && lastReminderKey !== today }
+  // Prozor kreće od SATA KOJI JE KORISNIK IZABRAO, pa još `toleranceHours` —
+  // tolerancija je tu samo da zakašnjenje budilnika nikoga ne preskoči, nije
+  // "otprilike kad stigne".
+  const from = reminderHourOf(reminderTime)
+  const inWindow = hour >= from && hour <= from + REMINDERS.toleranceHours
+  return { today, hour, due: inWindow && lastReminderKey !== today }
 }
