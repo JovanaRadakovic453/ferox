@@ -65,20 +65,20 @@ export default function InsightsView({
         </p>
       </header>
 
-      {/* Ova nedelja — stoji visoko jer je jedino što se menja svakog dana. */}
-      {thisWeek && today && (
-        <div style={{ ['--i' as string]: 1 }}>
-          <ThisWeek week={thisWeek} today={today} restDays={restDays} />
-        </div>
-      )}
-
-      {/* Ključne brojke */}
+      {/* Ključne brojke — prvo, kao rezime; grafikon ispod ih razlaže po danima. */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3" style={{ ['--i' as string]: 1 }}>
         <StatTile icon="flame" value={String(streak)} label={streak === 1 ? t.insights.streakDay : t.insights.streakDays} />
         <StatTile icon="trophy" value={String(bestStreak)} label={t.insights.bestStreak} />
         <StatTile icon="check" value={String(totalDone)} label={t.insights.tasksDone} />
         <StatTile icon="calendar" value={String(agg.dayCount)} label={t.insights.daysTracked} />
       </div>
+
+      {/* Ova nedelja — stoji visoko jer je jedino što se menja svakog dana. */}
+      {thisWeek && today && (
+        <div style={{ ['--i' as string]: 1 }}>
+          <ThisWeek week={thisWeek} today={today} restDays={restDays} />
+        </div>
+      )}
 
       {/* Ukupna realizacija — brojčanik */}
       <div className="card p-6 lg:p-7 flex items-center gap-6 lg:gap-8" style={{ ['--i' as string]: 2 }}>
