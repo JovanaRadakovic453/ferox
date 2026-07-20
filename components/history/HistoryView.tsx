@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
 import { useT, useLocale } from '@/components/i18n/I18nProvider'
 import type { Dict } from '@/lib/i18n/dict'
+import LineIcon from '@/components/ui/LineIcon'
 
 export type HistoryDay = {
   id: string
@@ -61,7 +62,7 @@ export default function HistoryView({ days, todayKey }: { days: HistoryDay[]; to
 
       {days.length === 0 ? (
         <div className="card p-8 text-center flex flex-col items-center gap-3">
-          <span className="text-4xl">🗓️</span>
+          <LineIcon name="calendar" size={38} strokeWidth={1.2} style={{ color: 'var(--text-muted)', opacity: 0.55 }} />
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
             {t.history.empty}
           </p>

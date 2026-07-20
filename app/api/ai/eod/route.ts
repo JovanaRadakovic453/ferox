@@ -16,13 +16,13 @@ import type { TaskType, Locale } from '@/types/ferox'
 const FALLBACK: Record<Locale, { none: string; some: (n: number) => string; finished: string }> = {
   sr: {
     none: 'Dan je gotov. Sutra je novi početak — to je sasvim u redu.',
-    some: n => `Završio/la si ${n} ${n === 1 ? 'stvar' : 'stvari'} danas. To se računa. 🌙`,
-    finished: 'Dan je završen. Svaki korak napred se računa. 🌙',
+    some: n => `Završio/la si ${n} ${n === 1 ? 'stvar' : 'stvari'} danas. To se računa.`,
+    finished: 'Dan je završen. Svaki korak napred se računa.',
   },
   en: {
     none: 'The day is done. Tomorrow is a fresh start — and that is perfectly fine.',
-    some: n => `You finished ${n} ${n === 1 ? 'thing' : 'things'} today. That counts. 🌙`,
-    finished: 'Day complete. Every step forward counts. 🌙',
+    some: n => `You finished ${n} ${n === 1 ? 'thing' : 'things'} today. That counts.`,
+    finished: 'Day complete. Every step forward counts.',
   },
 }
 import { AI, RATE_LIMITS } from '@/lib/config'

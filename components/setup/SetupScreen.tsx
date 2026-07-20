@@ -15,6 +15,7 @@ import AppointmentEditor from '@/components/setup/AppointmentEditor'
 import PreviewRail from '@/components/setup/PreviewRail'
 import { useT, useLocale, useTimezone } from '@/components/i18n/I18nProvider'
 import { readSkipped, addSkipped } from '@/lib/googleSkip'
+import LineIcon from '@/components/ui/LineIcon'
 
 /** Pamti da je Google veza pukla, da upozorenje ne nestane pri osvežavanju. */
 const GOOGLE_WARN_KEY = 'ferox-google-reconnect'
@@ -345,7 +346,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
                   ? { background: 'var(--gold-tint)', color: 'var(--gold)', border: '1px solid var(--gold)' }
                   : { background: 'var(--surface2)', color: 'var(--text-muted)', border: '1px solid var(--hairline)' }}
               >
-                🔥 {streak}
+                <LineIcon name="flame" size={13} className="inline-block align-[-2px] mr-1" />{streak}
               </span>
               <span
                 className="text-xs font-medium px-3 py-1.5 rounded-full whitespace-nowrap"
@@ -444,7 +445,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
                 onAddAll={addAllSuggested}
                 onAddOne={addSuggested}
                 onDismiss={dismissSuggested}
-                icon="📋"
+                icon="history"
               />
             )}
 
@@ -460,8 +461,8 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
 
             {submitError && (
               <div className="rounded-[var(--r-md)] px-4 py-3 text-sm" style={{
-                background: submitError.startsWith('✅') ? 'var(--ok-tint)' : 'var(--danger-tint)',
-                color: submitError.startsWith('✅') ? 'var(--ok)' : 'var(--danger)',
+                background: 'var(--danger-tint)',
+                color: 'var(--danger)',
               }}>
                 {submitError}
               </div>

@@ -36,7 +36,7 @@ export default function AppointmentItem({ appt, onToggle, onDelete, onMove, curr
           {appt.end_time ? `${appt.time} – ${appt.end_time}` : appt.time}
         </span>
         <p
-          className="text-sm flex-1 truncate transition-all duration-200"
+          className="text-[0.925rem] flex-1 truncate transition-all duration-200"
           style={{ color: appt.done ? 'var(--text-muted)' : 'var(--text)', textDecoration: appt.done ? 'line-through' : 'none', opacity: appt.done ? 0.6 : 1 }}
         >
           {appt.name}

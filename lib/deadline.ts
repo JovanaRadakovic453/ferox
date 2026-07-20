@@ -62,13 +62,13 @@ export function sortTasksForDay<T extends DeadlineTask>(tasks: T[], today: strin
 // Tekstovi push podsetnika za rok, po jeziku (isti obrazac kao BADGE_TEXT).
 const REMINDER_TEXT = {
   sr: {
-    overdue: (name: string, suffix: string) => `⚠️ Probijen rok: „${name}"${suffix}`,
-    dueToday: (name: string, suffix: string) => `⏳ Danas ističe rok: „${name}"${suffix}`,
+    overdue: (name: string, suffix: string) => `Probijen rok: „${name}"${suffix}`,
+    dueToday: (name: string, suffix: string) => `Danas ističe rok: „${name}"${suffix}`,
     more: (n: number) => ` (i još ${n})`,
   },
   en: {
-    overdue: (name: string, suffix: string) => `⚠️ Overdue: "${name}"${suffix}`,
-    dueToday: (name: string, suffix: string) => `⏳ Due today: "${name}"${suffix}`,
+    overdue: (name: string, suffix: string) => `Overdue: "${name}"${suffix}`,
+    dueToday: (name: string, suffix: string) => `Due today: "${name}"${suffix}`,
     more: (n: number) => ` (+${n} more)`,
   },
 } satisfies Record<Locale, unknown>

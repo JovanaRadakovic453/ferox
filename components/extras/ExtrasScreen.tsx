@@ -15,6 +15,7 @@ import {
   selectBreak,
   resetTimer,
 } from '@/lib/breakTimer'
+import LineIcon from '@/components/ui/LineIcon'
 import {
   f,
   ensureFocusAudioCtx,
@@ -221,7 +222,7 @@ export default function ExtrasScreen({ initialPomodoro, profileId, initialRoutin
       {/* Pomodoro — fokus tajmer */}
       <section className="card p-6 flex flex-col items-center gap-6">
         <div className="self-start">
-          <p className="font-medium text-sm">🍅 Pomodoro</p>
+          <p className="font-medium text-sm flex items-center gap-2"><LineIcon name="timer" size={16} />Pomodoro</p>
           <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{tr.extras.pomodoroHint}</p>
         </div>
 

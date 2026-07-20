@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useT } from '@/components/i18n/I18nProvider'
+import LineIcon from '@/components/ui/LineIcon'
 
 export default function ReminderBanner({
   name,
@@ -35,7 +36,7 @@ export default function ReminderBanner({
       }}
       role="alert"
     >
-      <span className="text-2xl shrink-0 mt-0.5">📅</span>
+      <LineIcon name="calendar" size={21} className="shrink-0 mt-0.5" style={{ color: 'var(--gold)' }} />
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
           {t.reminder.banner(minutesBefore)}

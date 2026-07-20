@@ -5,6 +5,7 @@ import type { ConsistencyCell } from '@/lib/consistency'
 import ProgressRing from '@/components/ui/ProgressRing'
 import ThisWeek from '@/components/insights/ThisWeek'
 import { useT } from '@/components/i18n/I18nProvider'
+import LineIcon, { type IconName } from '@/components/ui/LineIcon'
 
 function BarRow({ label, rate }: { label: string; rate: number }) {
   return (
@@ -30,10 +31,10 @@ function ChartCard({ title, bars }: { title: string; bars: Bar[] }) {
   )
 }
 
-function StatTile({ icon, value, label }: { icon: string; value: string; label: string }) {
+function StatTile({ icon, value, label }: { icon: IconName; value: string; label: string }) {
   return (
     <div className="card p-4 flex flex-col gap-1.5">
-      <span className="text-lg" aria-hidden>{icon}</span>
+      <LineIcon name={icon} size={18} style={{ color: 'var(--gold)' }} />
       <p className="display text-2xl lg:text-3xl leading-none tabular-nums" style={{ color: 'var(--text)' }}>{value}</p>
       <p className="text-[0.65rem] font-semibold tracking-[0.12em] uppercase" style={{ color: 'var(--text-muted)' }}>{label}</p>
     </div>
@@ -73,10 +74,10 @@ export default function InsightsView({
 
       {/* Ključne brojke */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3" style={{ ['--i' as string]: 1 }}>
-        <StatTile icon="🔥" value={String(streak)} label={streak === 1 ? t.insights.streakDay : t.insights.streakDays} />
-        <StatTile icon="🏆" value={String(bestStreak)} label={t.insights.bestStreak} />
-        <StatTile icon="✅" value={String(totalDone)} label={t.insights.tasksDone} />
-        <StatTile icon="📅" value={String(agg.dayCount)} label={t.insights.daysTracked} />
+        <StatTile icon="flame" value={String(streak)} label={streak === 1 ? t.insights.streakDay : t.insights.streakDays} />
+        <StatTile icon="trophy" value={String(bestStreak)} label={t.insights.bestStreak} />
+        <StatTile icon="check" value={String(totalDone)} label={t.insights.tasksDone} />
+        <StatTile icon="calendar" value={String(agg.dayCount)} label={t.insights.daysTracked} />
       </div>
 
       {/* Ukupna realizacija — brojčanik */}
@@ -95,7 +96,7 @@ export default function InsightsView({
       {agg.sleepInsight && (
         <div className="card p-5 lg:p-6" style={{ ['--i' as string]: 3 }}>
           <p className="section-label mb-2">{t.insights.sleepTitle}</p>
-          <p className="text-sm lg:text-base" style={{ color: 'var(--text)' }}>😴 {agg.sleepInsight}</p>
+          <p className="text-sm lg:text-base" style={{ color: 'var(--text)' }}>{agg.sleepInsight}</p>
         </div>
       )}
 

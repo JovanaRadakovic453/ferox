@@ -8,6 +8,7 @@ import AddScheduledTaskModal from './AddScheduledTaskModal'
 import EditScheduledTaskModal from './EditScheduledTaskModal'
 import { useT, useLocale } from '@/components/i18n/I18nProvider'
 import { INTL_LOCALE } from '@/lib/locale'
+import LineIcon from '@/components/ui/LineIcon'
 
 type Entry = { id: string; date_key: string; finished_at: string | null }
 type Appointment = { id: string; date_key: string; name: string; time: string; done: boolean }
@@ -15,7 +16,19 @@ type ScheduledTask = { id: string; for_date: string; name: string; priority: str
 type LoadedTask = { id: string; name: string; priority: string; done: boolean; note: string }
 
 const PRIORITY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 }
-const PRIORITY_DOT: Record<string, string> = { high: '🔴', medium: '🟡', low: '🟢' }
+// Tačkice prioriteta kroz statusne boje — rade i u tamnoj temi, za razliku od
+// emodži kružića koji su uvek isti (i deluju kao igrica).
+const PRIORITY_COLOR: Record<string, string> = { high: 'var(--danger)', medium: 'var(--warn)', low: 'var(--ok)' }
+
+function PriorityDot({ priority, className = '' }: { priority: string; className?: string }) {
+  return (
+    <span
+      className={`w-2 h-2 rounded-full shrink-0 ${className}`}
+      style={{ background: PRIORITY_COLOR[priority] ?? 'var(--warn)' }}
+      aria-hidden
+    />
+  )
+}
 
 function formatDateLabel(dateKey: string, intlLocale: string): string {
   return new Intl.DateTimeFormat(intlLocale, {
@@ -214,7 +227,7 @@ export default function DayPanel({
                   className="flex items-center gap-2.5 px-3 py-2 rounded-[var(--r-md)]"
                   style={{ background: 'var(--surface2)' }}
                 >
-                  <span className="text-xs shrink-0">{PRIORITY_DOT[t.priority] ?? '🟡'}</span>
+                  <PriorityDot priority={t.priority} />
                   <span
                     className="text-sm flex-1 min-w-0 truncate"
                     style={{
@@ -251,7 +264,7 @@ export default function DayPanel({
                     className="flex items-start gap-2 px-3 py-2 rounded-[var(--r-md)] group"
                     style={{ background: 'var(--surface2)' }}
                   >
-                    <span className="text-xs shrink-0 mt-0.5">{PRIORITY_DOT[st.priority] ?? '🟡'}</span>
+                    <PriorityDot priority={st.priority} className="mt-1.5" />
                     <div className="flex-1 min-w-0">
                       <div className="text-sm truncate" style={{ color: 'var(--text)' }}>{st.name}</div>
                       {dlBadge && (
@@ -261,8 +274,9 @@ export default function DayPanel({
                       )}
                     </div>
                     {st.remind_before_minutes != null && (
-                      <span className="text-[0.58rem] font-semibold shrink-0 mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                        🔔{st.remind_before_minutes >= 1440
+                      <span className="text-[0.58rem] font-semibold shrink-0 mt-0.5 inline-flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
+                        <LineIcon name="bell" size={10} />
+                        {st.remind_before_minutes >= 1440
                           ? `${Math.round(st.remind_before_minutes / 1440)}d`
                           : st.remind_before_minutes >= 60
                           ? `${Math.round(st.remind_before_minutes / 60)}h`

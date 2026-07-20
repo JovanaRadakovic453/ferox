@@ -10,6 +10,7 @@ import { AI } from '@/lib/config'
 import type { TaskType, Priority } from '@/types/ferox'
 import { useT, useLocale, useTimezone } from '@/components/i18n/I18nProvider'
 import type { Dict } from '@/lib/i18n/dict'
+import LineIcon from '@/components/ui/LineIcon'
 
 // Stavke koje AI predloži (već normalizovane u BrainDumpCard).
 export type PlanTask = {
@@ -105,7 +106,7 @@ export default function BrainDumpPlanModal({
     return (
       <Modal open={open} onClose={onClose} titleId="plan-modal-title">
         <div className="flex flex-col items-center text-center gap-4 py-2">
-          <span className="text-4xl">✅</span>
+          <LineIcon name="check" size={38} strokeWidth={1.4} style={{ color: 'var(--ok)' }} />
           <h3 id="plan-modal-title" className="title-serif text-xl" style={{ color: 'var(--text)' }}>{t.brain.saved}</h3>
           <div className="flex flex-col gap-2 w-full">
             {summary.today > 0 && (
@@ -162,7 +163,7 @@ export default function BrainDumpPlanModal({
                 <div key={`a-${i}`} className="rounded-[var(--r-md)] p-3 flex flex-col gap-2" style={{ background: 'var(--surface2)', border: '1px solid var(--hairline)' }}>
                   <div className="flex items-center justify-between gap-2">
                     {/* Raspon (17:00 – 19:00) da korisnik pre potvrde vidi i trajanje, ne samo početak. */}
-                    <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>🕐 {a.name} · {a.time}{a.endTime ? ` – ${a.endTime}` : ''}</span>
+                    <span className="text-sm font-medium inline-flex items-center gap-1.5" style={{ color: 'var(--text)' }}><LineIcon name="clock" size={14} style={{ color: 'var(--text-muted)' }} />{a.name} · {a.time}{a.endTime ? ` – ${a.endTime}` : ''}</span>
                     <button onClick={() => setAppts(prev => prev.filter((_, idx) => idx !== i))} className="text-xs opacity-50 hover:opacity-100" style={{ color: 'var(--danger)' }} aria-label={t.brain.remove}>✕</button>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
@@ -186,7 +187,7 @@ export default function BrainDumpPlanModal({
                     </span>
                   )}
                   {pt.reason && (
-                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>💡 {pt.reason}</p>
+                    <p className="text-xs flex items-start gap-1.5" style={{ color: 'var(--text-muted)' }}><LineIcon name="bulb" size={13} className="shrink-0 mt-px" />{pt.reason}</p>
                   )}
                   <div className="flex flex-wrap gap-1.5">
                     {daySelect(pt.dayOffset, v => updateTask(i, { dayOffset: v }))}

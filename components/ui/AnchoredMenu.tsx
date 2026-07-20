@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, type ReactNode } from 'react'
+import LineIcon, { type IconName } from '@/components/ui/LineIcon'
 
 /**
  * Mali meni koji iskoči ispod dugmeta. Koristi FIKSNU poziciju (računa se od
@@ -8,11 +9,11 @@ import { useState, type ReactNode } from 'react'
  * Klik van menija ga zatvara (nevidljiva pozadina).
  */
 export default function AnchoredMenu({
-  ariaLabel, title, icon = '🕓', minWidth = 190, children,
+  ariaLabel, title, icon = 'clock', minWidth = 190, children,
 }: {
   ariaLabel: string
   title: string
-  icon?: string
+  icon?: IconName
   minWidth?: number
   /** `close` zatvara meni — pozovi ga kad se izbor potvrdi. */
   children: (close: () => void) => ReactNode
@@ -38,7 +39,7 @@ export default function AnchoredMenu({
         className="shrink-0 ml-3 text-sm opacity-25 hover:opacity-70 transition-opacity"
         style={{ color: 'var(--text-muted)' }}
       >
-        {icon}
+        <LineIcon name={icon} size={16} />
       </button>
 
       {open && pos && (

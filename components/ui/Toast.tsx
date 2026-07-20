@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useState, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import LineIcon from '@/components/ui/LineIcon'
 
 type ToastVariant = 'error' | 'success' | 'info'
 type ToastAction = { label: string; onClick: () => void }
@@ -48,7 +49,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 color: 'var(--text)',
               }}
             >
-              <span className="text-base shrink-0">{t.variant === 'error' ? '⚠️' : t.variant === 'success' ? '✓' : 'ℹ️'}</span>
+              <span className="shrink-0 mt-0.5" style={{ color: t.variant === 'error' ? 'var(--danger)' : t.variant === 'success' ? 'var(--ok)' : 'var(--text-muted)' }}>
+                <LineIcon name={t.variant === 'error' ? 'alert' : t.variant === 'success' ? 'check' : 'info'} size={16} />
+              </span>
               <span className="flex-1">{t.message}</span>
               {t.action && (
                 <button

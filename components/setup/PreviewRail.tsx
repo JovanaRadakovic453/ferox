@@ -27,7 +27,7 @@ export default function PreviewRail({
           </h2>
         </div>
 
-        <div className="rounded-[var(--r-md)] p-4 text-center" style={{ background: 'var(--surface2)' }}>
+        <div className="rounded-[var(--r-sm)] p-4 text-center" style={{ background: 'var(--surface2)' }}>
           <p className="display text-4xl foil leading-none">{totalItems}</p>
           <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>{totalWord}</p>
         </div>

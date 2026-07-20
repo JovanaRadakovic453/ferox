@@ -32,12 +32,12 @@ export default function AppointmentEditor({
 
   return (
     <section className="card p-7 flex flex-col gap-6">
-      <SectionHeader icon="🗓️" title={t.setup.apptsTitle} trailing={<CountChip n={appointments.length} />} />
+      <SectionHeader icon="calendar" title={t.setup.apptsTitle} trailing={<CountChip n={appointments.length} />} />
 
       {appointments.length > 0 && (
         <div className="flex flex-col gap-2.5">
           {appointments.map((a, i) => (
-            <div key={i} className="flex items-center gap-3 p-3.5 rounded-[var(--r-md)]" style={{ background: 'var(--surface2)' }}>
+            <div key={i} className="flex items-center gap-3 p-3.5 rounded-[var(--r-sm)]" style={{ background: 'var(--surface2)' }}>
               <span className="text-sm font-semibold shrink-0 tabular-nums" style={{ color: 'var(--gold)' }}>
                 {a.end_time ? `${a.time} – ${a.end_time}` : a.time}
               </span>
@@ -50,7 +50,7 @@ export default function AppointmentEditor({
       )}
 
       {showForm ? (
-        <div className="flex flex-col gap-3 p-4 rounded-[var(--r-md)] border" style={{ borderColor: 'var(--border)', background: 'var(--surface2)' }}>
+        <div className="flex flex-col gap-3 p-4 rounded-[var(--r-sm)] border" style={{ borderColor: 'var(--border)', background: 'var(--surface2)' }}>
           <Input id="appt-name" placeholder={t.setup.apptNamePh} value={form.name}
             onChange={e => setForm(f => ({ ...f, name: e.target.value }))} autoFocus />
           <div className="grid grid-cols-2 gap-2">
@@ -86,7 +86,7 @@ export default function AppointmentEditor({
         </div>
       ) : (
         <button onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 p-4 rounded-[var(--r-md)] border-[1.5px] border-dashed border-[var(--border)] text-sm w-full text-[var(--text-muted)] transition-colors hover:border-[var(--gold)] hover:text-[var(--gold)]">
+          className="flex items-center gap-2 p-4 rounded-[var(--r-sm)] border-[1.5px] border-dashed border-[var(--border)] text-sm w-full text-[var(--text-muted)] transition-colors hover:border-[var(--gold)] hover:text-[var(--gold)]">
           <span className="text-lg">+</span> {t.setup.addAppt}
         </button>
       )}

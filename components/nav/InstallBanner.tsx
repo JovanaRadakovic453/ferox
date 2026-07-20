@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useT } from '@/components/i18n/I18nProvider'
+import LineIcon from '@/components/ui/LineIcon'
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => void
@@ -26,7 +27,7 @@ export default function InstallBanner() {
       className="lg:hidden fixed left-1/2 -translate-x-1/2 bottom-40 z-40 w-full max-w-[480px] px-4"
     >
       <div className="glass rounded-[var(--r-md)] px-4 py-3 flex items-center gap-3" style={{ border: '1px solid var(--hairline)', boxShadow: 'var(--sh-md)' }}>
-        <span className="text-xl">📲</span>
+        <LineIcon name="phone" size={19} style={{ color: 'var(--gold)' }} />
         <p className="text-sm flex-1" style={{ color: 'var(--text)' }}>{t.common.installBanner}</p>
         <button
           onClick={async () => { evt.prompt(); await evt.userChoice; setEvt(null) }}

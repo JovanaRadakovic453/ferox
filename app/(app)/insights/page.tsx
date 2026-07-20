@@ -9,6 +9,7 @@ import InsightsView from '@/components/insights/InsightsView'
 import ThisWeek from '@/components/insights/ThisWeek'
 import { getDict } from '@/lib/i18n/dict'
 import { toLocale } from '@/lib/locale'
+import LineIcon from '@/components/ui/LineIcon'
 
 const MIN_DAYS = 5
 
@@ -90,7 +91,7 @@ export default async function InsightsPage() {
           restDays={profile?.rest_days ?? [0, 6]}
         />
         <div className="card p-8 text-center flex flex-col items-center gap-3">
-          <span className="text-4xl">📈</span>
+          <LineIcon name="chart" size={36} strokeWidth={1.3} style={{ color: 'var(--text-muted)', opacity: 0.55 }} />
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
             {t.insights.notEnough(MIN_DAYS, loggedDays.length)}
           </p>

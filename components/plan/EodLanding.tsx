@@ -7,6 +7,7 @@ import ProgressRing from '@/components/ui/ProgressRing'
 import { useT } from '@/components/i18n/I18nProvider'
 import { isSundayKey } from '@/lib/week'
 import { enableMorningReminder } from '@/lib/push'
+import LineIcon from '@/components/ui/LineIcon'
 
 export default function EodLanding({
   doneCount,
@@ -77,7 +78,7 @@ export default function EodLanding({
   return (
     <main className="flex flex-col gap-6 lg:gap-7 pb-2 lg:max-w-2xl lg:mx-auto lg:w-full">
       <header className="pt-6 lg:pt-10 text-center flex flex-col items-center gap-3">
-        <span className="text-5xl lg:text-6xl">🌙</span>
+        <LineIcon name="moon" size={46} strokeWidth={1.2} style={{ color: 'var(--gold)' }} />
         <h1 className="display text-4xl lg:text-5xl" style={{ color: 'var(--gold)' }}>{t.eod.title}</h1>
         <p className="text-sm lg:text-base" style={{ color: 'var(--text-muted)' }}>
           {t.eod.restUp}
@@ -136,8 +137,9 @@ export default function EodLanding({
           href="/insights"
           className="card p-5 flex items-center justify-between gap-3 transition-opacity hover:opacity-80"
         >
-          <p className="text-sm lg:text-base" style={{ color: 'var(--text)' }}>
-            🎉 {t.insights.weekDoneNudge}
+          <p className="text-sm lg:text-base flex items-center gap-2.5" style={{ color: 'var(--text)' }}>
+            <LineIcon name="trophy" size={17} style={{ color: 'var(--gold)' }} />
+            {t.insights.weekDoneNudge}
           </p>
           <span aria-hidden style={{ color: 'var(--gold)' }}>→</span>
         </Link>

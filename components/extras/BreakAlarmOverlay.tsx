@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { t, resetTimer } from '@/lib/breakTimer'
 import { useT } from '@/components/i18n/I18nProvider'
+import LineIcon from '@/components/ui/LineIcon'
 
 export default function BreakAlarmOverlay() {
   const tr = useT()
@@ -57,7 +58,7 @@ export default function BreakAlarmOverlay() {
             className="card p-8 flex flex-col items-center gap-5 w-full max-w-sm text-center"
             style={{ border: '2px solid var(--gold)', boxShadow: 'var(--sh-gold)' }}
           >
-            <span className="text-5xl animate-pulse">⏰</span>
+            <LineIcon name="bell" size={46} strokeWidth={1.3} className="animate-pulse" style={{ color: 'var(--gold)' }} />
             <div>
               <p className="title-serif text-2xl" style={{ color: 'var(--text)' }}>{tr.extras.alarmOver}</p>
               <p className="text-sm mt-1.5" style={{ color: 'var(--text-muted)' }}>{tr.extras.alarmBackToWork}</p>

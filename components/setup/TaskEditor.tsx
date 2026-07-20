@@ -42,12 +42,12 @@ export default function TaskEditor({
 
   return (
     <section className="card p-7 flex flex-col gap-6">
-      <SectionHeader icon="📋" title={tr.setup.tasksToday} trailing={<CountChip n={tasks.length} />} />
+      <SectionHeader icon="list" title={tr.setup.tasksToday} trailing={<CountChip n={tasks.length} />} />
 
       {tasks.length > 0 && (
         <div className="flex flex-col gap-2.5">
           {tasks.map((t, i) => (
-            <div key={i} className="flex flex-col gap-3 p-3.5 rounded-[var(--r-md)]" style={{ background: 'var(--surface2)' }}>
+            <div key={i} className="flex flex-col gap-3 p-3.5 rounded-[var(--r-sm)]" style={{ background: 'var(--surface2)' }}>
               <div className="flex items-center gap-3">
                 <span className="text-[0.65rem] font-semibold px-2 py-0.5 rounded-full shrink-0" style={{
                   background: t.priority === 'high' ? 'var(--danger-tint)' : t.priority === 'medium' ? 'var(--warn-tint)' : 'var(--ok-tint)',
@@ -56,7 +56,9 @@ export default function TaskEditor({
                   {tr.priorityShort[t.priority]}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{t.name}</p>
+                  {/* Ista težina kao naziv termina — zadaci i termini su ravnopravni
+                      u planu, pa jedan ne sme da bude podebljan u odnosu na drugi. */}
+                  <p className="text-sm truncate">{t.name}</p>
                   {/* Rok se vidi već DOK se pravi plan, ne tek u planu — zadatak iz
                       Kalendara često dolazi sa rokom, pa korisnik odmah zna dokle ima. */}
                   {(() => {
@@ -99,7 +101,7 @@ export default function TaskEditor({
       )}
 
       {showForm ? (
-        <div className="flex flex-col gap-3 p-4 rounded-[var(--r-md)] border" style={{ borderColor: 'var(--border)', background: 'var(--surface2)' }}>
+        <div className="flex flex-col gap-3 p-4 rounded-[var(--r-sm)] border" style={{ borderColor: 'var(--border)', background: 'var(--surface2)' }}>
           <Input id="task-name" placeholder={tr.setup.taskNamePh} value={form.name}
             onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
             onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter' && form.name.trim()) add() }}
@@ -121,7 +123,7 @@ export default function TaskEditor({
         </div>
       ) : (
         <button onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 p-4 rounded-[var(--r-md)] border-[1.5px] border-dashed border-[var(--border)] text-sm w-full text-[var(--text-muted)] transition-colors hover:border-[var(--gold)] hover:text-[var(--gold)]">
+          className="flex items-center gap-2 p-4 rounded-[var(--r-sm)] border-[1.5px] border-dashed border-[var(--border)] text-sm w-full text-[var(--text-muted)] transition-colors hover:border-[var(--gold)] hover:text-[var(--gold)]">
           <span className="text-lg">+</span> {tr.setup.addTask}
         </button>
       )}

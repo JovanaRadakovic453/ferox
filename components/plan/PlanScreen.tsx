@@ -27,6 +27,7 @@ import type { Routine, Locale } from '@/types/ferox'
 import { useT, useLocale, useTimezone } from '@/components/i18n/I18nProvider'
 import { readSkipped, clearSkipped } from '@/lib/googleSkip'
 import type { Dict } from '@/lib/i18n/dict'
+import LineIcon from '@/components/ui/LineIcon'
 
 // Spaja "prenesene" zadatke bez dupliranja (po imenu, case-insensitive).
 // Čuva već postojeće (npr. ranije odložene) i dodaje samo nove.
@@ -245,7 +246,7 @@ export default function PlanScreen({
           void playReminder()
           setActiveReminder({ name: appt.name, time: appt.time, minutesBefore: appt.reminder })
           if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-            new Notification(`📅 ${appt.name}`, {
+            new Notification(appt.name, {
               body: t.reminder.notifBody(appt.reminder, appt.time),
               icon: '/icon.svg',
             })
@@ -749,7 +750,7 @@ export default function PlanScreen({
     return (
       <main className="min-h-[70vh] flex flex-col items-center justify-center gap-8 px-4">
         <div className="text-center flex flex-col items-center gap-3">
-          <span className="text-6xl">🌙</span>
+          <LineIcon name="moon" size={52} strokeWidth={1.2} style={{ color: 'var(--gold)' }} />
           <h1 className="display text-4xl" style={{ color: 'var(--gold)' }}>{t.plan.dayComplete}</h1>
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{t.plan.restUp}</p>
         </div>
@@ -780,7 +781,7 @@ export default function PlanScreen({
           style={{ background: 'var(--warn-tint)', color: 'var(--warn)' }}
           role="status"
         >
-          <span aria-hidden>📴</span>
+          <LineIcon name="offline" size={16} />
           <span>{t.plan.offlinePending(pending)}</span>
         </div>
       )}
@@ -809,7 +810,7 @@ export default function PlanScreen({
           </h1>
           {!isToday && (
             <p className="text-xs font-medium mt-0.5 lg:hidden" style={{ color: 'var(--gold)' }}>
-              🌙 {formatDate(entry.date_key, locale)}
+              {formatDate(entry.date_key, locale)}
             </p>
           )}
           {streak > 0 && (
@@ -829,7 +830,7 @@ export default function PlanScreen({
       {/* Baner kad je dan završen */}
       {dayFinished && (
         <div className="rounded-[var(--r-md)] px-4 py-3 flex items-center gap-3" style={{ background: 'var(--gold-tint)', color: 'var(--gold)', border: '1px solid color-mix(in srgb, var(--gold) 25%, transparent)' }}>
-          <span className="text-xl">🌙</span>
+          <LineIcon name="moon" size={19} style={{ color: 'var(--gold)' }} />
           <div className="text-sm">
             <p className="font-medium">{t.plan.todayComplete}</p>
             {tomorrowPlanned && <p className="opacity-70">{t.plan.tomorrowReady}</p>}
@@ -840,7 +841,7 @@ export default function PlanScreen({
       {/* Podsetnik: sutra ima zakazanih zadataka iz kalendara */}
       {isToday && tomorrowScheduledCount > 0 && !dayFinished && (
         <div className="rounded-[var(--r-md)] px-4 py-3 flex items-center gap-3" style={{ background: 'var(--surface2)', border: '1px solid var(--hairline)' }}>
-          <span className="text-xl shrink-0">📅</span>
+          <LineIcon name="calendar" size={19} className="shrink-0" style={{ color: 'var(--gold)' }} />
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
             {t.plan.tomorrowScheduled(tomorrowScheduledCount)}
           </p>
@@ -850,7 +851,7 @@ export default function PlanScreen({
       {/* Upozorenje o rokovima — konkretno, po IMENU (i iz plana i iz kalendara). */}
       {isToday && !dayFinished && dueNow.length > 0 && (
         <div className="rounded-[var(--r-md)] px-4 py-3 flex items-start gap-3" style={{ background: 'var(--danger-tint)', border: '1px solid color-mix(in srgb, var(--danger) 20%, transparent)' }}>
-          <span className="text-xl shrink-0">⚠️</span>
+          <LineIcon name="alert" size={19} className="shrink-0" style={{ color: 'var(--danger)' }} />
           <div className="min-w-0 flex flex-col gap-1">
             {dueNow.map((due, i) => {
               const b = getDeadlineBadge(due.deadline_date, todayKey(tz), locale)
@@ -882,7 +883,7 @@ export default function PlanScreen({
         {/* Blokovi */}
         {total === 0 ? (
           <div className="card p-8 text-center flex flex-col items-center gap-3">
-            <span className="text-4xl">🗒️</span>
+            <LineIcon name="note" size={34} strokeWidth={1.3} style={{ color: 'var(--text-muted)', opacity: 0.55 }} />
             <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
               {t.plan.emptyPlan}
             </p>

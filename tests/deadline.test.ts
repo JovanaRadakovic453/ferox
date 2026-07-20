@@ -58,22 +58,22 @@ describe('deadlineReminderBody', () => {
   })
   it('rok danas → pominje zadatak imenom', () => {
     expect(deadlineReminderBody([{ name: 'Izveštaj šefu', deadline_date: TODAY }], TODAY))
-      .toBe('⏳ Danas ističe rok: „Izveštaj šefu"')
+      .toBe('Danas ističe rok: „Izveštaj šefu"')
   })
   it('probijen rok ima prednost i broji ostale', () => {
     const body = deadlineReminderBody([
       { name: 'Danasnji', deadline_date: TODAY },
       { name: 'Stari', deadline_date: '2026-07-10' },
     ], TODAY)
-    expect(body).toBe('⚠️ Probijen rok: „Stari" (i još 1)')
+    expect(body).toBe('Probijen rok: „Stari" (i još 1)')
   })
   it('na engleskom kad je locale en', () => {
     expect(deadlineReminderBody([{ name: 'Report', deadline_date: TODAY }], TODAY, 'en'))
-      .toBe('⏳ Due today: "Report"')
+      .toBe('Due today: "Report"')
     expect(deadlineReminderBody([
       { name: 'Today', deadline_date: TODAY },
       { name: 'Old', deadline_date: '2026-07-10' },
-    ], TODAY, 'en')).toBe('⚠️ Overdue: "Old" (+1 more)')
+    ], TODAY, 'en')).toBe('Overdue: "Old" (+1 more)')
   })
 })
 

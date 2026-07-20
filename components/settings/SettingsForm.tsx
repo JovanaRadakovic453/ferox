@@ -15,6 +15,7 @@ import { toLocale } from '@/lib/locale'
 import { toTimezone } from '@/lib/date'
 import { useT } from '@/components/i18n/I18nProvider'
 import { getDict } from '@/lib/i18n/dict'
+import LineIcon from '@/components/ui/LineIcon'
 
 
 function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
@@ -235,7 +236,7 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
         <div>
           <label className="text-xs mb-1.5 block font-medium" style={{ color: 'var(--text-muted)' }}>{t.settings.timezone}</label>
           <div className="flex items-center gap-2 px-3.5 py-3 rounded-[var(--r-md)]" style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}>
-            <span aria-hidden>🌍</span>
+            <LineIcon name="globe" size={17} style={{ color: 'var(--text-muted)' }} />
             <span className="text-sm font-medium tabular-nums" style={{ color: 'var(--text)' }}>{toTimezone(profile.timezone)}</span>
           </div>
           <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>{t.settings.timezoneHint}</p>
@@ -263,7 +264,7 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
                 className="flex items-center gap-3 px-3.5 py-3 rounded-[var(--r-md)]"
                 style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}
               >
-                <span className="text-lg">⏰</span>
+                <LineIcon name="bell" size={17} style={{ color: 'var(--gold)' }} />
                 <span className="flex-1 text-sm font-semibold" style={{ color: 'var(--text)' }}>
                   {t.settings.reminderActive}
                 </span>

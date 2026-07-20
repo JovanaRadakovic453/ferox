@@ -106,10 +106,15 @@ export default function BrainDumpCard({
       style={{ backgroundImage: 'linear-gradient(180deg, var(--gold-tint), transparent 55%)' }}
     >
       <SectionHeader
-        icon="✨"
+        icon="sparkle"
         title={t.brain.title}
         trailing={
-          <span className="text-[0.65rem] font-bold tracking-wide px-2.5 py-1 rounded-full" style={{ background: 'var(--gold)', color: '#fff', boxShadow: 'var(--sh-gold)' }}>
+          /* Obeležje, ne dugme — zato tanak okvir umesto punog zlatnog kruga sa
+             sjajem, koji je vukao pažnju jače nego sam sadržaj kartice. */
+          <span
+            className="text-[0.65rem] font-semibold tracking-[0.1em] px-2 py-0.5 rounded-[7px]"
+            style={{ color: 'var(--gold)', border: '1px solid var(--gold)' }}
+          >
             AI
           </span>
         }
@@ -130,7 +135,7 @@ export default function BrainDumpCard({
           {micSupported && (
             <button
               onClick={() => (listening ? stopMic() : beginVoice())}
-              className="flex items-center justify-center gap-2 h-10 rounded-[var(--r-md)] text-sm font-medium transition-colors"
+              className="flex items-center justify-center gap-2 h-10 rounded-[var(--r-sm)] text-sm font-medium transition-colors"
               style={
                 listening
                   ? { background: 'var(--danger-tint)', color: 'var(--danger)', border: '1px solid var(--danger)' }
@@ -158,13 +163,13 @@ export default function BrainDumpCard({
       ) : (
         <div className="flex flex-col gap-2.5">
           <button onClick={() => setShow(true)}
-            className="flex items-center gap-2 p-4 rounded-[var(--r-md)] border-[1.5px] border-dashed text-sm w-full transition-colors"
+            className="flex items-center gap-2 p-4 rounded-[var(--r-sm)] border-[1.5px] border-dashed text-sm w-full transition-colors"
             style={{ borderColor: 'color-mix(in srgb, var(--gold) 40%, var(--border))', color: 'var(--gold)' }}>
             {t.brain.writeFreely}
           </button>
           {micSupported && (
             <button onClick={beginVoice}
-              className="flex items-center gap-2 p-4 rounded-[var(--r-md)] border-[1.5px] border-dashed text-sm w-full transition-colors"
+              className="flex items-center gap-2 p-4 rounded-[var(--r-sm)] border-[1.5px] border-dashed text-sm w-full transition-colors"
               style={{ borderColor: 'color-mix(in srgb, var(--gold) 40%, var(--border))', color: 'var(--gold)' }}>
               {t.brain.sayAloudLong}
             </button>

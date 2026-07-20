@@ -23,7 +23,7 @@
   --ok-tint: rgba(22, 163, 74, 0.10);
 
   /* Radii */
-  --r-sm: 10px;
+  --r-sm: 6px;
   --r-md: 14px;
   --r-lg: 18px;
   --r-xl: 24px;
@@ -203,12 +203,14 @@ body > * {
    Reusable primitives
    ───────────────────────────────────────────── */
 
+/* Namerno ravna kartica: bez odsjaja, bez svetle ivice i bez duboke senke.
+   Ta tri sloja su davala „plastičan" izgled; mirna površina sa tankom linijom
+   i jedva vidljivom senkom čita se kao ozbiljan alat, ne kao igrica. */
 .card {
   background-color: var(--surface);
-  background-image: linear-gradient(180deg, var(--card-sheen), transparent 38%);
   border: 1px solid var(--hairline);
-  border-radius: var(--r-lg);
-  box-shadow: var(--sh-md), inset 0 1px 0 var(--edge-light);
+  border-radius: var(--r-md);
+  box-shadow: var(--sh-sm);
 }
 
 .card-interactive {
@@ -450,11 +452,13 @@ body > * {
   border-radius: 0 3px 3px 0;
   background: var(--gold);
 }
+/* Kutija za ikonu: fiksne širine da se nazivi poravnaju u kolonu. */
 .nav-item .nav-ico {
-  font-size: 1.15rem;
-  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 1.4rem;
-  text-align: center;
+  flex-shrink: 0;
 }
 
 /* Sticky secondary rail (Plan / Setup) on desktop */

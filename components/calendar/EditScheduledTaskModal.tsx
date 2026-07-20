@@ -237,7 +237,7 @@ export default function EditScheduledTaskModal({
       {task?.repeat_id && (
         <div className="flex flex-col gap-1.5">
           <p className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>
-            🔁 {t.sched.repeatSeriesNote}
+            {t.sched.repeatSeriesNote}
           </p>
           <button
             onClick={removeSeries}

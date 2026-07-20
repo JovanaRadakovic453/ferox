@@ -32,7 +32,7 @@ export default function TaskItem({ task, onToggle, onDelete, onSnooze }: {
         <span className="mt-0.5" aria-hidden><Checkbox checked={task.done} /></span>
         <div className="flex-1 min-w-0">
           <p
-            className="text-[0.925rem] font-medium transition-all duration-200"
+            className="text-[0.925rem] transition-all duration-200"
             style={{
               color: task.done ? 'var(--text-muted)' : 'var(--text)',
               textDecoration: task.done ? 'line-through' : 'none',
