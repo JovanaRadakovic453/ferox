@@ -294,7 +294,9 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
           <input type="checkbox" checked={soundEnabled} onChange={e => setSoundEnabled(e.target.checked)} className="w-5 h-5 accent-[var(--gold)]" />
         </label>
         <div className="flex flex-col gap-3">
-          <label className="text-xs font-medium block" style={{ color: 'var(--text-muted)' }}>
+          {/* Naslov CELOG bloka (ima dugmad ispod), ne natpis iznad jednog polja —
+              zato jači od ostalih labela. Sa `text-muted` je bio jedva vidljiv. */}
+          <label className="text-sm font-semibold block" style={{ color: 'var(--text)' }}>
             {t.settings.morningReminder}
           </label>
 
@@ -351,7 +353,9 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
 
         {/* Google Kalendar */}
         <div className="flex flex-col gap-3">
-          <label className="text-xs font-medium block" style={{ color: 'var(--text-muted)' }}>
+          {/* Naslov CELOG bloka (ima dugmad ispod), ne natpis iznad jednog polja —
+              zato jači od ostalih labela. Sa `text-muted` je bio jedva vidljiv. */}
+          <label className="text-sm font-semibold block" style={{ color: 'var(--text)' }}>
             {t.settings.googleCal}
           </label>
           {googleConnected ? (
