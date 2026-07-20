@@ -12,11 +12,9 @@ import { DEFAULT_LOCALE } from '@/lib/locale'
 import { getDict } from '@/lib/i18n/dict'
 import { detectTimezone } from '@/lib/date'
 
-type Reason = 'work' | 'school'
 
 interface FormData {
   name: string
-  reason: Reason | null
   locale: Locale
 }
 
@@ -85,7 +83,6 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState<FormData>({
     name: initialName,
-    reason: null,
     locale: DEFAULT_LOCALE,
   })
   const [notifLoading, setNotifLoading] = useState(false)
@@ -109,7 +106,6 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
 
     await supabase.from('profiles').update({
       name: form.name,
-      reason: form.reason,
       locale: form.locale,
       timezone: detectTimezone(), // prepoznato iz pregledača — bez pitanja korisniku
       completed_once: true,
@@ -231,26 +227,6 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
     ),
 
     4: (
-      <div className="flex flex-col gap-5">
-        <div>
-          <h2 className="title-serif text-3xl mb-1" style={{ color: 'var(--text)' }}>
-            {t.onboarding.reasonTitle}
-          </h2>
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            {t.onboarding.reasonSub}
-          </p>
-        </div>
-        <div className="flex flex-col gap-3">
-          <OptionCard emoji="💼" title={t.onboarding.work} desc={t.onboarding.workDesc} selected={form.reason === 'work'} onClick={() => setForm(f => ({ ...f, reason: 'work' }))} />
-          <OptionCard emoji="🎓" title={t.onboarding.school} desc={t.onboarding.schoolDesc} selected={form.reason === 'school'} onClick={() => setForm(f => ({ ...f, reason: 'school' }))} />
-        </div>
-        <Button size="lg" className="w-full" onClick={next} disabled={!form.reason}>
-          {t.common.next}
-        </Button>
-      </div>
-    ),
-
-    5: (
       <div className="flex flex-col gap-6">
         <div>
           <h2 className="title-serif text-3xl mb-1" style={{ color: 'var(--text)' }}>
@@ -327,7 +303,7 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
             </button>
           )}
 
-          <StepDots total={5} current={step} />
+          <StepDots total={4} current={step} />
 
           <AnimatePresence mode="wait" custom={dir}>
             <motion.div

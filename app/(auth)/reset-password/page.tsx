@@ -6,9 +6,11 @@ import { createClient } from '@/lib/supabase/client'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import AuthCard from '@/components/auth/AuthCard'
+import { useT } from '@/components/i18n/I18nProvider'
 
 export default function ResetPasswordPage() {
   const router = useRouter()
+  const t = useT()
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState('')
@@ -19,11 +21,11 @@ export default function ResetPasswordPage() {
     setError('')
 
     if (password.length < 6) {
-      setError('Lozinka mora imati najmanje 6 karaktera')
+      setError(t.auth.passwordTooShort)
       return
     }
     if (password !== confirm) {
-      setError('Lozinke se ne poklapaju')
+      setError(t.auth.passwordMismatch)
       return
     }
 
@@ -42,13 +44,13 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <AuthCard subtitle="Postavi novu lozinku">
+    <AuthCard subtitle={t.auth.resetTitle}>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <Input
           id="password"
-          label="Nova lozinka"
+          label={t.auth.newPassword}
           type="password"
-          placeholder="Min. 6 karaktera"
+          placeholder={t.auth.passwordMin}
           value={password}
           onChange={e => setPassword(e.target.value)}
           required
@@ -57,9 +59,9 @@ export default function ResetPasswordPage() {
         />
         <Input
           id="confirm"
-          label="Potvrdi lozinku"
+          label={t.auth.confirmPassword}
           type="password"
-          placeholder="Isti kao gore"
+          placeholder={t.auth.passwordRepeatPh}
           value={confirm}
           onChange={e => setConfirm(e.target.value)}
           required
@@ -67,7 +69,7 @@ export default function ResetPasswordPage() {
           error={error}
         />
         <Button type="submit" size="lg" loading={loading} className="w-full mt-2">
-          Sačuvaj lozinku
+          {t.auth.savePassword}
         </Button>
       </form>
     </AuthCard>

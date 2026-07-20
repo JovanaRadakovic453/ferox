@@ -79,7 +79,7 @@ export default function LoginPage() {
           id="email"
           label={t.auth.email}
           type="email"
-          placeholder="tvoj@email.com"
+          placeholder={t.auth.emailPh}
           value={email}
           onChange={e => setEmail(e.target.value)}
           required
