@@ -481,7 +481,7 @@ export const sr = {
   },
   brain: {
     title: 'Brain dump',
-    intro: 'Izbaci sve iz glave — ne mora uredno ni redom. Dodaj samo kad („u utorak“, „u 11h“, „do petka“) i šta je hitno — po tome AI raspoređuje po danima, a ti potvrdiš.',
+    intro: 'Izbaci sve iz glave — ne mora uredno ni redom. Dopiši vreme ili rok ako ga znaš („u utorak“, „u 11h“, „do petka“) i reci šta je hitno. AI to rasporedi po danima, a ti pregledaš i potvrdiš.',
     textPh: 'Npr: Zubar u utorak u 11h, izveštaj šefu do petka — hitno, kupiti namirnice danas, teretana 2x ove nedelje, pozvati baku kad stignem...',
     listening: 'Slušam… dodirni da završiš',
     sayAloud: 'Reci naglas',
@@ -986,7 +986,7 @@ export const en = {
   },
   brain: {
     title: 'Brain dump',
-    intro: 'Get it all out of your head — no need for order. Just add when ("on Tuesday", "at 11", "by Friday") and what’s urgent — the AI schedules it across days and you confirm.',
+    intro: 'Get it all out of your head — no need for order or polish. Add a time or deadline if you know one (“on Tuesday”, “at 11”, “by Friday”) and say what’s urgent. The AI spreads it across days, and you review and confirm.',
     textPh: 'E.g.: Dentist Tuesday at 11, report to my boss by Friday — urgent, buy groceries today, gym 2x this week, call grandma when I get a chance...',
     listening: 'Listening… tap to finish',
     sayAloud: 'Say it aloud',
