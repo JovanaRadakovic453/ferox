@@ -479,15 +479,22 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
               )}
             </div>
 
-            <div className="h-px" style={{ background: 'var(--hairline)' }} />
-            <button
-              onClick={resetDay}
-              disabled={resetting}
-              className="w-full text-xs text-center py-2.5 opacity-45 hover:opacity-80 transition-opacity"
-              style={{ color: 'var(--text-muted)' }}
-            >
-              {resetting ? t.setup.resetting : t.setup.resetAll}
-            </button>
+            {/* Brisanje se nudi samo kad ima šta da se obriše. Novom korisniku je
+                ekran prazan, pa mu je destruktivno dugme bilo jedna od prvih stvari
+                koje vidi — zbunjuje („obrisati šta?") i nepotrebno plaši. */}
+            {(totalItems > 0 || suggestedTransfers.length > 0) && (
+              <>
+                <div className="h-px" style={{ background: 'var(--hairline)' }} />
+                <button
+                  onClick={resetDay}
+                  disabled={resetting}
+                  className="w-full text-xs text-center py-2.5 opacity-45 hover:opacity-80 transition-opacity"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  {resetting ? t.setup.resetting : t.setup.resetAll}
+                </button>
+              </>
+            )}
           </div>
 
           <PreviewRail
