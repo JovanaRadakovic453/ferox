@@ -226,9 +226,11 @@ export default function PlanScreen({
     if (!isToday) return
 
     const checkReminders = () => {
-      if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
-        Notification.requestPermission()
-      }
+      // Dozvola se NE traži ovde: pitanje iskače u pažljivo izabranom trenutku
+      // (posle prvog završenog dana / u Podešavanjima) — nezvan popup pri prvom
+      // otvaranju plana ume da dobije trajno "Block" i ubije i to kasnije pitanje.
+      // Podsetnik za termin i bez dozvole radi kroz baner + zvuk u aplikaciji;
+      // sistemska notifikacija je bonus za one koji su dozvolu već dali.
       const now = new Date()
       for (const appt of appts) {
         if (!appt.id || appt.reminder < 0) continue
