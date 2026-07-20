@@ -6,6 +6,7 @@ import LogoutButton from '@/components/LogoutButton'
 import ProgressRing from '@/components/ui/ProgressRing'
 import { useT } from '@/components/i18n/I18nProvider'
 import { isSundayKey } from '@/lib/week'
+import { enableMorningReminder } from '@/lib/push'
 
 export default function EodLanding({
   doneCount,
@@ -14,6 +15,7 @@ export default function EodLanding({
   dateKey,
   eodRecap = null,
   streak = 0,
+  pushEnabled = true,
 }: {
   doneCount: number
   total: number
@@ -21,6 +23,8 @@ export default function EodLanding({
   dateKey: string
   eodRecap?: string | null
   streak?: number
+  /** Ima li korisnik već uključen jutarnji podsetnik. false → ponudi mu ga. */
+  pushEnabled?: boolean
 }) {
   const t = useT()
   const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0
@@ -28,6 +32,7 @@ export default function EodLanding({
   const [recapFailed, setRecapFailed] = useState(false)
   const [attempt, setAttempt] = useState(0)
   const [reopening, setReopening] = useState(false)
+  const [reminderState, setReminderState] = useState<'ask' | 'busy' | 'on' | 'failed'>('ask')
   const [reopenFailed, setReopenFailed] = useState(false)
 
   // Izlaz sa ovog ekrana. Bez njega je „Završi dan" ćorsokak: kliknut greškom,
@@ -88,6 +93,39 @@ export default function EodLanding({
         <div className="card p-5 lg:p-7">
           <p className="text-sm lg:text-base italic leading-relaxed" style={{ color: 'var(--text)' }}>„{recap}”</p>
         </div>
+      )}
+
+      {/* Jutarnji podsetnik se nudi TEK OVDE, a ne u onboardingu.
+          Dozvola tražena pre nego što korisnik vidi ikakvu korist redovno se odbija —
+          a odbijena dozvola se vraća samo ručno kroz podešavanja pregledača, pa se
+          kanal trajno zatvori. Ovde je upravo završio dan: korist je vidljiva, a
+          pitanje ("da te podsetim sutra?") je prirodno. */}
+      {!pushEnabled && reminderState !== 'on' && (
+        <div className="card p-5 flex flex-col gap-2">
+          <p className="text-sm lg:text-base font-medium" style={{ color: 'var(--text)' }}>
+            {t.eod.reminderTitle}
+          </p>
+          <p className="text-xs lg:text-sm" style={{ color: 'var(--text-muted)' }}>
+            {reminderState === 'failed' ? t.eod.reminderFailed : t.eod.reminderSub}
+          </p>
+          {reminderState !== 'failed' && (
+            <button
+              onClick={async () => {
+                setReminderState('busy')
+                setReminderState(await enableMorningReminder() ? 'on' : 'failed')
+              }}
+              disabled={reminderState === 'busy'}
+              className="self-start mt-1 px-3.5 py-2 text-sm font-medium rounded-[var(--r-md)] transition-opacity disabled:opacity-50"
+              style={{ background: 'var(--gold-tint)', color: 'var(--gold)' }}
+            >
+              {t.eod.reminderYes}
+            </button>
+          )}
+        </div>
+      )}
+
+      {reminderState === 'on' && (
+        <p className="text-sm text-center" style={{ color: 'var(--ok)' }}>{t.eod.reminderOn}</p>
       )}
 
       {/* Nedelja uveče = kraj nedelje. Grafikon u Uvidima radi tiho cele nedelje, pa

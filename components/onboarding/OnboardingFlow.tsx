@@ -85,7 +85,6 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
     name: initialName,
     locale: DEFAULT_LOCALE,
   })
-  const [notifLoading, setNotifLoading] = useState(false)
   // Tekst prati IZABRANI jezik uživo (ne profil) — čim izabere, ostatak je na tom jeziku.
   const t = getDict(form.locale)
 
@@ -119,34 +118,6 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
     router.refresh()
   }
 
-  async function activateReminder() {
-    setNotifLoading(true)
-    try {
-      const permission = await Notification.requestPermission()
-      if (permission !== 'granted') {
-        await finish()
-        return
-      }
-
-      const reg = await navigator.serviceWorker.ready
-      const existing = await reg.pushManager.getSubscription()
-      const sub = existing ?? await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
-      })
-
-      await fetch('/api/notifications/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subscription: sub.toJSON() }),
-      })
-    } catch {
-      // If push setup fails, we still proceed
-    } finally {
-      setNotifLoading(false)
-      await finish()
-    }
-  }
 
   const steps: Record<number, React.ReactNode> = {
     1: (
@@ -218,55 +189,15 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
         <Button
           size="lg"
           className="w-full"
-          onClick={next}
+          onClick={finish}
+          loading={loading}
           disabled={!form.name.trim()}
         >
-          {t.common.next}
+          {t.onboarding.enter}
         </Button>
       </div>
     ),
 
-    4: (
-      <div className="flex flex-col gap-6">
-        <div>
-          <h2 className="title-serif text-3xl mb-1" style={{ color: 'var(--text)' }}>
-            {t.onboarding.reminderTitle}
-          </h2>
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            {t.onboarding.reminderSub}
-          </p>
-        </div>
-
-        <div
-          className="flex items-center gap-4 px-5 py-4 rounded-[var(--r-md)]"
-          style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}
-        >
-          <span className="text-2xl">⏰</span>
-          <span className="flex-1 text-lg font-semibold" style={{ color: 'var(--text)' }}>
-            {t.onboarding.reminderOne}
-          </span>
-        </div>
-
-        <Button
-          size="lg"
-          className="w-full"
-          onClick={activateReminder}
-          loading={notifLoading || loading}
-        >
-          {t.onboarding.activateReminder}
-        </Button>
-
-        <button
-          type="button"
-          onClick={finish}
-          disabled={loading || notifLoading}
-          className="text-sm text-center transition-opacity hover:opacity-70 disabled:opacity-30"
-          style={{ color: 'var(--text-muted)' }}
-        >
-          {t.common.skip}
-        </button>
-      </div>
-    ),
   }
 
   return (
@@ -303,7 +234,7 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
             </button>
           )}
 
-          <StepDots total={4} current={step} />
+          <StepDots total={3} current={step} />
 
           <AnimatePresence mode="wait" custom={dir}>
             <motion.div

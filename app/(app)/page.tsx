@@ -96,6 +96,7 @@ export default async function SetupPage({
         dateKey={targetDate}
         eodRecap={entry.eod_recap}
         streak={streak}
+        pushEnabled={!!profile.push_subscription}
       />
     )
   }
