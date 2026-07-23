@@ -123,7 +123,7 @@ export default function TaskEditor({
         </div>
       ) : (
         <button onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 p-4 rounded-[var(--r-sm)] border-[1.5px] border-dashed border-[var(--border)] text-sm w-full text-[var(--text-muted)] transition-colors hover:border-[var(--gold)] hover:text-[var(--gold)]">
+          className="flex items-center gap-2 p-4 rounded-[var(--r-sm)] border-[1.5px] border-solid border-[var(--border)] text-sm w-full text-[var(--text-muted)] transition-colors hover:border-[var(--gold)] hover:text-[var(--gold)]">
           <span className="text-lg">+</span> {tr.setup.addTask}
         </button>
       )}

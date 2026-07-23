@@ -322,7 +322,7 @@ export default function DayPanel({
             className="w-full flex items-center justify-center gap-1.5 h-9 rounded-[var(--r-md)] border text-sm font-medium transition-colors"
             style={{
               borderColor: 'var(--gold)',
-              borderStyle: 'dashed',
+              borderStyle: 'solid',
               color: 'var(--gold)',
               background: 'var(--gold-tint)',
             }}
