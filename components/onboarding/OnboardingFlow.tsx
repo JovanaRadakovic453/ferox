@@ -42,9 +42,8 @@ function OptionCard({
         borderColor: selected ? 'transparent' : 'var(--border)',
         backgroundColor: selected ? 'transparent' : 'var(--surface)',
         backgroundImage: selected ? 'linear-gradient(135deg, var(--gold), var(--gold-deep))' : 'none',
-        color: selected ? '#fff' : 'var(--text)',
+        color: selected ? 'var(--gold-fg)' : 'var(--text)',
         boxShadow: selected ? 'var(--sh-gold)' : 'var(--sh-xs)',
-        textShadow: selected ? '0 1px 2px rgba(70,30,2,0.45)' : undefined,
       }}
     >
       <div className="flex items-center gap-3">
@@ -208,7 +207,7 @@ export default function OnboardingFlow({ initialName }: { initialName: string })
         style={{ background: 'color-mix(in srgb, var(--gold-tint) 55%, var(--surface))', borderRight: '1px solid var(--hairline)' }}
       >
         <div className="flex items-center gap-3">
-          <span className="grid place-items-center w-11 h-11 rounded-[14px] text-white logo text-2xl" style={{ backgroundImage: 'linear-gradient(135deg, var(--gold-light), var(--gold-deep))', boxShadow: 'var(--sh-gold)' }} aria-hidden>F</span>
+          <span className="grid place-items-center w-11 h-11 rounded-[14px] text-[var(--gold-fg)] logo text-2xl" style={{ backgroundImage: 'linear-gradient(135deg, var(--gold-light), var(--gold-deep))', boxShadow: 'var(--sh-gold)' }} aria-hidden>F</span>
           <span className="logo text-3xl foil">Ferox</span>
         </div>
         <div>

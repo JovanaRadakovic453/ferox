@@ -102,7 +102,7 @@ export default function CalendarView({
               className="px-3 py-1.5 text-xs font-semibold rounded-[calc(var(--r-md)-2px)] transition-all"
               style={{
                 background: view === v ? 'var(--gold)' : 'transparent',
-                color: view === v ? '#fff' : 'var(--text-muted)',
+                color: view === v ? 'var(--gold-fg)' : 'var(--text-muted)',
               }}
             >
               {v === 'month' ? t.cal.viewMonth : t.cal.viewWeek}

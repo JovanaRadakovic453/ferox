@@ -73,7 +73,7 @@ function Sidebar({ pathname, streak }: { pathname: string; streak: number }) {
     <aside className="app-sidebar">
       <Link href="/" aria-label={t.nav.home} className="flex items-center gap-2.5 px-2 mb-7">
         <span
-          className="grid place-items-center w-9 h-9 rounded-[12px] text-white logo text-xl shrink-0"
+          className="grid place-items-center w-9 h-9 rounded-[12px] text-[var(--gold-fg)] logo text-xl shrink-0"
           style={{ backgroundImage: 'linear-gradient(135deg, var(--gold-light), var(--gold-deep))', boxShadow: 'var(--sh-gold)' }}
           aria-hidden
         >

@@ -30,7 +30,7 @@ export default function Checkbox({
       <svg width="13" height="13" viewBox="0 0 12 12" fill="none" aria-hidden>
         <path
           d="M2 6.2 L4.7 9 L10 3"
-          stroke="#fff"
+          stroke="var(--gold-fg)"
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"

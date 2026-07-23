@@ -2,17 +2,18 @@
 
 :root {
   /* Surfaces & text */
-  --bg: #EAD9C8;
-  --surface: #FDF8F3;
-  --surface2: #F5EDE3;
-  --gold: #D4742A;
-  --gold-light: #E8924A;
-  --gold-deep: #B85C1E;
-  --gold-tint: rgba(212, 116, 42, 0.12);
-  --text: #1A1714;
-  --text-muted: #6B5F54;
-  --border: #D9C9B8;
-  --hairline: rgba(26, 23, 20, 0.07);
+  --bg: #D6CDBB;
+  --surface: #FBF9F5;
+  --surface2: #EFEADD;
+  --gold: #566038;
+  --gold-light: #6B7749;
+  --gold-deep: #424B28;
+  --gold-tint: rgba(86, 96, 56, 0.12);
+  --gold-fg: #ffffff;
+  --text: #1B1A18;
+  --text-muted: #635D53;
+  --border: #C2B7A2;
+  --hairline: rgba(32, 31, 29, 0.1);
 
   /* Semantičke statusne boje (prioriteti, greške, uspeh) — imaju .dark varijante */
   --danger: #c0392b;
@@ -32,11 +33,11 @@
   --radius-lg: 18px;  /* legacy alias */
 
   /* Shadows — warm, layered */
-  --sh-xs: 0 1px 2px rgba(26, 23, 20, 0.05);
-  --sh-sm: 0 2px 8px rgba(26, 23, 20, 0.06);
-  --sh-md: 0 1px 2px rgba(26, 23, 20, 0.05), 0 16px 36px -14px rgba(26, 23, 20, 0.22);
-  --sh-lg: 0 4px 12px rgba(26, 23, 20, 0.08), 0 28px 60px -18px rgba(26, 23, 20, 0.26);
-  --sh-gold: 0 6px 18px -4px rgba(212, 116, 42, 0.42), 0 2px 4px rgba(184, 92, 30, 0.24);
+  --sh-xs: 0 1px 2px rgba(32, 31, 29, 0.05);
+  --sh-sm: 0 2px 8px rgba(32, 31, 29, 0.06);
+  --sh-md: 0 1px 2px rgba(32, 31, 29, 0.05), 0 16px 36px -14px rgba(32, 31, 29, 0.22);
+  --sh-lg: 0 4px 12px rgba(32, 31, 29, 0.08), 0 28px 60px -18px rgba(32, 31, 29, 0.26);
+  --sh-gold: 0 6px 18px -4px rgba(86, 96, 56, 0.42), 0 2px 4px rgba(66, 75, 40, 0.24);
   --sh1: var(--sh-sm);  /* legacy alias */
   --sh2: var(--sh-md);  /* legacy alias */
   --edge-light: rgba(255, 255, 255, 0.55);  /* lit top edge on cards */
@@ -58,17 +59,18 @@
 }
 
 .dark {
-  --bg: #2a2620;
-  --surface: #332e27;
-  --surface2: #3d3830;
-  --gold: #c9a96e;
-  --gold-light: #d4b87a;
-  --gold-deep: #b3935a;
-  --gold-tint: rgba(201, 169, 110, 0.14);
-  --text: #f5f2ec;
-  --text-muted: #a89880;
-  --border: #4a4238;
-  --hairline: rgba(255, 255, 255, 0.06);
+  --bg: #2C3833;
+  --surface: #3A4842;
+  --surface2: #46564F;
+  --gold: #cfe3a0;
+  --gold-light: #dcecb8;
+  --gold-deep: #b5cf82;
+  --gold-tint: rgba(207, 227, 160, 0.14);
+  --gold-fg: #232b12;
+  --text: #ffffff;
+  --text-muted: #d6ded9;
+  --border: #5a6f66;
+  --hairline: rgba(255, 255, 255, 0.14);
 
   --danger: #f87171;
   --danger-tint: rgba(248, 113, 113, 0.14);
@@ -81,9 +83,9 @@
   --sh-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
   --sh-md: 0 1px 2px rgba(0, 0, 0, 0.3), 0 16px 36px -14px rgba(0, 0, 0, 0.55);
   --sh-lg: 0 4px 12px rgba(0, 0, 0, 0.4), 0 28px 60px -18px rgba(0, 0, 0, 0.62);
-  --sh-gold: 0 6px 18px -4px rgba(201, 169, 110, 0.3), 0 2px 4px rgba(0, 0, 0, 0.3);
-  --edge-light: rgba(255, 255, 255, 0.05);
-  --card-sheen: rgba(255, 255, 255, 0.03);
+  --sh-gold: 0 6px 18px -4px rgba(207, 227, 160, 0.3), 0 2px 4px rgba(0, 0, 0, 0.3);
+  --edge-light: rgba(255, 255, 255, 0.1);
+  --card-sheen: rgba(255, 255, 255, 0.06);
 
   --grain-opacity: 0.35;
 }
@@ -141,17 +143,17 @@ body::after {
   pointer-events: none;
   background-image:
     radial-gradient(120% 80% at 50% -10%, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 45%),
-    radial-gradient(100% 100% at 50% 120%, rgba(26, 23, 20, 0.06) 0%, rgba(26, 23, 20, 0) 50%);
+    radial-gradient(100% 100% at 50% 120%, rgba(32, 31, 29, 0.1) 0%, rgba(32, 31, 29, 0) 50%);
 }
 .dark body::after {
   background-image:
-    radial-gradient(120% 80% at 50% -10%, rgba(201, 169, 110, 0.08) 0%, rgba(201, 169, 110, 0) 45%),
+    radial-gradient(120% 80% at 50% -10%, rgba(207, 227, 160, 0.12) 0%, rgba(207, 227, 160, 0) 45%),
     radial-gradient(100% 100% at 50% 120%, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0) 50%);
 }
 
 .dark body {
   background-image:
-    radial-gradient(120% 80% at 50% -10%, rgba(201, 169, 110, 0.08) 0%, rgba(201, 169, 110, 0) 45%),
+    radial-gradient(120% 80% at 50% -10%, rgba(207, 227, 160, 0.12) 0%, rgba(207, 227, 160, 0) 45%),
     radial-gradient(100% 100% at 50% 120%, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0) 50%);
 }
 
@@ -179,7 +181,7 @@ body > * {
 
 ::selection {
   background: var(--gold);
-  color: #fff;
+  color: var(--gold-fg);
 }
 
 :focus-visible {
@@ -203,14 +205,15 @@ body > * {
    Reusable primitives
    ───────────────────────────────────────────── */
 
-/* Namerno ravna kartica: bez odsjaja, bez svetle ivice i bez duboke senke.
-   Ta tri sloja su davala „plastičan" izgled; mirna površina sa tankom linijom
-   i jedva vidljivom senkom čita se kao ozbiljan alat, ne kao igrica. */
+/* Luksuzna kartica (Jovana, jul 2026): mekana duboka senka, osvetljena gornja
+   ivica i blagi sjaj odozgo — površina deluje kao materijal (papir/somot), a
+   ne kao ravan ekran. Prethodna „namerno ravna" verzija čitala se sterilno. */
 .card {
   background-color: var(--surface);
+  background-image: linear-gradient(180deg, var(--card-sheen), transparent 38%);
   border: 1px solid var(--hairline);
   border-radius: var(--r-md);
-  box-shadow: var(--sh-sm);
+  box-shadow: inset 0 1px 0 var(--edge-light), var(--sh-md);
 }
 
 .card-interactive {
@@ -269,12 +272,12 @@ body > * {
   -moz-appearance: none;
   cursor: pointer;
   padding-right: 2.2rem;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%236B5F54' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%23635D53' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 0.7rem center;
 }
 .dark .field-select {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%23a89880' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%23D6DED9' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
 }
 
 /* Metallic foil gold — for the wordmark & display numerals */

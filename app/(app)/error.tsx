@@ -14,7 +14,7 @@ export default function AppError({ reset }: { error: Error & { digest?: string }
       </p>
       <button
         onClick={reset}
-        className="text-sm font-semibold px-5 py-2.5 rounded-[var(--r-md)] text-white"
+        className="text-sm font-semibold px-5 py-2.5 rounded-[var(--r-md)] text-[var(--gold-fg)]"
         style={{ backgroundImage: 'linear-gradient(135deg, var(--gold), var(--gold-deep))', boxShadow: 'var(--sh-gold)' }}
       >
         {t.common.tryAgain}

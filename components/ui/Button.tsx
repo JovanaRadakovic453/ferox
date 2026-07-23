@@ -22,7 +22,6 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             ? {
                 backgroundImage: 'linear-gradient(180deg, var(--gold-light), var(--gold) 55%, var(--gold-deep))',
                 boxShadow: 'var(--sh-gold), inset 0 1px 0 rgba(255,255,255,0.28)',
-                textShadow: '0 1px 1px rgba(120,55,15,0.25)',
               }
             : {}),
           ...style,
@@ -32,7 +31,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           'transition-all duration-200 ease-out active:scale-[0.98] active:translate-y-0',
           'disabled:opacity-50 disabled:pointer-events-none disabled:shadow-none',
           {
-            'text-white hover:-translate-y-px hover:brightness-[1.04] active:brightness-95': isPrimary,
+            'text-[var(--gold-fg)] hover:-translate-y-px hover:brightness-[1.04] active:brightness-95': isPrimary,
             'bg-[var(--surface)] text-[var(--text)] border border-[var(--border)] hover:bg-[var(--surface2)] hover:border-[var(--gold)]/40 shadow-[var(--sh-xs)]':
               variant === 'secondary',
             'bg-transparent text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface2)]':

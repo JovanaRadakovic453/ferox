@@ -291,7 +291,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
                 height: 96,
                 borderRadius: 26,
                 background: 'var(--gold)',
-                boxShadow: 'var(--sh-gold), 0 0 64px rgba(212,116,42,0.28)',
+                boxShadow: 'var(--sh-gold), 0 0 64px var(--gold-tint)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -300,7 +300,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
             >
               <span
                 className="logo"
-                style={{ color: '#fff', fontSize: '3rem', textShadow: '0 2px 10px rgba(0,0,0,0.18)' }}
+                style={{ color: 'var(--gold-fg)', fontSize: '3rem', textShadow: '0 2px 10px rgba(0,0,0,0.18)' }}
               >
                 F
               </span>

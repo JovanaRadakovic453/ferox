@@ -146,7 +146,7 @@ export default function CalendarGrid({
                 style={{
                   background: isToday && isSelected ? 'var(--gold)' : 'transparent',
                   color: isToday && isSelected
-                    ? '#fff'
+                    ? 'var(--gold-fg)'
                     : isToday
                     ? 'var(--gold)'
                     : isSelected

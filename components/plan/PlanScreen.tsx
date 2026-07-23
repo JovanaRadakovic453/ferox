@@ -167,20 +167,20 @@ export default function PlanScreen({
 
   const fireConfetti = useCallback((isLast: boolean) => {
     if (typeof window === 'undefined') return
-    const gold = '#C9A84C'
-    const cream = '#F5ECD7'
+    const menta = '#8ED0BC'
+    const pistaci = '#CFE3A0'
     const white = '#FFFFFF'
     if (isLast) {
       // Grand finale — dupli top pucanj
-      const shared = { particleCount: 120, spread: 80, colors: [gold, cream, white, '#E8D5A3', '#B8963C'] }
+      const shared = { particleCount: 120, spread: 80, colors: [menta, pistaci, white, '#DCECB8', '#35663F'] }
       confetti({ ...shared, origin: { x: 0.3, y: 0.6 }, angle: 60 })
       confetti({ ...shared, origin: { x: 0.7, y: 0.6 }, angle: 120 })
       setTimeout(() => {
-        confetti({ particleCount: 80, spread: 100, origin: { x: 0.5, y: 0.5 }, colors: [gold, cream, white], scalar: 1.2 })
+        confetti({ particleCount: 80, spread: 100, origin: { x: 0.5, y: 0.5 }, colors: [menta, pistaci, white], scalar: 1.2 })
       }, 200)
     } else {
       // Mali pljusak rasut po celom ekranu — 3 nasumične tačke
-      const colors = [gold, cream, white]
+      const colors = [menta, pistaci, white]
       ;[
         { x: Math.random() * 0.4 + 0.1, y: Math.random() * 0.4 + 0.1 },
         { x: Math.random() * 0.4 + 0.5, y: Math.random() * 0.4 + 0.1 },

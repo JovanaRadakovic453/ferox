@@ -31,7 +31,7 @@ export default function InstallBanner() {
         <p className="text-sm flex-1" style={{ color: 'var(--text)' }}>{t.common.installBanner}</p>
         <button
           onClick={async () => { evt.prompt(); await evt.userChoice; setEvt(null) }}
-          className="text-xs font-semibold px-3 py-1.5 rounded-full text-white shrink-0"
+          className="text-xs font-semibold px-3 py-1.5 rounded-full text-[var(--gold-fg)] shrink-0"
           style={{ backgroundImage: 'linear-gradient(135deg, var(--gold), var(--gold-deep))' }}
         >
           {t.common.add}
