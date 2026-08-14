@@ -116,6 +116,11 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
   // pri sledećem otvaranju. Ručno uneti/preneseni nemaju scheduledId → samo se sklone.
   function removeTaskAt(i: number) {
     const removed = tasks[i]
+    // Višednevni (rok u budućnosti) briše se sa svih narednih dana — pitaj prvo,
+    // da se ne obriše slučajno. Ponavljanje su odvojeni redovi, njih ne pitamo.
+    if (removed?.scheduledId && removed.deadline_date && removed.deadline_date > todayKey(tz)) {
+      if (!window.confirm(t.common.deleteScheduledConfirm)) return
+    }
     setTasks(prev => prev.filter((_, idx) => idx !== i))
     if (removed?.scheduledId) {
       fetch(`/api/scheduled-tasks/${removed.scheduledId}`, { method: 'DELETE' }).catch(() => {})

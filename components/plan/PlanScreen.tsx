@@ -429,6 +429,14 @@ export default function PlanScreen({
   async function deleteTask(taskId: string) {
     const task = tasks.find(t => t.id === taskId)
     if (!task) return
+
+    // Zadatak sa rokom u budućnosti je JEDAN red prikazan na svakom danu do roka —
+    // ✕ ga briše sa svih tih dana. Pitamo, da se višednevni ne obriše slučajno.
+    // (Ponavljanje su odvojeni redovi: ✕ tamo dira samo taj dan, pa se ne pita.)
+    if (task.scheduled_id && task.deadline_date && task.deadline_date > todayKey(tz)) {
+      if (!window.confirm(t.common.deleteScheduledConfirm)) return
+    }
+
     setTasks(prev => prev.filter(t => t.id !== taskId))
     const supabase = createClient()
 
