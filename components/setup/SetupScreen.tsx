@@ -111,6 +111,16 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
   function addTask(draft: { name: string; note: string; priority: Priority; type: TaskType }) {
     setTasks(prev => [...prev, { ...draft, done: false }])
   }
+  // ✕ nad zadatkom u editoru. Ako zadatak potiče iz Kalendara (zakazan ili
+  // promašen → ima scheduledId), briše se i original — inače bi se sam vratio
+  // pri sledećem otvaranju. Ručno uneti/preneseni nemaju scheduledId → samo se sklone.
+  function removeTaskAt(i: number) {
+    const removed = tasks[i]
+    setTasks(prev => prev.filter((_, idx) => idx !== i))
+    if (removed?.scheduledId) {
+      fetch(`/api/scheduled-tasks/${removed.scheduledId}`, { method: 'DELETE' }).catch(() => {})
+    }
+  }
   function addAppointment(a: { name: string; time: string; reminder: number; endTime?: string | null }) {
     const { endTime, ...rest } = a
     setAppointments(prev => [...prev, { ...rest, end_time: endTime ?? null, done: false }])
@@ -467,7 +477,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
             <TaskEditor
               tasks={tasks}
               onAdd={addTask}
-              onRemove={i => setTasks(prev => prev.filter((_, idx) => idx !== i))}
+              onRemove={removeTaskAt}
               onUpdate={(i, patch) => setTasks(prev => prev.map((t, idx) => idx === i ? { ...t, ...patch } : t))}
             />
 

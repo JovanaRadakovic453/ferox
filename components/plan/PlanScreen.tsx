@@ -440,6 +440,13 @@ export default function PlanScreen({
       return
     }
 
+    // Zakazan/promašen zadatak iz Kalendara: ✕ ga briše ZA STALNO (kao ✕ u
+    // Kalendaru), inače bi original ostao i vratio se pri sledećem otvaranju.
+    // „Ne danas, ali kasnije" = dugme Odloži; ✕ znači ukloni sasvim.
+    if (task.scheduled_id && !isOffline()) {
+      await supabase.from('scheduled_tasks').delete().eq('id', task.scheduled_id)
+    }
+
     // Bez mreže brisanje čeka u redu. Ako je zadatak i NASTAO offline, mergeOp
     // poništi oba poteza — na server nikad ništa nije ni otišlo.
     if (isOffline()) {
