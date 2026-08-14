@@ -234,15 +234,96 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
         <p className="text-sm mt-1.5" style={{ color: 'var(--text-muted)' }}>{email}</p>
       </header>
 
-      <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
-      <div className="flex flex-col gap-5">
+      {/* Dve kolone. Raspored: levo Profil · Izgled · Podsetnik, desno Slobodni ·
+          Aplikacija · Google. Poravnanje DONJIH ivica ne postiže se ručnim slaganjem
+          (dve gomile kartica retko izađu na isti piksel) nego pravilom: obe kolone
+          iste visine (items-stretch) + poslednja kartica legne na dno (justify-between).
+          Tako se dna poklope bez obzira na sadržaj i buduće izmene. */}
+      <div className="grid gap-5 lg:grid-cols-2 lg:items-stretch">
+      {/* Leva kolona */}
+      <div className="flex flex-col gap-5 lg:justify-between">
       {/* Profil */}
       <section className="card p-5 flex flex-col gap-4">
         <p className="section-label">{t.settings.profileSection}</p>
         <Input id="name" label={t.settings.name} value={name} onChange={e => setName(e.target.value)} />
       </section>
 
-      {/* Slobodni dani */}
+      {/* Izgled — tema, animacije i zvuk. Grupisano ovde (levo) da leva kolona
+          poraste i poravna se sa desnom; tema je tako i „gore", kako je traženo. */}
+      <section className="card p-5 flex flex-col gap-4">
+        <p className="section-label">{t.settings.appearanceSection}</p>
+        <div>
+          <label className="text-xs mb-1.5 block font-medium" style={{ color: 'var(--text-muted)' }}>{t.settings.theme}</label>
+          <ThemeToggle onChange={persistTheme} />
+        </div>
+        <label className="flex items-center justify-between">
+          <span className="text-sm">{t.settings.microFeedback}</span>
+          <input type="checkbox" checked={microFeedback} onChange={e => setMicroFeedback(e.target.checked)} className="w-5 h-5 accent-[var(--gold)]" />
+        </label>
+        <label className="flex items-center justify-between">
+          <span className="text-sm">{t.settings.sound}</span>
+          <input type="checkbox" checked={soundEnabled} onChange={e => setSoundEnabled(e.target.checked)} className="w-5 h-5 accent-[var(--gold)]" />
+        </label>
+      </section>
+
+      {/* Jutarnji podsetnik — sopstvena kartica (ranije nabijen u „Aplikacija") */}
+      <section className="card p-5 flex flex-col gap-4">
+        <p className="section-label">{t.settings.morningReminder}</p>
+        {notifActive ? (
+          <div className="flex flex-col gap-2">
+            <div
+              className="flex items-center gap-3 px-3.5 py-3 rounded-[var(--r-md)]"
+              style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}
+            >
+              <LineIcon name="bell" size={17} style={{ color: 'var(--gold)' }} />
+              <span className="flex-1 text-sm font-semibold" style={{ color: 'var(--text)' }}>
+                {t.settings.reminderActive}
+              </span>
+              <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: 'var(--gold-tint)', color: 'var(--gold)' }}>{t.settings.activeBadge}</span>
+            </div>
+            {hourPicker}
+            <button
+              type="button"
+              onClick={sendTestNotification}
+              disabled={testLoading}
+              className="w-full text-xs h-8 rounded-[var(--r-md)] font-medium transition-opacity disabled:opacity-40"
+              style={{ background: 'var(--gold-tint)', color: 'var(--gold)', border: '1px solid var(--gold)' }}
+            >
+              {testLoading ? '...' : t.settings.sendTest}
+            </button>
+            <button
+              type="button"
+              onClick={deactivateNotifications}
+              disabled={notifLoading}
+              className="text-xs text-left transition-opacity hover:opacity-70 disabled:opacity-30"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              {t.settings.turnOffReminders}
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {hourPicker}
+            <button
+              type="button"
+              onClick={activateNotifications}
+              disabled={notifLoading}
+              className="w-full text-sm h-9 rounded-[var(--r-md)] font-medium transition-opacity disabled:opacity-40"
+              style={{ background: 'var(--gold-tint)', color: 'var(--gold)', border: '1px solid var(--gold)' }}
+            >
+              {notifLoading ? t.settings.activating : t.settings.activateReminder}
+            </button>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              {t.settings.reminderHint}
+            </p>
+          </div>
+        )}
+      </section>
+      </div>
+
+      {/* Desna kolona */}
+      <div className="flex flex-col gap-5 lg:justify-between">
+      {/* Slobodni dani — prešli desno (uz Profil levo, kao par gore) da se kolone poravnaju */}
       <section className="card p-5 flex flex-col gap-4">
         <p className="section-label">{t.settings.restDaysSection}</p>
         <div>
@@ -253,9 +334,7 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
         </div>
       </section>
 
-      </div>
-      <div className="flex flex-col gap-5">
-      {/* Aplikacija */}
+      {/* Aplikacija — jezik i vremenska zona */}
       <section className="card p-5 flex flex-col gap-4">
         <p className="section-label">{t.settings.appSection}</p>
         <div>
@@ -281,116 +360,43 @@ export default function SettingsForm({ profile, email }: { profile: UserProfile;
           </div>
           <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>{t.settings.timezoneHint}</p>
         </div>
-        <div>
-          <label className="text-xs mb-1.5 block font-medium" style={{ color: 'var(--text-muted)' }}>{t.settings.theme}</label>
-          <ThemeToggle onChange={persistTheme} />
-        </div>
-        <label className="flex items-center justify-between">
-          <span className="text-sm">{t.settings.microFeedback}</span>
-          <input type="checkbox" checked={microFeedback} onChange={e => setMicroFeedback(e.target.checked)} className="w-5 h-5 accent-[var(--gold)]" />
-        </label>
-        <label className="flex items-center justify-between">
-          <span className="text-sm">{t.settings.sound}</span>
-          <input type="checkbox" checked={soundEnabled} onChange={e => setSoundEnabled(e.target.checked)} className="w-5 h-5 accent-[var(--gold)]" />
-        </label>
-        <div className="flex flex-col gap-3">
-          {/* Naslov CELOG bloka (ima dugmad ispod), ne natpis iznad jednog polja —
-              zato jači od ostalih labela. Sa `text-muted` je bio jedva vidljiv. */}
-          <label className="text-sm font-semibold block" style={{ color: 'var(--text)' }}>
-            {t.settings.morningReminder}
-          </label>
+      </section>
 
-          {notifActive ? (
-            <div className="flex flex-col gap-2">
-              <div
-                className="flex items-center gap-3 px-3.5 py-3 rounded-[var(--r-md)]"
-                style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}
-              >
-                <LineIcon name="bell" size={17} style={{ color: 'var(--gold)' }} />
-                <span className="flex-1 text-sm font-semibold" style={{ color: 'var(--text)' }}>
-                  {t.settings.reminderActive}
-                </span>
-                <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: 'var(--gold-tint)', color: 'var(--gold)' }}>{t.settings.activeBadge}</span>
-              </div>
-              {hourPicker}
-              <button
-                type="button"
-                onClick={sendTestNotification}
-                disabled={testLoading}
-                className="w-full text-xs h-8 rounded-[var(--r-md)] font-medium transition-opacity disabled:opacity-40"
-                style={{ background: 'var(--gold-tint)', color: 'var(--gold)', border: '1px solid var(--gold)' }}
-              >
-                {testLoading ? '...' : t.settings.sendTest}
-              </button>
-              <button
-                type="button"
-                onClick={deactivateNotifications}
-                disabled={notifLoading}
-                className="text-xs text-left transition-opacity hover:opacity-70 disabled:opacity-30"
-                style={{ color: 'var(--text-muted)' }}
-              >
-                {t.settings.turnOffReminders}
-              </button>
+      {/* Google Kalendar — sopstvena kartica */}
+      <section className="card p-5 flex flex-col gap-4">
+        <p className="section-label">{t.settings.googleCal}</p>
+        {googleConnected ? (
+          <div className="flex items-center justify-between px-3.5 py-3 rounded-[var(--r-md)]"
+            style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold" style={{ color: 'var(--gold)' }}>{t.settings.connected}</span>
+              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t.settings.connectedHint}</span>
             </div>
-          ) : (
-            <div className="flex flex-col gap-2">
-              {hourPicker}
-              <button
-                type="button"
-                onClick={activateNotifications}
-                disabled={notifLoading}
-                className="w-full text-sm h-9 rounded-[var(--r-md)] font-medium transition-opacity disabled:opacity-40"
-                style={{ background: 'var(--gold-tint)', color: 'var(--gold)', border: '1px solid var(--gold)' }}
-              >
-                {notifLoading ? t.settings.activating : t.settings.activateReminder}
-              </button>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                {t.settings.reminderHint}
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Google Kalendar */}
-        <div className="flex flex-col gap-3">
-          {/* Naslov CELOG bloka (ima dugmad ispod), ne natpis iznad jednog polja —
-              zato jači od ostalih labela. Sa `text-muted` je bio jedva vidljiv. */}
-          <label className="text-sm font-semibold block" style={{ color: 'var(--text)' }}>
-            {t.settings.googleCal}
-          </label>
-          {googleConnected ? (
-            <div className="flex items-center justify-between px-3.5 py-3 rounded-[var(--r-md)]"
-              style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold" style={{ color: 'var(--gold)' }}>{t.settings.connected}</span>
-                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t.settings.connectedHint}</span>
-              </div>
-              <button
-                type="button"
-                onClick={disconnectGoogle}
-                disabled={googleDisconnecting}
-                className="text-xs transition-opacity hover:opacity-70 disabled:opacity-30"
-                style={{ color: 'var(--text-muted)' }}
-              >
-                {googleDisconnecting ? '...' : t.settings.disconnect}
-              </button>
-            </div>
-          ) : (
-            <a
-              href="/api/integrations/google/auth"
-              className="flex items-center justify-center gap-2 w-full text-sm h-9 rounded-[var(--r-md)] font-medium transition-opacity hover:opacity-80"
-              style={{ background: 'var(--surface2)', color: 'var(--text)', border: '1px solid var(--border)' }}
+            <button
+              type="button"
+              onClick={disconnectGoogle}
+              disabled={googleDisconnecting}
+              className="text-xs transition-opacity hover:opacity-70 disabled:opacity-30"
+              style={{ color: 'var(--text-muted)' }}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-              </svg>
-              {t.settings.connectGoogle}
-            </a>
-          )}
-        </div>
+              {googleDisconnecting ? '...' : t.settings.disconnect}
+            </button>
+          </div>
+        ) : (
+          <a
+            href="/api/integrations/google/auth"
+            className="flex items-center justify-center gap-2 w-full text-sm h-9 rounded-[var(--r-md)] font-medium transition-opacity hover:opacity-80"
+            style={{ background: 'var(--surface2)', color: 'var(--text)', border: '1px solid var(--border)' }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+            </svg>
+            {t.settings.connectGoogle}
+          </a>
+        )}
       </section>
       </div>
       </div>

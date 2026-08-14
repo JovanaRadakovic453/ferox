@@ -336,7 +336,11 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
             {t.setup.backToday}
           </Link>
         )}
-        <header className="flex flex-col gap-6 lg:-mt-4 -mb-5 animate-fade-slide">
+        <div className="flex flex-col gap-9 lg:grid lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-10 lg:items-start">
+          {/* Leva kolona: pozdrav + unos zajedno. Pozdrav je UNUTAR kolone da
+              desni „Pregled" panel skoči uz vrh i popuni prazninu gore-desno. */}
+          <div className="flex flex-col gap-9">
+        <header className="flex flex-col gap-6 -mb-5 animate-fade-slide">
           <div className="flex items-center justify-between lg:hidden">
             <span className="flex items-center gap-2">
               <span
@@ -401,7 +405,6 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
           </div>
         </header>
 
-        <div className="flex flex-col gap-9 lg:grid lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-10 lg:items-start">
           <div className="flex flex-col gap-9 stagger">
 
             <BrainDumpCard onPlan={setPlan} onLoadingChange={setBrainDumpLoading} />
@@ -507,6 +510,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
                 </button>
               </>
             )}
+          </div>
           </div>
 
           <PreviewRail
