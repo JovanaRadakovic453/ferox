@@ -126,6 +126,21 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
       fetch(`/api/scheduled-tasks/${removed.scheduledId}`, { method: 'DELETE' }).catch(() => {})
     }
   }
+
+  // „Preskoči danas" za zadatak iz Kalendara: pomeramo mu početak na sutra, pa
+  // danas ne iskoči, a od sutra do roka nastavlja normalno. Bez brisanja —
+  // suprotno od ✕. Ako pomeranje padne, vrati ga na spisak da se ne izgubi tiho.
+  async function skipTaskToday(i: number) {
+    const task = tasks[i]
+    if (!task?.scheduledId) return
+    setTasks(prev => prev.filter((_, idx) => idx !== i))
+    const res = await fetch(`/api/scheduled-tasks/${task.scheduledId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ for_date: addDays(todayKey(tz), 1) }),
+    }).catch(() => null)
+    if (!res || !res.ok) setTasks(prev => [...prev, task])
+  }
   function addAppointment(a: { name: string; time: string; reminder: number; endTime?: string | null }) {
     const { endTime, ...rest } = a
     setAppointments(prev => [...prev, { ...rest, end_time: endTime ?? null, done: false }])
@@ -483,6 +498,7 @@ export default function SetupScreen({ profile, targetDate, transferredTasks = []
               tasks={tasks}
               onAdd={addTask}
               onRemove={removeTaskAt}
+              onSkipToday={skipTaskToday}
               onUpdate={(i, patch) => setTasks(prev => prev.map((t, idx) => idx === i ? { ...t, ...patch } : t))}
             />
 

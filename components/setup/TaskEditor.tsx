@@ -13,12 +13,14 @@ type TaskDraft = { name: string; note: string; priority: Priority; type: TaskTyp
 type TaskPatch = { priority?: Priority }
 
 export default function TaskEditor({
-  tasks, onAdd, onRemove, onUpdate,
+  tasks, onAdd, onRemove, onUpdate, onSkipToday,
 }: {
   tasks: Task[]
   onAdd: (t: TaskDraft) => void
   onRemove: (index: number) => void
   onUpdate?: (index: number, patch: TaskPatch) => void
+  /** „Preskoči danas" — samo za zadatke iz Kalendara (imaju scheduledId). */
+  onSkipToday?: (index: number) => void
 }) {
   const tr = useT()
   const locale = useLocale()
@@ -46,7 +48,10 @@ export default function TaskEditor({
 
       {tasks.length > 0 && (
         <div className="flex flex-col gap-2.5">
-          {tasks.map((t, i) => (
+          {tasks.map((t, i) => {
+            const dl = t.deadline_date ? getDeadlineBadge(t.deadline_date, today, locale) : null
+            const scheduled = !!t.scheduledId
+            return (
             <div key={i} className="flex flex-col gap-3 p-3.5 rounded-[var(--r-sm)]" style={{ background: 'var(--surface2)' }}>
               <div className="flex items-center gap-3">
                 <span className="text-[0.65rem] font-semibold px-2 py-0.5 rounded-full shrink-0" style={{
@@ -60,18 +65,30 @@ export default function TaskEditor({
                       u planu, pa jedan ne sme da bude podebljan u odnosu na drugi. */}
                   <p className="text-sm truncate">{t.name}</p>
                   {/* Rok se vidi već DOK se pravi plan, ne tek u planu — zadatak iz
-                      Kalendara često dolazi sa rokom, pa korisnik odmah zna dokle ima. */}
-                  {(() => {
-                    const dl = t.deadline_date ? getDeadlineBadge(t.deadline_date, today, locale) : null
-                    return dl ? (
-                      <span
-                        className="inline-flex items-center gap-1 text-[0.62rem] font-semibold px-2 py-0.5 rounded-full mt-1"
-                        style={{ color: dl.color, background: 'color-mix(in srgb, currentColor 12%, transparent)' }}
-                      >
-                        <span aria-hidden>▲</span> {dl.text}
-                      </span>
-                    ) : null
-                  })()}
+                      Kalendara često dolazi sa rokom, pa korisnik odmah zna dokle ima.
+                      Uz rok stoji „Preskoči danas" — samo za zadatke iz Kalendara. */}
+                  {(dl || (scheduled && onSkipToday)) && (
+                    <div className="flex items-center gap-2 flex-wrap mt-1">
+                      {dl && (
+                        <span
+                          className="inline-flex items-center gap-1 text-[0.62rem] font-semibold px-2 py-0.5 rounded-full"
+                          style={{ color: dl.color, background: 'color-mix(in srgb, currentColor 12%, transparent)' }}
+                        >
+                          <span aria-hidden>▲</span> {dl.text}
+                        </span>
+                      )}
+                      {scheduled && onSkipToday && (
+                        <button
+                          onClick={() => onSkipToday(i)}
+                          className="text-[0.62rem] font-medium hover:underline underline-offset-2"
+                          style={{ color: 'var(--text-muted)' }}
+                          title={tr.setup.skipTodayHint}
+                        >
+                          {tr.setup.skipToday} <span style={{ opacity: 0.7 }}>· {tr.setup.skipTodayHint}</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
                 {onUpdate && (
                   <button onClick={() => setEditingIndex(editingIndex === i ? null : i)}
@@ -96,7 +113,8 @@ export default function TaskEditor({
                 </div>
               )}
             </div>
-          ))}
+            )
+          })}
         </div>
       )}
 

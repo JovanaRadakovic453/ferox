@@ -15,6 +15,9 @@ const updateSchema = z.object({
   note: z.string().max(500).optional(),
   remind_before_minutes: z.number().int().min(1).max(REMIND_MAX_MINUTES).nullable().optional(),
   deadline_date: zStrictDate.nullable().optional(),
+  // Pomeranje početnog dana — „Preskoči danas" postavlja for_date na sutra, pa
+  // zadatak preskoči danas a ostane za naredne dane (do roka).
+  for_date: zStrictDate.optional(),
 })
 
 export async function PATCH(
