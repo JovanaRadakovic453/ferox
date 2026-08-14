@@ -4,7 +4,7 @@ import SetupScreen from '@/components/setup/SetupScreen'
 import EodLanding from '@/components/plan/EodLanding'
 import { todayKey, tomorrowKey, toTimezone } from '@/lib/date'
 import { computeStreak } from '@/lib/streak'
-import { scheduledOnDay } from '@/lib/schedule'
+import { scheduledOnDay, overdueScheduled } from '@/lib/schedule'
 import type { UserProfile, Task, Appointment } from '@/types/ferox'
 
 // Bez ovoga pregledač pamti prethodni prikaz ove strane: zakažeš zadatak u
@@ -52,7 +52,11 @@ export default async function SetupPage({
   const isSutra = params.sutra === '1'
   const isEdit = params.edit === '1'
 
-  const targetDate = isSutra ? tomorrowKey(tz) : todayKey(tz)
+  const today = todayKey(tz)
+  const targetDate = isSutra ? tomorrowKey(tz) : today
+  // Propuštene (zakazane a promašene) zadatke nudimo samo kad se planira DANAS —
+  // ne sme da se prošlo gomila u sutrašnji plan.
+  const includeOverdue = targetDate === today
 
   const { data: entry } = await supabase
     .from('day_entries')
@@ -153,12 +157,16 @@ export default async function SetupPage({
     // Od migracije 0022 zakazan zadatak ostaje otvoren (done=false) i dok JESTE u
     // planu, pa se već uneti preskaču po vezi — inače bi se u editoru duplirali.
     const linkedIds = new Set(initialTasks.map(t => t.scheduledId).filter(Boolean))
-    const pending = scheduledOnDay((pendingScheduled ?? []) as ScheduledPick[], targetDate)
-      .filter(t => !linkedIds.has(t.id))
-    if (pending.length > 0) {
+    const rows = (pendingScheduled ?? []) as ScheduledPick[]
+    const pending = scheduledOnDay(rows, targetDate).filter(t => !linkedIds.has(t.id))
+    // Promašeni (bez roka, dan prošao) — ponudi ih danas, sa danom kao „rokom"
+    // da izbiju na vrh sa crvenom oznakom „Rok prošao".
+    const overduePending = (includeOverdue ? overdueScheduled(rows, today) : []).filter(t => !linkedIds.has(t.id))
+    if (pending.length > 0 || overduePending.length > 0) {
       initialTasks = [
         ...initialTasks,
         ...pending.map(t => ({ name: t.name, priority: t.priority, type: t.type ?? 'light', note: t.note ?? '', done: false, deadline_date: t.deadline_date ?? null, scheduledId: t.id })),
+        ...overduePending.map(t => ({ name: t.name, priority: t.priority, type: t.type ?? 'light', note: t.note ?? '', done: false, deadline_date: t.deadline_date ?? t.for_date, scheduledId: t.id })),
       ]
     }
   } else {
@@ -186,11 +194,18 @@ export default async function SetupPage({
     ])
     initialAppointments = (apptRows ?? []) as Appointment[]
     const filtered = ((transferred?.tasks ?? []) as Task[]).filter((t: Task) => !t.done)
-    const scheduled = scheduledOnDay((scheduledRows ?? []) as ScheduledPick[], targetDate)
+    const rows = (scheduledRows ?? []) as ScheduledPick[]
+    const scheduled = scheduledOnDay(rows, targetDate)
+    // Promašeni (zakazan a dan prošao, bez roka) — da ne nestanu tiho, ponovo se
+    // nude danas. Dan im postaje „rok" pa izbiju na vrh sa oznakom „Rok prošao".
+    const overdue = includeOverdue ? overdueScheduled(rows, today) : []
     // Zakazani za ovaj dan idu PRAVO u plan (korisnik ih je u kalendaru već
     // zakazao za taj dan) — ne kao predlog. scheduledId putuje s njima da bi se
     // pri snimanju označili SAMO oni koji su stvarno ostali u planu.
-    const scheduledMapped = scheduled.map(t => ({ name: t.name, priority: t.priority, type: t.type ?? 'light', note: t.note ?? '', done: false, deadline_date: t.deadline_date ?? null, scheduledId: t.id }))
+    const scheduledMapped = [
+      ...scheduled.map(t => ({ name: t.name, priority: t.priority, type: t.type ?? 'light', note: t.note ?? '', done: false, deadline_date: t.deadline_date ?? null, scheduledId: t.id })),
+      ...overdue.map(t => ({ name: t.name, priority: t.priority, type: t.type ?? 'light', note: t.note ?? '', done: false, deadline_date: t.deadline_date ?? t.for_date, scheduledId: t.id })),
+    ]
     initialTasks = filtered
     // Baner/predlozi su samo za PRENESENE zadatke (tu korisnik bira).
     showTransferBanner = filtered.length > 0

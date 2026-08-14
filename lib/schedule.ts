@@ -31,6 +31,28 @@ export function scheduledOnDay<T extends SpannableTask>(tasks: T[], day: string)
   return tasks.filter(t => showsOnDay(t, day))
 }
 
+/**
+ * Propušten zakazan zadatak: njegov dan (ili rok) je prošao, a nije odrađen.
+ *
+ * Zašto postoji: zadatak bez roka „živi" samo na svom danu (`showsOnDay`). Kad
+ * taj dan prođe a plan tog dana nije napravljen, zadatak nigde više ne iskoči —
+ * tiho nestane. Ovim ga hvatamo da bi ga „danas" ponovo ponudili.
+ *
+ *  • serija → nikad (propušteno pojavljivanje se ne gomila — isto pravilo kao showsOnDay).
+ *  • ima rok → propušten tek kad i rok prođe (do tada se vidi kroz `showsOnDay`).
+ *  • bez roka → propušten čim mu dan prođe.
+ */
+export function isOverdue(task: SpannableTask, today: string): boolean {
+  if (task.repeat_id) return false
+  const lastDay = task.deadline_date ?? task.for_date
+  return lastDay < today
+}
+
+/** Propušteni zakazani zadaci (za ponovno nuđenje „danas"). Podrazumeva done=false (filtrira upit). */
+export function overdueScheduled<T extends SpannableTask>(tasks: T[], today: string): T[] {
+  return tasks.filter(t => isOverdue(t, today))
+}
+
 /** Svi dani na kojima se bar jedan zadatak vidi — za tačkice u mreži kalendara. */
 export function scheduledDateSet(tasks: SpannableTask[]): Set<string> {
   const out = new Set<string>()

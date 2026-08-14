@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import PlanScreen from '@/components/plan/PlanScreen'
 import { todayKey, tomorrowKey, isValidDayKey, addDays, toTimezone } from '@/lib/date'
 import { computeStreak } from '@/lib/streak'
-import { scheduledOnDay } from '@/lib/schedule'
+import { scheduledOnDay, overdueScheduled } from '@/lib/schedule'
 import type { Task, Appointment, DayEntry, UserProfile } from '@/types/ferox'
 
 export const dynamic = 'force-dynamic'
@@ -47,7 +47,7 @@ export default async function PlanPage({
       ? supabase.from('scheduled_tasks').select('id, for_date, remind_before_minutes').eq('user_id', user.id).eq('done', false).not('remind_before_minutes', 'is', null).gt('for_date', today).lte('for_date', addDays(today, 99))
       : Promise.resolve({ data: [] }),
     isToday
-      ? supabase.from('scheduled_tasks').select('name, deadline_date').eq('user_id', user.id).eq('done', false).not('deadline_date', 'is', null).lte('deadline_date', today).order('deadline_date')
+      ? supabase.from('scheduled_tasks').select('id, name, deadline_date').eq('user_id', user.id).eq('done', false).not('deadline_date', 'is', null).lte('deadline_date', today).order('deadline_date')
       : Promise.resolve({ data: [] }),
   ])
 
@@ -72,12 +72,22 @@ export default async function PlanPage({
       .eq('done', false)
 
     const alreadyIn = new Set(dayTasks.map(t => t.scheduled_id).filter(Boolean))
-    const toAdd = scheduledOnDay(openScheduled ?? [], viewDate)
-      .filter(s => !alreadyIn.has(s.id))
+    const normalAdd = scheduledOnDay(openScheduled ?? [], viewDate).filter(s => !alreadyIn.has(s.id))
+    const normalIds = new Set(normalAdd.map(s => s.id))
+    // Promašeni (bez roka, dan prošao) — da ne nestanu tiho, ulaze u DANAŠNJI plan
+    // sa svojim danom kao „rokom", pa izbiju na vrh sa crvenom oznakom „Rok prošao".
+    const overdueAdd = (isToday ? overdueScheduled(openScheduled ?? [], today) : [])
+      .filter(s => !alreadyIn.has(s.id) && !normalIds.has(s.id))
+
+    // Par (zadatak, rok koji upisujemo): promašenima dan postaje rok, ostalima ostaje njihov.
+    const toAdd = [
+      ...normalAdd.map(s => ({ s, deadline: s.deadline_date ?? null })),
+      ...overdueAdd.map(s => ({ s, deadline: s.deadline_date ?? s.for_date })),
+    ]
 
     if (toAdd.length > 0) {
       const { data: addedRows } = await supabase.from('tasks').insert(
-        toAdd.map((s, i) => ({
+        toAdd.map(({ s, deadline }, i) => ({
           entry_id: entry.id,
           user_id: user.id,
           name: s.name,
@@ -86,13 +96,21 @@ export default async function PlanPage({
           note: s.note ?? '',
           done: false,
           position: dayTasks.length + i,
-          deadline_date: s.deadline_date ?? null,
+          deadline_date: deadline,
           scheduled_id: s.id,
         }))
       ).select('*')
       dayTasks.push(...((addedRows ?? []) as Task[]))
     }
   }
+
+  // Rok-upozorenje pominje SAMO zakazane koji NISU u planu — one koje smo upravo
+  // uvukli (promašene i one sa rokom danas) pokriva već njihova kartica, pa bi
+  // inače bili navedeni dvaput.
+  const linkedScheduledIds = new Set(dayTasks.map(t => t.scheduled_id).filter(Boolean))
+  const overdueWarnings = ((overdueDeadlines ?? []) as { id: string; name: string; deadline_date: string }[])
+    .filter(o => !linkedScheduledIds.has(o.id))
+    .map(o => ({ name: o.name, deadline_date: o.deadline_date }))
 
   return (
     <PlanScreen
@@ -109,7 +127,7 @@ export default async function PlanPage({
           const days = Math.ceil(t.remind_before_minutes / 1440)
           return addDays(today, days) === t.for_date
         }).length}
-      overdueScheduled={(overdueDeadlines ?? []) as { name: string; deadline_date: string }[]}
+      overdueScheduled={overdueWarnings}
     />
   )
 }

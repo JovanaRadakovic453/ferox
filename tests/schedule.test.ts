@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { showsOnDay, scheduledOnDay, scheduledDateSet } from '@/lib/schedule'
+import { showsOnDay, scheduledOnDay, scheduledDateSet, isOverdue, overdueScheduled } from '@/lib/schedule'
 
 const projekat = { for_date: '2026-08-01', deadline_date: '2026-08-05', repeat_id: null }
 const bezRoka = { for_date: '2026-08-01', deadline_date: null, repeat_id: null }
@@ -56,5 +56,46 @@ describe('scheduledDateSet — tačkice u mreži kalendara', () => {
     expect([...scheduledDateSet([preko])].sort()).toEqual([
       '2026-08-30', '2026-08-31', '2026-09-01', '2026-09-02',
     ])
+  })
+})
+
+describe('isOverdue — promašen zakazan zadatak', () => {
+  const today = '2026-08-14'
+
+  it('bez roka: propušten čim mu dan prođe', () => {
+    expect(isOverdue({ for_date: '2026-08-11', deadline_date: null, repeat_id: null }, today)).toBe(true)
+  })
+
+  it('bez roka: dan je danas → još nije promašen (ide kroz normalan tok)', () => {
+    expect(isOverdue({ for_date: today, deadline_date: null, repeat_id: null }, today)).toBe(false)
+  })
+
+  it('bez roka: dan je u budućnosti → nije promašen', () => {
+    expect(isOverdue({ for_date: '2026-08-20', deadline_date: null, repeat_id: null }, today)).toBe(false)
+  })
+
+  it('sa rokom: promašen tek kad i rok prođe', () => {
+    expect(isOverdue({ for_date: '2026-08-01', deadline_date: '2026-08-10', repeat_id: null }, today)).toBe(true)
+    // rok danas ili u budućnosti → još se vidi kroz showsOnDay, nije promašen
+    expect(isOverdue({ for_date: '2026-08-01', deadline_date: today, repeat_id: null }, today)).toBe(false)
+    expect(isOverdue({ for_date: '2026-08-01', deadline_date: '2026-08-20', repeat_id: null }, today)).toBe(false)
+  })
+
+  it('serija se nikad ne broji kao promašena (ne gomila se)', () => {
+    expect(isOverdue({ for_date: '2026-08-11', deadline_date: null, repeat_id: 'r1' }, today)).toBe(false)
+  })
+})
+
+describe('overdueScheduled + scheduledOnDay se ne preklapaju', () => {
+  const today = '2026-08-14'
+  const promasen = { for_date: '2026-08-11', deadline_date: null, repeat_id: null }
+  const zaDanas = { for_date: today, deadline_date: null, repeat_id: null }
+  const uToku = { for_date: '2026-08-10', deadline_date: '2026-08-20', repeat_id: null } // projekat u toku
+
+  it('promašen je u overdue, a NE u scheduledOnDay(danas)', () => {
+    const svi = [promasen, zaDanas, uToku]
+    expect(overdueScheduled(svi, today)).toEqual([promasen])
+    // zaDanas i uToku se vide danas normalno; promasen ne
+    expect(scheduledOnDay(svi, today)).toEqual([zaDanas, uToku])
   })
 })
