@@ -48,6 +48,7 @@ export default function DayPanel({
   scheduled,
   onAddTask,
   onRepeatedTasks,
+  onAppointmentAdded,
   onRemoveTask,
   onUpdateTask,
   googleConnected = false,
@@ -60,6 +61,8 @@ export default function DayPanel({
   onAddTask: (task: ScheduledTask) => void
   /** Serija je napravila zadatke na više dana — traži pun osvežaj kalendara. */
   onRepeatedTasks?: () => void
+  /** Termin je snimljen (tabela `appointments`) — traži pun osvežaj kalendara. */
+  onAppointmentAdded?: () => void
   onRemoveTask: (id: string) => void
   onUpdateTask: (updated: ScheduledTask) => void
   googleConnected?: boolean
@@ -348,6 +351,7 @@ export default function DayPanel({
         onClose={() => setAddOpen(false)}
         onAdd={task => { onAddTask(task); setAddOpen(false) }}
         onRepeated={() => { onRepeatedTasks?.(); setAddOpen(false) }}
+        onAppointmentAdded={() => { onAppointmentAdded?.(); setAddOpen(false) }}
         date={date}
       />
 

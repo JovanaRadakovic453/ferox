@@ -133,6 +133,7 @@ export default function CalendarView({
           scheduled={scheduledOnDay(panelScheduled, selectedDate)}
           onAddTask={addTask}
           onRepeatedTasks={() => router.refresh()}
+          onAppointmentAdded={() => router.refresh()}
           onRemoveTask={removeTask}
           onUpdateTask={updateTask}
           googleConnected={googleConnected}
