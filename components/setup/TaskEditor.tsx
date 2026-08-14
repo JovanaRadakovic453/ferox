@@ -65,31 +65,25 @@ export default function TaskEditor({
                       u planu, pa jedan ne sme da bude podebljan u odnosu na drugi. */}
                   <p className="text-sm truncate">{t.name}</p>
                   {/* Rok se vidi već DOK se pravi plan, ne tek u planu — zadatak iz
-                      Kalendara često dolazi sa rokom, pa korisnik odmah zna dokle ima.
-                      Uz rok stoji „Preskoči danas" — samo za zadatke iz Kalendara. */}
-                  {(dl || (scheduled && onSkipToday)) && (
-                    <div className="flex items-center gap-2 flex-wrap mt-1">
-                      {dl && (
-                        <span
-                          className="inline-flex items-center gap-1 text-[0.62rem] font-semibold px-2 py-0.5 rounded-full"
-                          style={{ color: dl.color, background: 'color-mix(in srgb, currentColor 12%, transparent)' }}
-                        >
-                          <span aria-hidden>▲</span> {dl.text}
-                        </span>
-                      )}
-                      {scheduled && onSkipToday && (
-                        <button
-                          onClick={() => onSkipToday(i)}
-                          className="text-[0.62rem] font-medium hover:underline underline-offset-2"
-                          style={{ color: 'var(--text-muted)' }}
-                          title={tr.setup.skipTodayHint}
-                        >
-                          {tr.setup.skipToday} <span style={{ opacity: 0.7 }}>· {tr.setup.skipTodayHint}</span>
-                        </button>
-                      )}
-                    </div>
+                      Kalendara često dolazi sa rokom, pa korisnik odmah zna dokle ima. */}
+                  {dl && (
+                    <span
+                      className="inline-flex items-center gap-1 text-[0.62rem] font-semibold px-2 py-0.5 rounded-full mt-1"
+                      style={{ color: dl.color, background: 'color-mix(in srgb, currentColor 12%, transparent)' }}
+                    >
+                      <span aria-hidden>▲</span> {dl.text}
+                    </span>
                   )}
                 </div>
+                {/* „Preskoči danas" stoji desno, uz ✎/✕ — samo za zadatke iz Kalendara.
+                    Sitni dodatak „ostaje za naredne dane" se krije na uskim ekranima. */}
+                {scheduled && onSkipToday && (
+                  <button onClick={() => onSkipToday(i)}
+                    className="text-[0.7rem] font-medium shrink-0 whitespace-nowrap opacity-70 hover:opacity-100 hover:underline underline-offset-2 transition-opacity"
+                    style={{ color: 'var(--text-muted)' }}>
+                    {tr.setup.skipToday}<span className="hidden sm:inline" style={{ opacity: 0.7 }}> · {tr.setup.skipTodayHint}</span>
+                  </button>
+                )}
                 {onUpdate && (
                   <button onClick={() => setEditingIndex(editingIndex === i ? null : i)}
                     className="text-xs shrink-0 opacity-40 hover:opacity-80 transition-opacity"
