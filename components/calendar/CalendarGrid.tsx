@@ -179,7 +179,9 @@ export default function CalendarGrid({
                 {hasAppt && (
                   <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#f97316' }} />
                 )}
-                {hasScheduled && !hasEntry && (
+                {/* Zakazan zadatak se u panelu vidi SAMO za danas/budućnost — pa i
+                    tačka mora tako, inače prošli dan dobije tačku bez ičega iza nje. */}
+                {hasScheduled && !hasEntry && (isFuture || isToday) && (
                   <span
                     className="w-1.5 h-1.5 rounded-full"
                     style={{ background: isFuture ? '#60a5fa' : 'var(--text-muted)' }}
@@ -200,7 +202,7 @@ export default function CalendarGrid({
                       {t.cal.apptAbbr}
                     </div>
                   )}
-                  {hasScheduled && !hasEntry && (
+                  {hasScheduled && !hasEntry && (isFuture || isToday) && (
                     <div className="text-[0.58rem] font-medium leading-tight" style={{ color: '#60a5fa' }}>
                       {t.cal.scheduledAbbr}
                     </div>
